@@ -67,14 +67,10 @@ export const useAuthStore = defineStore("auth", () => {
         try {
             loading.value = true;
 
-            const formData = new FormData();
-            formData.append(
-                "username",
-                credentials.email || credentials.username
-            );
-            formData.append("password", credentials.password);
-
-            const response = await fetcher.post("/auth/token", formData);
+            const response = await fetcher.post("/auth/token", {
+                username: credentials.email || credentials.username,
+                password: credentials.password,
+            });
 
             setTokens(response.data.access_token, response.data.refresh_token);
             user.value = (await fetcher.get("/me")).data;

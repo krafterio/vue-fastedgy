@@ -1,0 +1,14 @@
+{
+    "name": "vue-fastedgy",
+    "version": "0.1.0",
+    "type": "module",
+    "peerDependencies": {
+        "pinia": "^2.1.7",
+        "vue": "^3.4.15",
+        "vue-i18n": "^11.1.12",
+        "vue-router": "^4.2.5"
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    }
+}

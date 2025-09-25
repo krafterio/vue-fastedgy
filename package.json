@@ -1,14 +1,82 @@
 {
     "name": "vue-fastedgy",
     "version": "0.1.0",
+    "description": "Package to facilitate integration between a FastEdgy server and a Vue.js application",
     "type": "module",
+    "main": "./index.js",
     "peerDependencies": {
         "pinia": "^2.1.7",
         "vue": "^3.4.15",
         "vue-i18n": "^11.1.12",
         "vue-router": "^4.2.5"
     },
+    "devDependencies": {
+        "@types/node": "^24.5.2",
+        "typescript": "^5.9.2"
+    },
     "engines": {
         "node": ">=22.0.0"
+    },
+    "scripts": {
+        "build": "tsc -p tsconfig.json"
+    },
+    "types": "./types/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./index.js",
+            "types": "./types/index.d.ts"
+        },
+        "./composables/api": {
+            "import": "./composables/api.js",
+            "types": "./types/composables/api.d.ts"
+        },
+        "./composables/bus": {
+            "import": "./composables/bus.js",
+            "types": "./types/composables/bus.d.ts"
+        },
+        "./composables/fetcher": {
+            "import": "./composables/fetcher.js",
+            "types": "./types/composables/fetcher.d.ts"
+        },
+        "./directives/fetcher": {
+            "import": "./directives/fetcher.js",
+            "types": "./types/directives/fetcher.d.ts"
+        },
+        "./directives/i18nExtra": {
+            "import": "./directives/i18nExtra.js",
+            "types": "./types/directives/i18nExtra.d.ts"
+        },
+        "./network/fetch": {
+            "import": "./network/fetch.js",
+            "types": "./types/network/fetch.d.ts"
+        },
+        "./plugins/fetcher": {
+            "import": "./plugins/fetcher.js",
+            "types": "./types/plugins/fetcher.d.ts"
+        },
+        "./plugins/i18nExtra": {
+            "import": "./plugins/i18nExtra.js",
+            "types": "./types/plugins/i18nExtra.d.ts"
+        },
+        "./stores/auth": {
+            "import": "./stores/auth.js",
+            "types": "./types/stores/auth.d.ts"
+        },
+        "./stores/metadata": {
+            "import": "./stores/metadata.js",
+            "types": "./types/stores/metadata.d.ts"
+        },
+        "./utils/logger": {
+            "import": "./utils/logger.js",
+            "types": "./types/utils/logger.d.ts"
+        },
+        "./utils/router": {
+            "import": "./utils/router.js",
+            "types": "./types/utils/router.d.ts"
+        },
+        "./utils/validations": {
+            "import": "./utils/validations.js",
+            "types": "./types/utils/validations.d.ts"
+        }
     }
 }

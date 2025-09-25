@@ -25,5 +25,6 @@ export * from './stores/metadata.js';
 
 // Utils
 export * from './utils/logger.js';
+export * from './utils/models.js';
 export * from './utils/router.js';
 export * from './utils/validations.js';

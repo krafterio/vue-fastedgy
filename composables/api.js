@@ -4,6 +4,7 @@
  */
 
 import { useFetcher } from './fetcher.js';
+import { cleanPayload } from '../utils/models.js';
 
 /**
  * Build URL with optional admin prefix
@@ -118,7 +119,7 @@ export async function createAction(resourceName, payload, options = {}, params =
     const headers = buildHeaders(options, params);
     const url = buildUrl(resourceName, '', params.isAdmin);
 
-    return await fetcher.post(url, payload, { headers });
+    return await fetcher.post(url, cleanPayload(payload), { headers });
 }
 
 /**
@@ -136,7 +137,7 @@ export async function patchAction(resourceName, id, payload, options = {}, param
     const headers = buildHeaders(options, params);
     const url = buildUrl(resourceName, `/${id}`, params.isAdmin);
 
-    return await fetcher.patch(url, payload, { headers });
+    return await fetcher.patch(url, cleanPayload(payload), { headers });
 }
 
 /**

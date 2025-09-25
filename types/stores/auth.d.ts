@@ -23,6 +23,7 @@ export const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<{
     logout: () => Promise<void>;
     refreshAccessToken: () => Promise<boolean>;
     checkUser: () => Promise<any>;
+    refreshUser: () => Promise<any>;
 }, "user" | "token" | "refreshToken" | "loading">, Pick<{
     user: import("vue").Ref<any, any>;
     token: import("vue").Ref<string, string>;
@@ -48,6 +49,7 @@ export const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<{
     logout: () => Promise<void>;
     refreshAccessToken: () => Promise<boolean>;
     checkUser: () => Promise<any>;
+    refreshUser: () => Promise<any>;
 }, "isAuthenticated" | "canRefreshToken" | "isTokenExpired">, Pick<{
     user: import("vue").Ref<any, any>;
     token: import("vue").Ref<string, string>;
@@ -73,5 +75,6 @@ export const useAuthStore: import("pinia").StoreDefinition<"auth", Pick<{
     logout: () => Promise<void>;
     refreshAccessToken: () => Promise<boolean>;
     checkUser: () => Promise<any>;
-}, "login" | "register" | "logout" | "refreshAccessToken" | "checkUser">>;
+    refreshUser: () => Promise<any>;
+}, "login" | "register" | "logout" | "refreshAccessToken" | "checkUser" | "refreshUser">>;
 //# sourceMappingURL=auth.d.ts.map

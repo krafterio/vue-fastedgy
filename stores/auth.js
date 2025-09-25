@@ -159,6 +159,14 @@ export const useAuthStore = defineStore("auth", () => {
         return user.value;
     };
 
+    const refreshUser = async () => {
+        if (token.value) {
+            user.value = (await fetcher.get("/me")).data;
+        }
+
+        return user.value;
+    };
+
     return {
         user,
         token,
@@ -172,5 +180,6 @@ export const useAuthStore = defineStore("auth", () => {
         logout,
         refreshAccessToken,
         checkUser,
+        refreshUser,
     };
 });

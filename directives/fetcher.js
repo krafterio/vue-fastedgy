@@ -3,8 +3,8 @@
  * MIT License (see LICENSE file).
  */
 
-import {useFetcher} from 'vue-fastedgy/composables/fetcher';
-import {absoluteUrl} from 'vue-fastedgy/plugins/fetcher';
+import {useFetcher} from '../composables/fetcher.js';
+import {absoluteUrl} from '../plugins/fetcher.js';
 
 export const fetcherSrc = {
     mounted(el, binding, node) {

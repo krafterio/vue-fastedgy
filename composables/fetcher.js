@@ -4,7 +4,7 @@
  */
 
 import {onUnmounted} from 'vue';
-import {fetch as _fetch} from 'vue-fastedgy/network/fetch';
+import {fetch as _fetch} from '../network/fetch.js';
 
 /**
  * @param {{abortOnUnmounted: boolean}} options

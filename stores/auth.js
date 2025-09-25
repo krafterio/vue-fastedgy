@@ -3,9 +3,9 @@
  * MIT License (see LICENSE file).
  */
 
-import { bus } from "vue-fastedgy/composables/bus";
-import { useFetcherService } from "vue-fastedgy/composables/fetcher";
-import { setDefaultAuthorization } from "vue-fastedgy/plugins/fetcher";
+import { bus } from "../composables/bus.js";
+import { useFetcherService } from "../composables/fetcher.js";
+import { setDefaultAuthorization } from "../plugins/fetcher.js";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 

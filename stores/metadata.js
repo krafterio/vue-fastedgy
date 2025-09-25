@@ -5,8 +5,8 @@
 
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { useAuthStore } from "vue-fastedgy/stores/auth";
-import { useFetcher } from "vue-fastedgy/composables/fetcher";
+import { useAuthStore } from "./auth.js";
+import { useFetcher } from "../composables/fetcher.js";
 
 export const useMetadataStore = defineStore("metadata", () => {
     const metadatas = ref(null);

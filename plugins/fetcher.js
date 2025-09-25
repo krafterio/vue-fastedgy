@@ -3,9 +3,9 @@
  * MIT License (see LICENSE file).
  */
 
-import {fetchBus, fetch} from 'vue-fastedgy/network/fetch';
-import {fetcherSrc} from 'vue-fastedgy/directives/fetcher';
-import {useAuthStore} from 'vue-fastedgy/stores/auth';
+import {fetchBus, fetch} from '../network/fetch.js';
+import {fetcherSrc} from '../directives/fetcher.js';
+import {useAuthStore} from '../stores/auth.js';
 
 const defaultHeaders = {};
 let defaultBaseUrl = '';

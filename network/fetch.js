@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import {EventBus} from 'vue-fastedgy/composables/bus';
+import {EventBus} from '../composables/bus.js';
 
 export const fetchBus = new EventBus();
 

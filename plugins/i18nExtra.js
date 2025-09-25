@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import {createI18nExtraTranslateContentDirective} from 'vue-fastedgy/directives/i18nExtra';
+import {createI18nExtraTranslateContentDirective} from '../directives/i18nExtra.js';
 
 /**
  * Create a plugin with the v-tc directive.

@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { useFetcher } from 'vue-fastedgy/composables/fetcher';
+import { useFetcher } from './fetcher.js';
 
 /**
  * Build URL with optional admin prefix

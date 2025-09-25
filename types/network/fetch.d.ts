@@ -23,5 +23,5 @@ export class HttpError extends Error {
     response: Response;
     data: any;
 }
-import { EventBus } from 'vue-fastedgy/composables/bus';
+import { EventBus } from '../composables/bus.js';
 //# sourceMappingURL=fetch.d.ts.map

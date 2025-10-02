@@ -9,6 +9,7 @@ export * from "./plugins/i18nExtra.js";
 export * from "./stores/auth.js";
 export * from "./stores/metadata.js";
 export * from "./utils/logger.js";
+export * from "./utils/models.js";
 export * from "./utils/router.js";
 export * from "./utils/validations.js";
 //# sourceMappingURL=index.d.ts.map

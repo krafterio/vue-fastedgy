@@ -4,5 +4,5 @@
  * @param {any} value - Value to clean
  * @returns {any} - Cleaned value
  */
-declare function cleanPayload(value: any): any;
+export function cleanPayload(value: any): any;
 //# sourceMappingURL=models.d.ts.map

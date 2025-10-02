@@ -20,7 +20,11 @@ export const fetcherSrc = {
         }
     },
     updated(el, binding, node) {
-        if (node.props.src && node.props.src !== el.lastSrc && !node.props.src.startsWith('data:')) {
+        const initialSetup = node.props.src && node.props.src !== el.lastSrc && !node.props.src.startsWith('data:');
+        const refreshAlreadyLoaded = el.srcLoaded && !el.src.startsWith('blob:');
+
+        if (initialSetup || refreshAlreadyLoaded) {
+            el.srcLoaded = false;
             el.style.display = 'none';
 
             if (el.src && el.src.startsWith('blob:')) {
@@ -53,6 +57,7 @@ export const fetcherSrc = {
         }
 
         delete el.lastSrc;
+        delete el.srcLoaded;
     },
     unmounted(el) {
         if (el.fetcher) {
@@ -98,7 +103,11 @@ function loadImage(el, binding, node) {
     el.fetcher.get(srcUrl).then(async (response) => {
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
-        el.onload = () => URL.revokeObjectURL(url);
+        el.onload = () => {
+            el.srcLoaded = true;
+
+            return URL.revokeObjectURL(url);
+        };
         el.src = url;
         node.props.src = url;
 

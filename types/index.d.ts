@@ -1,6 +1,7 @@
 export * from "./composables/api.js";
 export * from "./composables/bus.js";
 export * from "./composables/fetcher.js";
+export * from "./composables/navigator.js";
 export * from "./directives/fetcher.js";
 export * from "./directives/i18nExtra.js";
 export * from "./network/fetch.js";

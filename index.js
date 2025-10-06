@@ -7,6 +7,7 @@
 export * from './composables/api.js';
 export * from './composables/bus.js';
 export * from './composables/fetcher.js';
+export * from './composables/navigator.js';
 
 // Directives
 export * from './directives/fetcher.js';

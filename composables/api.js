@@ -3,8 +3,26 @@
  * MIT License (see LICENSE file).
  */
 
-import { useFetcher } from './fetcher.js';
-import { cleanPayload } from '../utils/models.js';
+import { useFetcher } from "./fetcher.js";
+import { useMetadataStore } from "../stores/metadata.js";
+import { cleanPayload } from "../utils/models.js";
+
+/**
+ * Resolve resource name to API name using metadata store
+ * @param {string} resourceName - Resource name: metadata 'name' (e.g., 'user') or 'api_name' (e.g., 'users')
+ * @returns {Promise<string>} - API name to use in URL
+ */
+async function resolveApiName(resourceName) {
+    const metadataStore = useMetadataStore();
+
+    // Ensure metadatas are loaded
+    await metadataStore.getMetadatas();
+
+    const metadata = await metadataStore.getMetadata(resourceName);
+
+    // Use api_name from metadata if available, otherwise use resourceName as-is (backward compatibility)
+    return metadata?.api_name || resourceName;
+}
 
 /**
  * Build URL with optional admin prefix
@@ -13,8 +31,8 @@ import { cleanPayload } from '../utils/models.js';
  * @param {boolean} isAdmin - Whether to use admin prefix
  * @returns {string} - Built URL
  */
-function buildUrl(resourceName, path = '', isAdmin = false) {
-    const prefix = isAdmin ? '/admin' : '';
+function buildUrl(resourceName, path = "", isAdmin = false) {
+    const prefix = isAdmin ? "/admin" : "";
     return `${prefix}/${resourceName}${path}`;
 }
 
@@ -37,7 +55,7 @@ function buildQueryParams(query = {}) {
     // Standard ordering
     if (query.orderBy != null) {
         queryParams.order_by = Array.isArray(query.orderBy)
-            ? query.orderBy.join(',')
+            ? query.orderBy.join(",")
             : query.orderBy;
     }
 
@@ -57,15 +75,16 @@ function buildHeaders(query = {}, params = {}) {
     const headers = { ...params.headers };
 
     if (query.fields != null) {
-        headers['X-Fields'] = Array.isArray(query.fields)
-            ? query.fields.join(',')
+        headers["X-Fields"] = Array.isArray(query.fields)
+            ? query.fields.join(",")
             : query.fields;
     }
 
     if (query.filter != null) {
-        headers['X-Filter'] = typeof query.filter === 'string'
-            ? query.filter
-            : JSON.stringify(query.filter);
+        headers["X-Filter"] =
+            typeof query.filter === "string"
+                ? query.filter
+                : JSON.stringify(query.filter);
     }
 
     return headers;
@@ -74,16 +93,17 @@ function buildHeaders(query = {}, params = {}) {
 /**
  * List action with pagination and filters
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[] }} query - Standardized query parameters
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>}
  */
 export async function listAction(resourceName, query = {}, params = {}) {
     const fetcher = useFetcher();
+    const apiName = await resolveApiName(resourceName);
     const queryParams = buildQueryParams(query);
     const headers = buildHeaders(query, params);
-    const url = buildUrl(resourceName, '', params.isAdmin);
+    const url = buildUrl(apiName, "", params.isAdmin);
 
     return await fetcher.get(url, { params: queryParams, headers });
 }
@@ -91,7 +111,7 @@ export async function listAction(resourceName, query = {}, params = {}) {
 /**
  * Get action - retrieve a single item by ID
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {string|number} id - Item ID
  * @param {{ fields?: string|string[] }} options - Options for field selection
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
@@ -99,8 +119,9 @@ export async function listAction(resourceName, query = {}, params = {}) {
  */
 export async function getAction(resourceName, id, options = {}, params = {}) {
     const fetcher = useFetcher();
+    const apiName = await resolveApiName(resourceName);
     const headers = buildHeaders(options, params);
-    const url = buildUrl(resourceName, `/${id}`, params.isAdmin);
+    const url = buildUrl(apiName, `/${id}`, params.isAdmin);
 
     return await fetcher.get(url, { headers });
 }
@@ -108,16 +129,22 @@ export async function getAction(resourceName, id, options = {}, params = {}) {
 /**
  * Create action - create a new item
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {object} payload - Data to create
  * @param {{ fields?: string|string[] }} options - Options for field selection
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: any}>}
  */
-export async function createAction(resourceName, payload, options = {}, params = {}) {
+export async function createAction(
+    resourceName,
+    payload,
+    options = {},
+    params = {}
+) {
     const fetcher = useFetcher();
+    const apiName = await resolveApiName(resourceName);
     const headers = buildHeaders(options, params);
-    const url = buildUrl(resourceName, '', params.isAdmin);
+    const url = buildUrl(apiName, "", params.isAdmin);
 
     return await fetcher.post(url, cleanPayload(payload), { headers });
 }
@@ -125,17 +152,24 @@ export async function createAction(resourceName, payload, options = {}, params =
 /**
  * Patch action - update an existing item
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {string|number} id - Item ID
  * @param {object} payload - Data to update
  * @param {{ fields?: string|string[] }} options - Options for field selection
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: any}>}
  */
-export async function patchAction(resourceName, id, payload, options = {}, params = {}) {
+export async function patchAction(
+    resourceName,
+    id,
+    payload,
+    options = {},
+    params = {}
+) {
     const fetcher = useFetcher();
+    const apiName = await resolveApiName(resourceName);
     const headers = buildHeaders(options, params);
-    const url = buildUrl(resourceName, `/${id}`, params.isAdmin);
+    const url = buildUrl(apiName, `/${id}`, params.isAdmin);
 
     return await fetcher.patch(url, cleanPayload(payload), { headers });
 }
@@ -143,15 +177,16 @@ export async function patchAction(resourceName, id, payload, options = {}, param
 /**
  * Delete action - delete an item
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {string|number} id - Item ID
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
  * @returns {Promise<void>}
  */
 export async function deleteAction(resourceName, id, params = {}) {
     const fetcher = useFetcher();
+    const apiName = await resolveApiName(resourceName);
     const headers = buildHeaders({}, params);
-    const url = buildUrl(resourceName, `/${id}`, params.isAdmin);
+    const url = buildUrl(apiName, `/${id}`, params.isAdmin);
 
     return await fetcher.delete(url, { headers });
 }
@@ -159,18 +194,19 @@ export async function deleteAction(resourceName, id, params = {}) {
 /**
  * Export action - export items in a specific format
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string }} query - Standardized query parameters
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
  * @returns {Promise<any>}
  */
 export async function exportAction(resourceName, query = {}, params = {}) {
     const fetcher = useFetcher();
-    const { format = 'csv', ...rest } = query;
+    const apiName = await resolveApiName(resourceName);
+    const { format = "csv", ...rest } = query;
     const queryWithFormat = { ...rest, format };
     const queryParams = buildQueryParams(queryWithFormat);
     const headers = buildHeaders(queryWithFormat, params);
-    const url = buildUrl(resourceName, '/export', params.isAdmin);
+    const url = buildUrl(apiName, "/export", params.isAdmin);
 
     return await fetcher.get(url, { params: queryParams, headers });
 }
@@ -178,7 +214,7 @@ export async function exportAction(resourceName, query = {}, params = {}) {
 /**
  * Create an API service for a resource
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {{ isAdmin?: boolean }} defaultParams - Default parameters
  * @returns {object} - Service with CRUD methods
  */
@@ -199,7 +235,10 @@ export function useApiService(resourceName, defaultParams = {}) {
          * @param {{ isAdmin?: boolean, headers?: object }} params
          */
         get: (id, options = {}, params = {}) =>
-            getAction(resourceName, id, options, { ...defaultParams, ...params }),
+            getAction(resourceName, id, options, {
+                ...defaultParams,
+                ...params,
+            }),
 
         /**
          * Create item
@@ -208,7 +247,10 @@ export function useApiService(resourceName, defaultParams = {}) {
          * @param {{ isAdmin?: boolean, headers?: object }} params
          */
         create: (payload, options = {}, params = {}) =>
-            createAction(resourceName, payload, options, { ...defaultParams, ...params }),
+            createAction(resourceName, payload, options, {
+                ...defaultParams,
+                ...params,
+            }),
 
         /**
          * Update item
@@ -218,7 +260,10 @@ export function useApiService(resourceName, defaultParams = {}) {
          * @param {{ isAdmin?: boolean, headers?: object }} params
          */
         update: (id, payload, options = {}, params = {}) =>
-            patchAction(resourceName, id, payload, options, { ...defaultParams, ...params }),
+            patchAction(resourceName, id, payload, options, {
+                ...defaultParams,
+                ...params,
+            }),
 
         /**
          * Delete item
@@ -234,6 +279,6 @@ export function useApiService(resourceName, defaultParams = {}) {
          * @param {{ isAdmin?: boolean, headers?: object }} params
          */
         export: (query = {}, params = {}) =>
-            exportAction(resourceName, query, { ...defaultParams, ...params })
+            exportAction(resourceName, query, { ...defaultParams, ...params }),
     };
 }

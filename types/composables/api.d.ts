@@ -1,7 +1,7 @@
 /**
  * List action with pagination and filters
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[] }} query - Standardized query parameters
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>}
@@ -27,7 +27,7 @@ export function listAction(resourceName: string, query?: {
 /**
  * Get action - retrieve a single item by ID
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {string|number} id - Item ID
  * @param {{ fields?: string|string[] }} options - Options for field selection
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
@@ -44,7 +44,7 @@ export function getAction(resourceName: string, id: string | number, options?: {
 /**
  * Create action - create a new item
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {object} payload - Data to create
  * @param {{ fields?: string|string[] }} options - Options for field selection
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
@@ -61,7 +61,7 @@ export function createAction(resourceName: string, payload: object, options?: {
 /**
  * Patch action - update an existing item
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {string|number} id - Item ID
  * @param {object} payload - Data to update
  * @param {{ fields?: string|string[] }} options - Options for field selection
@@ -79,7 +79,7 @@ export function patchAction(resourceName: string, id: string | number, payload: 
 /**
  * Delete action - delete an item
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {string|number} id - Item ID
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
  * @returns {Promise<void>}
@@ -91,7 +91,7 @@ export function deleteAction(resourceName: string, id: string | number, params?:
 /**
  * Export action - export items in a specific format
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string }} query - Standardized query parameters
  * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
  * @returns {Promise<any>}
@@ -110,7 +110,7 @@ export function exportAction(resourceName: string, query?: {
 /**
  * Create an API service for a resource
  *
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
  * @param {{ isAdmin?: boolean }} defaultParams - Default parameters
  * @returns {object} - Service with CRUD methods
  */

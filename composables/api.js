@@ -52,6 +52,14 @@ function buildQueryParams(query = {}) {
         if (query.size != null) queryParams.limit = query.size;
     }
 
+    if (query.limit) {
+        queryParams.limit = query.limit;
+    }
+
+    if (query.offset) {
+        queryParams.offset = query.offset;
+    }
+
     // Standard ordering
     if (query.orderBy != null) {
         queryParams.order_by = Array.isArray(query.orderBy)

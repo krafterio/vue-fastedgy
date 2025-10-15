@@ -108,6 +108,30 @@ export function exportAction(resourceName: string, query?: {
     headers?: object;
 }): Promise<any>;
 /**
+ * Import action - import items from a file (CSV, XLSX, ODS)
+ *
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
+ * @param {File} file - File to import
+ * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
+ * @returns {Promise<{data: {success: number, errors: number, created: number, updated: number, error_details?: Array<{row: number, error: string, data: object}>}}>}
+ */
+export function importAction(resourceName: string, file: File, params?: {
+    isAdmin?: boolean;
+    headers?: object;
+}): Promise<{
+    data: {
+        success: number;
+        errors: number;
+        created: number;
+        updated: number;
+        error_details?: Array<{
+            row: number;
+            error: string;
+            data: object;
+        }>;
+    };
+}>;
+/**
  * Create an API service for a resource
  *
  * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'

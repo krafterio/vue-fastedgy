@@ -220,6 +220,29 @@ export async function exportAction(resourceName, query = {}, params = {}) {
 }
 
 /**
+ * Import action - import items from a file (CSV, XLSX, ODS)
+ *
+ * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
+ * @param {File} file - File to import
+ * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
+ * @returns {Promise<{data: {success: number, errors: number, created: number, updated: number, error_details?: Array<{row: number, error: string, data: object}>}}>}
+ */
+export async function importAction(resourceName, file, params = {}) {
+    const fetcher = useFetcher();
+    const apiName = await resolveApiName(resourceName);
+    const url = buildUrl(apiName, "/import", params.isAdmin);
+
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // Headers for FormData (don't set Content-Type, browser will set it with boundary)
+    const headers = { ...params.headers };
+
+    return await fetcher.post(url, formData, { headers });
+}
+
+/**
  * Create an API service for a resource
  *
  * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
@@ -288,5 +311,13 @@ export function useApiService(resourceName, defaultParams = {}) {
          */
         export: (query = {}, params = {}) =>
             exportAction(resourceName, query, { ...defaultParams, ...params }),
+
+        /**
+         * Import items from file
+         * @param {File} file - File to import (CSV, XLSX, ODS)
+         * @param {{ isAdmin?: boolean, headers?: object }} params
+         */
+        import: (file, params = {}) =>
+            importAction(resourceName, file, { ...defaultParams, ...params }),
     };
 }

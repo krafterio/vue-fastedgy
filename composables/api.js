@@ -8,32 +8,31 @@ import { useMetadataStore } from "../stores/metadata.js";
 import { cleanPayload } from "../utils/models.js";
 
 /**
- * Resolve resource name to API name using metadata store
- * @param {string} resourceName - Resource name: metadata 'name' (e.g., 'user') or 'api_name' (e.g., 'users')
+ * Resolve model name to API name using metadata store
+ * @param {string} modelName - Model name: metadata 'name' (e.g., 'user') or 'api_name' (e.g., 'users')
  * @returns {Promise<string>} - API name to use in URL
  */
-async function resolveApiName(resourceName) {
+async function resolveApiName(modelName) {
     const metadataStore = useMetadataStore();
 
     // Ensure metadatas are loaded
     await metadataStore.getMetadatas();
 
-    const metadata = await metadataStore.getMetadata(resourceName);
+    const metadata = await metadataStore.getMetadata(modelName);
 
-    // Use api_name from metadata if available, otherwise use resourceName as-is (backward compatibility)
-    return metadata?.api_name || resourceName;
+    // Use api_name from metadata if available, otherwise use modelName as-is (backward compatibility)
+    return metadata?.api_name || modelName;
 }
 
 /**
  * Build URL with optional admin prefix
- * @param {string} resourceName - Resource name (e.g., 'tasks', 'users')
+ * @param {string} modelName - Model name (e.g., 'tasks', 'users')
  * @param {string} path - Additional path (e.g., '', '/123', '/export')
- * @param {boolean} isAdmin - Whether to use admin prefix
+ * @param {string} prefix - Prefix to use (e.g., '/admin')
  * @returns {string} - Built URL
  */
-function buildUrl(resourceName, path = "", isAdmin = false) {
-    const prefix = isAdmin ? "/admin" : "";
-    return `${prefix}/${resourceName}${path}`;
+function buildUrl(modelName, path = "", prefix = "") {
+    return `${prefix || ""}/${modelName}${path}`;
 }
 
 /**
@@ -101,17 +100,17 @@ function buildHeaders(query = {}, params = {}) {
 /**
  * List action with pagination and filters
  *
- * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[] }} query - Standardized query parameters
- * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
+ * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>}
  */
-export async function listAction(resourceName, query = {}, params = {}) {
+export async function listAction(modelName, query = {}, params = {}) {
     const fetcher = useFetcher();
-    const apiName = await resolveApiName(resourceName);
+    const apiName = await resolveApiName(modelName);
     const queryParams = buildQueryParams(query);
     const headers = buildHeaders(query, params);
-    const url = buildUrl(apiName, "", params.isAdmin);
+    const url = buildUrl(apiName, "", params.prefix);
 
     return await fetcher.get(url, { params: queryParams, headers });
 }
@@ -119,17 +118,17 @@ export async function listAction(resourceName, query = {}, params = {}) {
 /**
  * Get action - retrieve a single item by ID
  *
- * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {string|number} id - Item ID
  * @param {{ fields?: string|string[] }} options - Options for field selection
- * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
+ * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: any}>}
  */
-export async function getAction(resourceName, id, options = {}, params = {}) {
+export async function getAction(modelName, id, options = {}, params = {}) {
     const fetcher = useFetcher();
-    const apiName = await resolveApiName(resourceName);
+    const apiName = await resolveApiName(modelName);
     const headers = buildHeaders(options, params);
-    const url = buildUrl(apiName, `/${id}`, params.isAdmin);
+    const url = buildUrl(apiName, `/${id}`, params.prefix);
 
     return await fetcher.get(url, { headers });
 }
@@ -137,22 +136,22 @@ export async function getAction(resourceName, id, options = {}, params = {}) {
 /**
  * Create action - create a new item
  *
- * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {object} payload - Data to create
  * @param {{ fields?: string|string[] }} options - Options for field selection
- * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
+ * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: any}>}
  */
 export async function createAction(
-    resourceName,
+    modelName,
     payload,
     options = {},
     params = {}
 ) {
     const fetcher = useFetcher();
-    const apiName = await resolveApiName(resourceName);
+    const apiName = await resolveApiName(modelName);
     const headers = buildHeaders(options, params);
-    const url = buildUrl(apiName, "", params.isAdmin);
+    const url = buildUrl(apiName, "", params.prefix);
 
     return await fetcher.post(url, cleanPayload(payload), { headers });
 }
@@ -160,24 +159,24 @@ export async function createAction(
 /**
  * Patch action - update an existing item
  *
- * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {string|number} id - Item ID
  * @param {object} payload - Data to update
  * @param {{ fields?: string|string[] }} options - Options for field selection
- * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
+ * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: any}>}
  */
 export async function patchAction(
-    resourceName,
+    modelName,
     id,
     payload,
     options = {},
     params = {}
 ) {
     const fetcher = useFetcher();
-    const apiName = await resolveApiName(resourceName);
+    const apiName = await resolveApiName(modelName);
     const headers = buildHeaders(options, params);
-    const url = buildUrl(apiName, `/${id}`, params.isAdmin);
+    const url = buildUrl(apiName, `/${id}`, params.prefix);
 
     return await fetcher.patch(url, cleanPayload(payload), { headers });
 }
@@ -185,16 +184,16 @@ export async function patchAction(
 /**
  * Delete action - delete an item
  *
- * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {string|number} id - Item ID
- * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
+ * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<void>}
  */
-export async function deleteAction(resourceName, id, params = {}) {
+export async function deleteAction(modelName, id, params = {}) {
     const fetcher = useFetcher();
-    const apiName = await resolveApiName(resourceName);
+    const apiName = await resolveApiName(modelName);
     const headers = buildHeaders({}, params);
-    const url = buildUrl(apiName, `/${id}`, params.isAdmin);
+    const url = buildUrl(apiName, `/${id}`, params.prefix);
 
     return await fetcher.delete(url, { headers });
 }
@@ -202,19 +201,19 @@ export async function deleteAction(resourceName, id, params = {}) {
 /**
  * Export action - export items in a specific format
  *
- * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string }} query - Standardized query parameters
- * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
+ * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<any>}
  */
-export async function exportAction(resourceName, query = {}, params = {}) {
+export async function exportAction(modelName, query = {}, params = {}) {
     const fetcher = useFetcher();
-    const apiName = await resolveApiName(resourceName);
+    const apiName = await resolveApiName(modelName);
     const { format = "csv", ...rest } = query;
     const queryWithFormat = { ...rest, format };
     const queryParams = buildQueryParams(queryWithFormat);
     const headers = buildHeaders(queryWithFormat, params);
-    const url = buildUrl(apiName, "/export", params.isAdmin);
+    const url = buildUrl(apiName, "/export", params.prefix);
 
     return await fetcher.get(url, { params: queryParams, headers });
 }
@@ -222,15 +221,15 @@ export async function exportAction(resourceName, query = {}, params = {}) {
 /**
  * Import action - import items from a file (CSV, XLSX, ODS)
  *
- * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {File} file - File to import
- * @param {{ isAdmin?: boolean, headers?: object }} params - Optional parameters
+ * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: {success: number, errors: number, created: number, updated: number, error_details?: Array<{row: number, error: string, data: object}>}}>}
  */
-export async function importAction(resourceName, file, params = {}) {
+export async function importAction(modelName, file, params = {}) {
     const fetcher = useFetcher();
-    const apiName = await resolveApiName(resourceName);
-    const url = buildUrl(apiName, "/import", params.isAdmin);
+    const apiName = await resolveApiName(modelName);
+    const url = buildUrl(apiName, "/import", params.prefix);
 
     // Create FormData for file upload
     const formData = new FormData();
@@ -243,30 +242,30 @@ export async function importAction(resourceName, file, params = {}) {
 }
 
 /**
- * Create an API service for a resource
+ * Create an API service for a model.
  *
- * @param {string} resourceName - Resource name: metadata 'name' or 'api_name'
- * @param {{ isAdmin?: boolean }} defaultParams - Default parameters
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
+ * @param {{ prefix?: string, headers?: object }} defaultParams - Default parameters
  * @returns {object} - Service with CRUD methods
  */
-export function useApiService(resourceName, defaultParams = {}) {
+export function useApiModel(modelName, defaultParams = {}) {
     return {
         /**
          * List items
          * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[] }} query
-         * @param {{ isAdmin?: boolean, headers?: object }} params
+         * @param {{ prefix?: string, headers?: object }} params
          */
         list: (query = {}, params = {}) =>
-            listAction(resourceName, query, { ...defaultParams, ...params }),
+            listAction(modelName, query, { ...defaultParams, ...params }),
 
         /**
          * Get item by ID
          * @param {string|number} id
          * @param {{ fields?: string|string[] }} options
-         * @param {{ isAdmin?: boolean, headers?: object }} params
+         * @param {{ prefix?: string, headers?: object }} params
          */
         get: (id, options = {}, params = {}) =>
-            getAction(resourceName, id, options, {
+            getAction(modelName, id, options, {
                 ...defaultParams,
                 ...params,
             }),
@@ -275,10 +274,10 @@ export function useApiService(resourceName, defaultParams = {}) {
          * Create item
          * @param {object} payload
          * @param {{ fields?: string|string[] }} options
-         * @param {{ isAdmin?: boolean, headers?: object }} params
+         * @param {{ prefix?: string, headers?: object }} params
          */
         create: (payload, options = {}, params = {}) =>
-            createAction(resourceName, payload, options, {
+            createAction(modelName, payload, options, {
                 ...defaultParams,
                 ...params,
             }),
@@ -288,10 +287,10 @@ export function useApiService(resourceName, defaultParams = {}) {
          * @param {string|number} id
          * @param {object} payload
          * @param {{ fields?: string|string[] }} options
-         * @param {{ isAdmin?: boolean, headers?: object }} params
+         * @param {{ prefix?: string, headers?: object }} params
          */
         update: (id, payload, options = {}, params = {}) =>
-            patchAction(resourceName, id, payload, options, {
+            patchAction(modelName, id, payload, options, {
                 ...defaultParams,
                 ...params,
             }),
@@ -299,25 +298,25 @@ export function useApiService(resourceName, defaultParams = {}) {
         /**
          * Delete item
          * @param {string|number} id
-         * @param {{ isAdmin?: boolean, headers?: object }} params
+         * @param {{ prefix?: string, headers?: object }} params
          */
         delete: (id, params = {}) =>
-            deleteAction(resourceName, id, { ...defaultParams, ...params }),
+            deleteAction(modelName, id, { ...defaultParams, ...params }),
 
         /**
          * Export items
          * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string }} query
-         * @param {{ isAdmin?: boolean, headers?: object }} params
+         * @param {{ prefix?: string, headers?: object }} params
          */
         export: (query = {}, params = {}) =>
-            exportAction(resourceName, query, { ...defaultParams, ...params }),
+            exportAction(modelName, query, { ...defaultParams, ...params }),
 
         /**
          * Import items from file
          * @param {File} file - File to import (CSV, XLSX, ODS)
-         * @param {{ isAdmin?: boolean, headers?: object }} params
+         * @param {{ prefix?: string, headers?: object }} params
          */
         import: (file, params = {}) =>
-            importAction(resourceName, file, { ...defaultParams, ...params }),
+            importAction(modelName, file, { ...defaultParams, ...params }),
     };
 }

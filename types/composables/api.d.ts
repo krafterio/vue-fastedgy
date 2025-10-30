@@ -136,10 +136,18 @@ export function importAction(modelName: string, file: File, params?: {
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {{ prefix?: string, headers?: object }} defaultParams - Default parameters
- * @returns {object} - Service with CRUD methods
+ * @returns {
+ *  list: (query = {}, params = {}) => Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>,
+ *  get: (id, options = {}, params = {}) => Promise<{data: any}>,
+ *  create: (payload, options = {}, params = {}) => Promise<{data: any}>,
+ *  update: (id, payload, options = {}, params = {}) => Promise<{data: any}>,
+ *  delete: (id, params = {}) => Promise<void>,
+ *  export: (query = {}, params = {}) => Promise<any>,
+ *  import: (file, params = {}) => Promise<{data: {success: number, errors: number, created: number, updated: number, error_details?: Array<{row: number, error: string, data: object}>}}>
+ * } - Service with CRUD methods
  */
 export function useApiModel(modelName: string, defaultParams?: {
     prefix?: string;
     headers?: object;
-}): object;
+}): any;
 //# sourceMappingURL=api.d.ts.map

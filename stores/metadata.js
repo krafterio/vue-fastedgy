@@ -12,8 +12,17 @@ export const useMetadataStore = defineStore("metadata", () => {
     const metadatas = ref(null);
     const loading = ref(false);
     const error = ref(null);
+    const prefix = ref(null);
     const authStore = useAuthStore();
     const fetcher = useFetcher({ abortOnUnmounted: false });
+
+    function setPrefix(newPrefix) {
+        prefix.value = newPrefix;
+    }
+
+    function getPrefix() {
+        return prefix.value;
+    }
 
     async function fetchMetadatas() {
         if (!authStore.isAuthenticated) {
@@ -24,7 +33,7 @@ export const useMetadataStore = defineStore("metadata", () => {
         error.value = null;
 
         try {
-            const response = await fetcher.get("/dataset/metadatas");
+            const response = await fetcher.get((prefix.value || "") + "/dataset/metadatas");
             setMetadatas(response.data);
         } catch (err) {
             error.value = err;
@@ -54,6 +63,9 @@ export const useMetadataStore = defineStore("metadata", () => {
     return {
         loading,
         error,
+        prefix,
+        setPrefix,
+        getPrefix,
         fetchMetadatas,
         getMetadatas,
         getMetadata,

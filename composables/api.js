@@ -219,6 +219,26 @@ export async function exportAction(modelName, query = {}, params = {}) {
 }
 
 /**
+ * Import template action - download an import template file
+ *
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
+ * @param {{ fields?: string|string[], format?: string }} query - Query parameters (format: csv, xlsx, ods)
+ * @param {{ prefix?: string, headers?: object }} params - Optional parameters
+ * @returns {Promise<any>}
+ */
+export async function importTemplateAction(modelName, query = {}, params = {}) {
+    const fetcher = useFetcher();
+    const apiName = await resolveApiName(modelName);
+    const { format = "csv", ...rest } = query;
+    const queryWithFormat = { ...rest, format };
+    const queryParams = buildQueryParams(queryWithFormat);
+    const headers = buildHeaders(queryWithFormat, params);
+    const url = buildUrl(apiName, "/import/template", params.prefix);
+
+    return await fetcher.get(url, { params: queryParams, headers });
+}
+
+/**
  * Import action - import items from a file (CSV, XLSX, ODS)
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
@@ -253,6 +273,7 @@ export async function importAction(modelName, file, params = {}) {
  *  update: (id, payload, options = {}, params = {}) => Promise<{data: any}>,
  *  delete: (id, params = {}) => Promise<void>,
  *  export: (query = {}, params = {}) => Promise<any>,
+ *  importTemplate: (query = {}, params = {}) => Promise<any>,
  *  import: (file, params = {}) => Promise<{data: {success: number, errors: number, created: number, updated: number, error_details?: Array<{row: number, error: string, data: object}>}}>
  * } - Service with CRUD methods
  */
@@ -318,6 +339,17 @@ export function useApiModel(modelName, defaultParams = {}) {
          */
         export: (query = {}, params = {}) =>
             exportAction(modelName, query, { ...defaultParams, ...params }),
+
+        /**
+         * Download import template
+         * @param {{ fields?: string|string[], format?: string }} query
+         * @param {{ prefix?: string, headers?: object }} params
+         */
+        importTemplate: (query = {}, params = {}) =>
+            importTemplateAction(modelName, query, {
+                ...defaultParams,
+                ...params,
+            }),
 
         /**
          * Import items from file

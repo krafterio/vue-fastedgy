@@ -108,6 +108,21 @@ export function exportAction(modelName: string, query?: {
     headers?: object;
 }): Promise<any>;
 /**
+ * Import template action - download an import template file
+ *
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
+ * @param {{ fields?: string|string[], format?: string }} query - Query parameters (format: csv, xlsx, ods)
+ * @param {{ prefix?: string, headers?: object }} params - Optional parameters
+ * @returns {Promise<any>}
+ */
+export function importTemplateAction(modelName: string, query?: {
+    fields?: string | string[];
+    format?: string;
+}, params?: {
+    prefix?: string;
+    headers?: object;
+}): Promise<any>;
+/**
  * Import action - import items from a file (CSV, XLSX, ODS)
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
@@ -143,6 +158,7 @@ export function importAction(modelName: string, file: File, params?: {
  *  update: (id, payload, options = {}, params = {}) => Promise<{data: any}>,
  *  delete: (id, params = {}) => Promise<void>,
  *  export: (query = {}, params = {}) => Promise<any>,
+ *  importTemplate: (query = {}, params = {}) => Promise<any>,
  *  import: (file, params = {}) => Promise<{data: {success: number, errors: number, created: number, updated: number, error_details?: Array<{row: number, error: string, data: object}>}}>
  * } - Service with CRUD methods
  */

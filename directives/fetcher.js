@@ -120,6 +120,8 @@ function loadImage(el, binding, node) {
             delete el.initialOpacity;
         }
     }).catch((e) => {
-        console.error('[v-fetcher-src] fetch error', e);
+        if (!['AbortError', undefined].includes(e.name)) {
+            console.error('[v-fetcher-src] fetch error', e, 'aaa', e.name);
+        }
     });
 }

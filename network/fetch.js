@@ -109,10 +109,6 @@ export async function fetch(url, options = {}) {
             next: Promise.reject(error),
         };
 
-        if (error.name === "AbortError") {
-            return Promise.resolve({data: {}});
-        }
-
         await fetchBus.triggerAndWait('fetch:error', errorPayload);
 
         return errorPayload.next;

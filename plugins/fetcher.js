@@ -139,7 +139,7 @@ export const useAuthFetch = () => {
         const authStore = useAuthStore();
         const {options, url} = e.detail;
 
-        if (authStore.isAuthenticated && !url.includes('auth/refresh')) {
+        if (authStore.isAuthenticated && url && !url.includes('auth/refresh')) {
             if (authStore.isTokenExpired && authStore.canRefreshToken) {
                 e.detail.next = new Promise(async (resolve, reject) => {
                     try {
@@ -175,7 +175,7 @@ export const useAuthFetch = () => {
         const authStore = useAuthStore();
         const {url, options, error} = e.detail;
 
-        if (error?.response?.status !== 401 || url.includes('auth/refresh')) {
+        if (error?.response?.status !== 401 || url?.includes('auth/refresh')) {
             return;
         }
 

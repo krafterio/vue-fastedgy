@@ -8,6 +8,48 @@ import { useMetadataStore } from "../stores/metadata.js";
 import { cleanPayload } from "../utils/models.js";
 
 /**
+ * Global API model configuration
+ * @type {{ export?: { defaultRelationDelimiter?: 'newline' | 'semicolon' | 'comma' } }}
+ */
+let apiModelConfig = {};
+
+/**
+ * Create and configure API model defaults.
+ *
+ * @param {{ export?: { defaultRelationDelimiter?: 'newline' | 'semicolon' | 'comma' } }} config - Configuration options
+ * @returns {import("vue").Plugin} - Vue plugin
+ *
+ * @example
+ * // In main.js
+ * import { createApiModel } from 'vue-fastedgy';
+ *
+ * const apiModel = createApiModel({
+ *     export: {
+ *         defaultRelationDelimiter: 'semicolon'
+ *     }
+ * });
+ *
+ * app.use(apiModel);
+ */
+export function createApiModel(config = {}) {
+    apiModelConfig = config;
+    return {
+        install() {
+            // Config is stored globally, no need to inject into app
+        }
+    };
+}
+
+/**
+ * Get current API model configuration.
+ *
+ * @returns {{ export?: { defaultRelationDelimiter?: 'newline' | 'semicolon' | 'comma' } }}
+ */
+export function getApiModelConfig() {
+    return apiModelConfig;
+}
+
+/**
  * Resolve model name to API name using metadata store
  * @param {string} modelName - Model name: metadata 'name' (e.g., 'user') or 'api_name' (e.g., 'users')
  * @returns {Promise<string>} - API name to use in URL
@@ -37,7 +79,7 @@ function buildUrl(modelName, path = "", prefix = "") {
 
 /**
  * Build query parameters from standardized query object
- * @param {{ page?: number, size?: number, orderBy?: string|string[], format?: string }} query
+ * @param {{ page?: number, size?: number, orderBy?: string|string[], format?: string, relationDelimiter?: 'newline' | 'semicolon' | 'comma' }} query
  * @returns {object} - Query parameters for fetcher
  */
 function buildQueryParams(query = {}) {
@@ -68,6 +110,11 @@ function buildQueryParams(query = {}) {
 
     // Export format
     if (query.format != null) queryParams.format = query.format;
+
+    // Relation delimiter for export
+    if (query.relationDelimiter != null) {
+        queryParams.relation_delimiter = query.relationDelimiter;
+    }
 
     return queryParams;
 }
@@ -202,15 +249,24 @@ export async function deleteAction(modelName, id, params = {}) {
  * Export action - export items in a specific format
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
- * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string }} query - Standardized query parameters
+ * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string, relationDelimiter?: 'newline' | 'semicolon' | 'comma' }} query - Standardized query parameters
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<any>}
  */
 export async function exportAction(modelName, query = {}, params = {}) {
     const fetcher = useFetcher();
     const apiName = await resolveApiName(modelName);
-    const { format = "csv", ...rest } = query;
-    const queryWithFormat = { ...rest, format };
+    const config = getApiModelConfig();
+    const { format = "csv", relationDelimiter, ...rest } = query;
+
+    // Use config default if relationDelimiter not provided
+    const effectiveRelationDelimiter = relationDelimiter ?? config.export?.defaultRelationDelimiter;
+
+    const queryWithFormat = {
+        ...rest,
+        format,
+        ...(effectiveRelationDelimiter && { relationDelimiter: effectiveRelationDelimiter }),
+    };
     const queryParams = buildQueryParams(queryWithFormat);
     const headers = buildHeaders(queryWithFormat, params);
     const url = buildUrl(apiName, "/export", params.prefix);
@@ -334,7 +390,7 @@ export function useApiModel(modelName, defaultParams = {}) {
 
         /**
          * Export items
-         * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string }} query
+         * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string, relationDelimiter?: 'newline' | 'semicolon' | 'comma' }} query
          * @param {{ prefix?: string, headers?: object }} params
          */
         export: (query = {}, params = {}) =>

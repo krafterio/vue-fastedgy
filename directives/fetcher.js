@@ -3,8 +3,8 @@
  * MIT License (see LICENSE file).
  */
 
-import {useFetcher} from '../composables/fetcher.js';
-import {absoluteUrl} from '../plugins/fetcher.js';
+import { useFetcher } from '../composables/fetcher.js';
+import { absoluteUrl } from '../plugins/fetcher.js';
 
 export const fetcherSrc = {
     mounted(el, binding, node) {
@@ -68,60 +68,105 @@ export const fetcherSrc = {
         if (undefined !== el.initialOpacity) {
             delete el.initialOpacity;
         }
-    }
-}
+    },
+};
 
 function setupLazyLoading(el, binding, node) {
     el.initialOpacity = el.style.opacity;
-        if (el.style.display === 'none') {
-            el.style.opacity = 0;
-            el.style.display = '';
-        }
+    if (el.style.display === 'none') {
+        el.style.opacity = 0;
+        el.style.display = '';
+    }
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-                loadImage(el, binding, node);
-                observer.disconnect();
-                delete el.intersectionObserver;
-            }
-        });
-    }, {
-        threshold: 0.1,
-    });
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    loadImage(el, binding, node);
+                    observer.disconnect();
+                    delete el.intersectionObserver;
+                }
+            });
+        },
+        {
+            threshold: 0.1,
+        }
+    );
 
     el.intersectionObserver = observer;
     observer.observe(el);
 }
 
 function loadImage(el, binding, node) {
-    el.fetcher = useFetcher({abortOnUnmounted: false});
+    el.fetcher = useFetcher({ abortOnUnmounted: false });
     const srcUrl = absoluteUrl(node.props.src);
+    const params = optimizationParams(el, binding);
     el.src = '';
     node.props.src = '';
 
-    el.fetcher.get(srcUrl).then(async (response) => {
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        el.onload = () => {
-            el.srcLoaded = true;
+    el.fetcher
+        .get(srcUrl, params ? { params } : undefined)
+        .then(async (response) => {
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            el.onload = () => {
+                el.srcLoaded = true;
 
-            return URL.revokeObjectURL(url);
-        };
-        el.src = url;
-        node.props.src = url;
+                return URL.revokeObjectURL(url);
+            };
+            el.src = url;
+            node.props.src = url;
 
-        if (el.style.display === 'none') {
-            el.style.display = '';
-        }
+            if (el.style.display === 'none') {
+                el.style.display = '';
+            }
 
-        if (undefined !== el.initialOpacity) {
-            el.style.opacity = el.initialOpacity;
-            delete el.initialOpacity;
+            if (undefined !== el.initialOpacity) {
+                el.style.opacity = el.initialOpacity;
+                delete el.initialOpacity;
+            }
+        })
+        .catch((e) => {
+            if (!['AbortError', undefined].includes(e.name)) {
+                console.error('[v-fetcher-src] fetch error', e, 'aaa', e.name);
+            }
+        });
+}
+
+function optimizationParams(el, binding) {
+    if (false === binding.value?.optimize) {
+        return null;
+    }
+
+    const params = { e: 'webp' };
+    const width = detectDisplaySize(el, 'width');
+
+    if (width) {
+        params.w = width;
+
+        const height = detectDisplaySize(el, 'height');
+
+        if (height && 'cover' === getComputedStyle(el).objectFit) {
+            params.h = height;
+            params.m = 'cover';
         }
-    }).catch((e) => {
-        if (!['AbortError', undefined].includes(e.name)) {
-            console.error('[v-fetcher-src] fetch error', e, 'aaa', e.name);
-        }
-    });
+    }
+
+    return params;
+}
+
+function detectDisplaySize(el, dimension) {
+    let size = el.getBoundingClientRect()[dimension];
+
+    if (!size && el.parentElement) {
+        size = el.parentElement.getBoundingClientRect()[dimension];
+    }
+
+    if (!size) {
+        return null;
+    }
+
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+
+    return Math.min(Math.ceil((size * ratio) / 100) * 100, 1920);
 }

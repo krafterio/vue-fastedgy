@@ -1,6 +1,6 @@
 {
     "name": "vue-fastedgy",
-    "version": "0.1.0",
+    "version": "1.0.1",
     "description": "Package to facilitate integration between a FastEdgy server and a Vue.js application",
     "type": "module",
     "main": "./index.js",

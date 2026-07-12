@@ -3,28 +3,26 @@
  * MIT License (see LICENSE file).
  */
 
-import { bus } from "../composables/bus.js";
-import { useFetcherService } from "../composables/fetcher.js";
-import { setDefaultAuthorization } from "../plugins/fetcher.js";
-import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { bus } from '../composables/bus.js';
+import { useFetcherService } from '../composables/fetcher.js';
+import { setDefaultAuthorization } from '../plugins/fetcher.js';
+import { defineStore } from 'pinia';
+import { computed, ref } from 'vue';
 
 const fetcher = useFetcherService();
 
-export const useAuthStore = defineStore("auth", () => {
+export const useAuthStore = defineStore('auth', () => {
     const user = ref(null);
-    const token = ref(localStorage.getItem("access_token"));
-    const refreshToken = ref(localStorage.getItem("refresh_token"));
+    const token = ref(localStorage.getItem('access_token'));
+    const refreshToken = ref(localStorage.getItem('refresh_token'));
     const loading = ref(false);
 
-    const isAuthenticated = computed(
-        () => !!token.value && !!refreshToken.value
-    );
+    const isAuthenticated = computed(() => !!token.value && !!refreshToken.value);
 
     const isTokenExpired = computed(() => {
         if (!token.value) return false;
         const now = new Date();
-        const payload = JSON.parse(atob(token.value.split(".")[1]));
+        const payload = JSON.parse(atob(token.value.split('.')[1]));
         const expirationDate = new Date(payload.exp * 1000);
         return expirationDate < now;
     });
@@ -38,15 +36,15 @@ export const useAuthStore = defineStore("auth", () => {
         refreshToken.value = newRefreshToken;
 
         if (accessToken) {
-            localStorage.setItem("access_token", accessToken);
+            localStorage.setItem('access_token', accessToken);
         } else {
-            localStorage.removeItem("access_token");
+            localStorage.removeItem('access_token');
         }
 
         if (newRefreshToken) {
-            localStorage.setItem("refresh_token", newRefreshToken);
+            localStorage.setItem('refresh_token', newRefreshToken);
         } else {
-            localStorage.removeItem("refresh_token");
+            localStorage.removeItem('refresh_token');
         }
 
         setDefaultAuthorization(token.value);
@@ -55,9 +53,9 @@ export const useAuthStore = defineStore("auth", () => {
     const setToken = (newToken) => {
         token.value = newToken;
         if (newToken) {
-            localStorage.setItem("access_token", newToken);
+            localStorage.setItem('access_token', newToken);
         } else {
-            localStorage.removeItem("access_token");
+            localStorage.removeItem('access_token');
         }
 
         setDefaultAuthorization(newToken);
@@ -67,23 +65,20 @@ export const useAuthStore = defineStore("auth", () => {
         try {
             loading.value = true;
 
-            const response = await fetcher.post("/auth/token", {
+            const response = await fetcher.post('/auth/token', {
                 username: credentials.email || credentials.username,
                 password: credentials.password,
             });
 
             setTokens(response.data.access_token, response.data.refresh_token);
-            user.value = (await fetcher.get("/me")).data;
+            user.value = (await fetcher.get('/me')).data;
 
-            bus.trigger("auth:logged");
+            bus.trigger('auth:logged');
             return { success: true };
         } catch (error) {
-            let message =
-                error.data?.detail ||
-                error.response?.data?.detail ||
-                "Erreur de connexion";
-            if (message === "Incorrect email or password") {
-                message = "Email ou mot de passe incorrect";
+            let message = error.data?.detail || error.response?.data?.detail || 'Erreur de connexion';
+            if (message === 'Incorrect email or password') {
+                message = 'Email ou mot de passe incorrect';
             }
             return { success: false, message };
         } finally {
@@ -96,9 +91,7 @@ export const useAuthStore = defineStore("auth", () => {
             loading.value = true;
 
             // Construire l'URL avec le token si fourni
-            const url = invitationToken
-                ? `/auth/register?token=${invitationToken}`
-                : "/auth/register";
+            const url = invitationToken ? `/auth/register?token=${invitationToken}` : '/auth/register';
 
             await fetcher.post(url, userData);
 
@@ -109,12 +102,8 @@ export const useAuthStore = defineStore("auth", () => {
 
             return loginResult;
         } catch (error) {
-            let message =
-                error.data?.detail ||
-                error.response?.data?.detail ||
-                "Erreur lors de l'inscription";
-            if (message === "Email already registered")
-                message = "Email déjà enregistré";
+            let message = error.data?.detail || error.response?.data?.detail || "Erreur lors de l'inscription";
+            if (message === 'Email already registered') message = 'Email déjà enregistré';
             return { success: false, message };
         } finally {
             loading.value = false;
@@ -125,9 +114,9 @@ export const useAuthStore = defineStore("auth", () => {
         try {
             user.value = null;
             setTokens(null, null);
-            bus.trigger("auth:logout");
+            bus.trigger('auth:logout');
         } catch (error) {
-            console.error("Erreur lors de la déconnexion:", error);
+            console.error('Erreur lors de la déconnexion:', error);
         }
     };
 
@@ -138,22 +127,31 @@ export const useAuthStore = defineStore("auth", () => {
         }
 
         try {
-            const response = await fetcher.post("/auth/refresh", {
+            const response = await fetcher.post('/auth/refresh', {
                 refresh_token: refreshToken.value,
             });
 
             setTokens(response.data.access_token, response.data.refresh_token);
             return true;
         } catch (error) {
-            console.error("Erreur lors du refresh du token:", error);
-            await logout();
+            const status = error?.response?.status;
+
+            if (401 === status || 403 === status) {
+                await logout();
+            } else {
+                // Network or server error: the refresh token may still be
+                // valid, keep the session so the app recovers when the
+                // server comes back.
+                console.error('Erreur lors du refresh du token:', error);
+            }
+
             return false;
         }
     };
 
     const checkUser = async () => {
         if (token.value && !user.value) {
-            user.value = (await fetcher.get("/me")).data;
+            user.value = (await fetcher.get('/me')).data;
         }
 
         return user.value;
@@ -161,7 +159,7 @@ export const useAuthStore = defineStore("auth", () => {
 
     const refreshUser = async () => {
         if (token.value) {
-            user.value = (await fetcher.get("/me")).data;
+            user.value = (await fetcher.get('/me')).data;
         }
 
         return user.value;

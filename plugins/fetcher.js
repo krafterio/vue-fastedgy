@@ -3,9 +3,9 @@
  * MIT License (see LICENSE file).
  */
 
-import {fetchBus, fetch} from '../network/fetch.js';
-import {fetcherSrc} from '../directives/fetcher.js';
-import {useAuthStore} from '../stores/auth.js';
+import { fetchBus, fetch } from '../network/fetch.js';
+import { fetcherSrc } from '../directives/fetcher.js';
+import { useAuthStore } from '../stores/auth.js';
 
 const defaultHeaders = {};
 let defaultBaseUrl = '';
@@ -14,9 +14,9 @@ let failedQueue = [];
 let isRedirecting = false;
 
 const processQueue = (error = null) => {
-    const activeQueue = failedQueue.filter(prom => !prom.signal || !prom.signal.aborted);
+    const activeQueue = failedQueue.filter((prom) => !prom.signal || !prom.signal.aborted);
 
-    activeQueue.forEach(prom => {
+    activeQueue.forEach((prom) => {
         if (error) {
             prom.reject(error);
         } else {
@@ -29,7 +29,7 @@ const processQueue = (error = null) => {
 
 const cleanupAbortedRequests = () => {
     if (failedQueue.length > 0) {
-        failedQueue = failedQueue.filter(prom => !prom.signal || !prom.signal.aborted);
+        failedQueue = failedQueue.filter((prom) => !prom.signal || !prom.signal.aborted);
     }
 };
 
@@ -49,31 +49,20 @@ const refreshToken = async () => {
 
     try {
         const refreshSuccess = await authStore.refreshAccessToken();
-        isRefreshing = false;
 
         if (refreshSuccess) {
             processQueue();
 
             return true;
-        } else {
-            processQueue(new Error('Token refresh failed'));
-
-            if (!isRedirecting) {
-                isRedirecting = true;
-                await authStore.logout();
-                isRedirecting = false;
-            }
-
-            return false;
         }
+
+        // The auth store owns the logout decision: it keeps the session on
+        // network/server errors and only logs out on an auth rejection.
+        processQueue(new Error('Token refresh failed'));
+
+        return false;
     } catch (refreshError) {
         processQueue(refreshError);
-
-        if (!isRedirecting) {
-            isRedirecting = true;
-            await authStore.logout();
-            isRedirecting = false;
-        }
 
         return false;
     } finally {
@@ -137,7 +126,7 @@ export const useAuthFetch = () => {
         e.detail.url = absoluteUrl(e.detail.url);
 
         const authStore = useAuthStore();
-        const {options, url} = e.detail;
+        const { options, url } = e.detail;
 
         if (authStore.isAuthenticated && url && !url.includes('auth/refresh')) {
             if (authStore.isTokenExpired && authStore.canRefreshToken) {
@@ -173,7 +162,7 @@ export const useAuthFetch = () => {
 
     fetchBus.addEventListener('fetch:error', async (e) => {
         const authStore = useAuthStore();
-        const {url, options, error} = e.detail;
+        const { url, options, error } = e.detail;
 
         if (error?.response?.status !== 401 || url?.includes('auth/refresh')) {
             return;
@@ -222,10 +211,14 @@ export const useAuthFetch = () => {
             failedQueue.push(queueItem);
 
             if (signal) {
-                signal.addEventListener('abort', () => {
-                    failedQueue = failedQueue.filter(item => item !== queueItem);
-                    reject(new DOMException('The operation was aborted.', 'AbortError'));
-                }, { once: true });
+                signal.addEventListener(
+                    'abort',
+                    () => {
+                        failedQueue = failedQueue.filter((item) => item !== queueItem);
+                        reject(new DOMException('The operation was aborted.', 'AbortError'));
+                    },
+                    { once: true }
+                );
             }
         });
 
@@ -235,7 +228,7 @@ export const useAuthFetch = () => {
 
         await refreshToken();
     });
-}
+};
 
 export const createFetcher = () => {
     return {
@@ -243,7 +236,7 @@ export const createFetcher = () => {
             useAuthFetch();
 
             app.directive('fetcher-src', fetcherSrc);
-        }
+        },
     };
 };
 

@@ -16,6 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('access_token'));
     const refreshToken = ref(localStorage.getItem('refresh_token'));
     const loading = ref(false);
+    let checkUserPromise = null;
 
     const isAuthenticated = computed(() => !!token.value && !!refreshToken.value);
 
@@ -151,7 +152,16 @@ export const useAuthStore = defineStore('auth', () => {
 
     const checkUser = async () => {
         if (token.value && !user.value) {
-            user.value = (await fetcher.get('/me')).data;
+            checkUserPromise ??= fetcher
+                .get('/me')
+                .then((response) => {
+                    user.value = response.data;
+                })
+                .finally(() => {
+                    checkUserPromise = null;
+                });
+
+            await checkUserPromise;
         }
 
         return user.value;

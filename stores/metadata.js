@@ -3,18 +3,19 @@
  * MIT License (see LICENSE file).
  */
 
-import { defineStore } from "pinia";
-import { ref } from "vue";
-import { useAuthStore } from "./auth.js";
-import { useFetcher } from "../composables/fetcher.js";
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import { useAuthStore } from './auth.js';
+import { useFetcher } from '../composables/fetcher.js';
 
-export const useMetadataStore = defineStore("metadata", () => {
+export const useMetadataStore = defineStore('metadata', () => {
     const metadatas = ref(null);
     const loading = ref(false);
     const error = ref(null);
     const prefix = ref(null);
     const authStore = useAuthStore();
     const fetcher = useFetcher({ abortOnUnmounted: false });
+    let fetchPromise = null;
 
     function setPrefix(newPrefix) {
         prefix.value = newPrefix;
@@ -29,17 +30,22 @@ export const useMetadataStore = defineStore("metadata", () => {
             return;
         }
 
-        loading.value = true;
-        error.value = null;
+        fetchPromise ??= (async () => {
+            loading.value = true;
+            error.value = null;
 
-        try {
-            const response = await fetcher.get((prefix.value || "") + "/dataset/metadatas");
-            setMetadatas(response.data);
-        } catch (err) {
-            error.value = err;
-        } finally {
-            loading.value = false;
-        }
+            try {
+                const response = await fetcher.get((prefix.value || '') + '/dataset/metadatas');
+                setMetadatas(response.data);
+            } catch (err) {
+                error.value = err;
+            } finally {
+                loading.value = false;
+                fetchPromise = null;
+            }
+        })();
+
+        await fetchPromise;
     }
 
     function setMetadatas(newMetadatas) {

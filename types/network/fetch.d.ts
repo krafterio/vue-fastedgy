@@ -9,9 +9,7 @@
 export function fetch(url: RequestInfo | URL, options?: RequestInit | {
     params?: any;
     body?: any | BodyInit | null;
-}): Promise<Response | {
-    data: {};
-}>;
+}): Promise<Response>;
 export const fetchBus: EventBus;
 export class HttpError extends Error {
     /**

@@ -1,4 +1,37 @@
 /**
+ * Create and configure API model defaults.
+ *
+ * @param {{ export?: { defaultRelationDelimiter?: 'newline' | 'semicolon' | 'comma' } }} config - Configuration options
+ * @returns {import("vue").Plugin} - Vue plugin
+ *
+ * @example
+ * // In main.js
+ * import { createApiModel } from 'vue-fastedgy';
+ *
+ * const apiModel = createApiModel({
+ *     export: {
+ *         defaultRelationDelimiter: 'semicolon'
+ *     }
+ * });
+ *
+ * app.use(apiModel);
+ */
+export function createApiModel(config?: {
+    export?: {
+        defaultRelationDelimiter?: "newline" | "semicolon" | "comma";
+    };
+}): import("vue").Plugin;
+/**
+ * Get current API model configuration.
+ *
+ * @returns {{ export?: { defaultRelationDelimiter?: 'newline' | 'semicolon' | 'comma' } }}
+ */
+export function getApiModelConfig(): {
+    export?: {
+        defaultRelationDelimiter?: "newline" | "semicolon" | "comma";
+    };
+};
+/**
  * List action with pagination and filters
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
@@ -92,7 +125,7 @@ export function deleteAction(modelName: string, id: string | number, params?: {
  * Export action - export items in a specific format
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
- * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string }} query - Standardized query parameters
+ * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string, relationDelimiter?: 'newline' | 'semicolon' | 'comma' }} query - Standardized query parameters
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<any>}
  */
@@ -103,6 +136,7 @@ export function exportAction(modelName: string, query?: {
     filter?: string | object;
     orderBy?: string | string[];
     format?: string;
+    relationDelimiter?: "newline" | "semicolon" | "comma";
 }, params?: {
     prefix?: string;
     headers?: object;

@@ -23,6 +23,7 @@ export * from './plugins/i18nExtra.js';
 // Stores
 export * from './stores/auth.js';
 export * from './stores/metadata.js';
+export * from './stores/workspace.js';
 
 // Utils
 export * from './utils/logger.js';

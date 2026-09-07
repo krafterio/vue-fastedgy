@@ -6,6 +6,7 @@
 import { fetchBus, fetch } from '../network/fetch.js';
 import { fetcherSrc } from '../directives/fetcher.js';
 import { useAuthStore } from '../stores/auth.js';
+import { useWorkspaceStore } from '../stores/workspace.js';
 
 const defaultHeaders = {};
 let defaultBaseUrl = '';
@@ -230,10 +231,84 @@ export const useAuthFetch = () => {
     });
 };
 
-export const createFetcher = () => {
+const APP_PLACEHOLDER = '/{app}/';
+const WORKSPACE_PLACEHOLDER = '/{workspace}/';
+
+/**
+ * Wait for a session that is still being restored.
+ *
+ * A request fired while the token is being refreshed would otherwise decide
+ * on an anonymous user and address the wrong surface for the rest of its life.
+ */
+const untilAuthSettled = async (authStore) => {
+    if (!authStore.loading) {
+        return;
+    }
+
+    await new Promise((resolve) => {
+        const unwatch = authStore.$subscribe((mutation, state) => {
+            if (!state.loading) {
+                unwatch();
+                resolve();
+            }
+        });
+    });
+};
+
+/**
+ * Resolve the context placeholders a request URL carries.
+ *
+ * Two of them, answering to different things. `{app}` is the surface being
+ * served, which the application names for itself. `{workspace}` is the tenant
+ * being read, which the workspace the user picked decides. Neither is a
+ * question of role: deciding the tenant from a role is what leaves a console
+ * user who is also a member of a workspace unable to read it.
+ */
+export const useUrlContextFetch = ({ surface = null, workspace = false, workspaceless = 'global' } = {}) => {
+    const listener = async (e) => {
+        e.detail.url = absoluteUrl(e.detail.url);
+
+        if (surface && e.detail.url.includes(APP_PLACEHOLDER)) {
+            e.detail.url = e.detail.url.replace(APP_PLACEHOLDER, `/${surface}/`);
+        }
+
+        if (e.detail.url.includes(WORKSPACE_PLACEHOLDER)) {
+            const authStore = useAuthStore();
+
+            await untilAuthSettled(authStore);
+
+            let slug = null;
+
+            // An application that serves no workspace never asks for the list:
+            // a console user having one of their own must not turn the console
+            // into a tenant.
+            if (workspace) {
+                const workspaceStore = useWorkspaceStore();
+
+                await workspaceStore.load();
+
+                slug = workspaceStore.slug;
+            }
+
+            e.detail.url = e.detail.url.replace(WORKSPACE_PLACEHOLDER, `/${slug ?? workspaceless}/`);
+        }
+    };
+
+    fetchBus.addEventListener('fetch:request', listener);
+
+    return () => fetchBus.removeEventListener('fetch:request', listener);
+};
+
+/**
+ * `surface` names what this application is, for `/{app}/`. `workspace` says
+ * whether it serves one workspace at a time, and `workspaceless` names what
+ * stands where a tenant would, for what no workspace owns.
+ */
+export const createFetcher = (options = {}) => {
     return {
         install(app) {
             useAuthFetch();
+            useUrlContextFetch(options);
 
             app.directive('fetcher-src', fetcherSrc);
         },

@@ -8,89 +8,65 @@ export function useFetcher(options?: {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
     abort: (id?: string) => void;
     get: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
     post: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
     put: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
     patch: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
     delete: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
 };
 export function useFetcherService(options?: any): {
     fetch: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
     abort: (id?: string) => void;
     get: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
     post: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
     put: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
     patch: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
     delete: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
         params?: any;
         body?: any | BodyInit | null;
-    }) => Promise<Response | {
-        data: {};
-    }>;
+    }) => Promise<Response>;
 };
 //# sourceMappingURL=fetcher.d.ts.map

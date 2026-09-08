@@ -3,6 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
+import { ref } from 'vue';
 import { useFetcher } from './fetcher.js';
 import { useMetadataStore } from '../stores/metadata.js';
 import { cleanPayload } from '../utils/models.js';

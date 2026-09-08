@@ -254,6 +254,34 @@ export async function deleteAction(modelName, id, params = {}) {
 }
 
 /**
+ * Action a model answers to outside the routes generated for it.
+ *
+ * The api name and the surface are resolved as they are everywhere else, so a
+ * model with an endpoint of its own is still addressed by its metadata name.
+ *
+ * @param {string} modelName - Model name: metadata 'name' or 'api_name'
+ * @param {string} method - get, post, patch, put or delete
+ * @param {string} path - What follows the model in the url, e.g. '/12/generate-image'
+ * @param {object} [body] - Body of a write
+ * @param {{ fields?: string|string[], filter?: string|object, page?: number, size?: number,
+ *           limit?: number, offset?: number, orderBy?: string|string[] }} [query]
+ * @param {{ prefix?: string, headers?: object }} [params]
+ * @returns {Promise<{data: any}>}
+ */
+export async function actionRequest(modelName, method, path = '', body, query = {}, params = {}) {
+    const fetcher = useFetcher();
+    const apiName = await resolveApiName(modelName);
+    const headers = buildHeaders(query, params);
+    const url = buildUrl(apiName, path, params.prefix);
+
+    if (method === 'get' || method === 'delete') {
+        return await fetcher[method](url, { params: buildQueryParams(query), headers });
+    }
+
+    return await fetcher[method](url, body === undefined ? undefined : cleanPayload(body), { headers });
+}
+
+/**
  * Export action - export items in a specific format
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
@@ -396,6 +424,7 @@ export function useApiForm(model, options = {}) {
  * @param {{ prefix?: string, headers?: object }} defaultParams - Default parameters
  * @returns {
  *  modelName: string,
+ *  action: (method, path, body = undefined, query = {}, params = {}) => Promise<{data: any}>,
  *  list: (query = {}, params = {}) => Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>,
  *  get: (id, options = {}, params = {}) => Promise<{data: any}>,
  *  create: (payload, options = {}, params = {}) => Promise<{data: any}>,
@@ -412,6 +441,17 @@ export function useApiModel(modelName, defaultParams = {}) {
          * Model name
          */
         modelName,
+
+        /**
+         * Reach an action of the model outside its generated routes
+         * @param {string} method - get, post, patch, put or delete
+         * @param {string} [path] - What follows the model in the url
+         * @param {object} [body]
+         * @param {object} [query]
+         * @param {{ prefix?: string, headers?: object }} [params]
+         */
+        action: (method, path = '', body, query = {}, params = {}) =>
+            actionRequest(modelName, method, path, body, query, { ...defaultParams, ...params }),
 
         /**
          * List items

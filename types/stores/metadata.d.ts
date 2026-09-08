@@ -5,6 +5,7 @@ export declare const useMetadataStore: import("pinia").SetupStoreDefinition<"met
     setPrefix: (newPrefix: any) => void;
     getPrefix: () => null;
     fetchMetadatas: () => Promise<void>;
+    setMetadatas: (newMetadatas: any) => void;
     getMetadatas: () => Promise<null>;
     getMetadata: (modelName: any) => Promise<any>;
 }>;

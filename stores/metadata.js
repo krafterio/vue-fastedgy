@@ -74,6 +74,7 @@ export const useMetadataStore = defineStore('metadata', () => {
         setPrefix,
         getPrefix,
         fetchMetadatas,
+        setMetadatas,
         getMetadatas,
         getMetadata,
     };

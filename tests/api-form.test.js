@@ -4,7 +4,9 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useApiForm } from '../composables/api.js';
+import { createPinia, setActivePinia } from 'pinia';
+import { useApiForm, useApiModel } from '../composables/api.js';
+import { useMetadataStore } from '../stores/metadata.js';
 
 const record = (data) => Promise.resolve({ data });
 
@@ -58,5 +60,33 @@ describe('useApiForm', () => {
         await remove(7);
 
         expect(api.delete).toHaveBeenCalledWith(7);
+    });
+});
+
+describe('useApiModel action', () => {
+    it('addresses an endpoint of the model that its generated routes do not cover', async () => {
+        setActivePinia(createPinia());
+        useMetadataStore().setMetadatas({ aliment: { name: 'aliment', api_name: 'aliments' } });
+
+        const fetchSpy = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                headers: { get: () => 'application/json' },
+                json: async () => ({ started: true }),
+            })
+        );
+
+        window.fetch = fetchSpy;
+
+        const { action } = useApiModel('aliment', { prefix: '/console' });
+        const response = await action('post', '/7/generate-image', { format: 'webp' });
+
+        const [url, options] = fetchSpy.mock.calls[0];
+
+        expect(url).toBe('/console/aliments/7/generate-image');
+        expect(options.method).toBe('POST');
+        expect(JSON.parse(options.body)).toEqual({ format: 'webp' });
+        expect(response.data).toEqual({ started: true });
     });
 });

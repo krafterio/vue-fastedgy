@@ -6,6 +6,7 @@
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useApiModel } from './api.js';
+import { formatOrderBy, parseOrderBy } from '../utils/order-by.js';
 import { usePageSize } from './page-size.js';
 import { useSelection } from './selection.js';
 import { useSortable } from './sortable.js';
@@ -117,29 +118,7 @@ export function useDataIterator(model, options = {}) {
         return [...new Set(allFields)];
     });
 
-    /**
-     * Parse order_by string from URL to array
-     * @param {string} orderByString - "field1:asc,field2:desc"
-     * @returns {Array<string>|null}
-     */
-    const parseOrderByString = (orderByString) => {
-        if (!orderByString) return null;
-        return orderByString.split(',');
-    };
-
-    /**
-     * Convert orderBy array to string for URL
-     * @param {Array<string>} orderByArray - ['field:asc', 'field2:desc']
-     * @returns {string|null}
-     */
-    const orderByArrayToString = (orderByArray) => {
-        if (!orderByArray || orderByArray.length === 0) return null;
-        return orderByArray.join(',');
-    };
-
-    const initialOrderBy = route.query.order_by
-        ? parseOrderByString(route.query.order_by)
-        : config.defaultOrderBy || null;
+    const initialOrderBy = parseOrderBy(route.query.order_by) ?? config.defaultOrderBy ?? null;
     const orderBy = ref(initialOrderBy);
 
     /**
@@ -333,7 +312,7 @@ export function useDataIterator(model, options = {}) {
         orderBy,
         (newOrderBy) => {
             const query = { ...route.query };
-            const orderByString = orderByArrayToString(newOrderBy);
+            const orderByString = formatOrderBy(newOrderBy);
             if (orderByString) {
                 query.order_by = orderByString;
             } else {

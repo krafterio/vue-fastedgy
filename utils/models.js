@@ -32,3 +32,33 @@ export function cleanPayload(value) {
     // Return other values as-is (numbers, booleans, Date, File, etc.)
     return value;
 }
+
+/**
+ * The text a field holds, or nothing when it holds only spaces.
+ *
+ * @param {any} value
+ * @returns {String|null}
+ */
+export function trimmedOrNull(value) {
+    const text = String(value ?? '').trim();
+
+    return text ? text : null;
+}
+
+/**
+ * The number a field holds, or nothing when it holds nothing readable.
+ *
+ * @param {any} value
+ * @returns {Number|null}
+ */
+export function numberOrNull(value) {
+    const text = trimmedOrNull(value);
+
+    if (text === null) {
+        return null;
+    }
+
+    const parsed = Number(text);
+
+    return Number.isNaN(parsed) ? null : parsed;
+}

@@ -29,11 +29,25 @@ export function useStorage(defaultParams = {}) {
      * URL a stored file is read from, to be given to `v-fetcher-src` or to the fetcher.
      *
      * @param {string|null} path - Stored path, as the model field holds it
-     * @param {{ prefix?: string }} [options]
+     * @param {{ prefix?: string, params?: object }} [options] - `params` is what the
+     *        route reads on its own: a size, a format, a download rather than a display
      * @returns {string|null} - Null for an empty field, so a caller can test the URL itself
+     *
+     * @example
+     * fileUrl(aliment.image);
+     * fileUrl(ticket.image, { params: { force_download: true } });
      */
     function fileUrl(path, options = {}) {
-        return path ? `${base(options.prefix)}/storage/download/${path}` : null;
+        if (!path) {
+            return null;
+        }
+
+        const url = `${base(options.prefix)}/storage/download/${path}`;
+        const query = new URLSearchParams(
+            Object.entries(options.params || {}).filter(([, value]) => value !== undefined && value !== null)
+        ).toString();
+
+        return query ? `${url}?${query}` : url;
     }
 
     /**

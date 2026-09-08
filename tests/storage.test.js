@@ -58,3 +58,18 @@ describe('useStorage', () => {
         expect(options.method).toBe('DELETE');
     });
 });
+
+describe('useStorage file url', () => {
+    it('carries what the download route reads on its own', () => {
+        const { fileUrl } = useStorage();
+
+        expect(fileUrl('a.png', { params: { w: 600, m: 'contain' } })).toBe('/storage/download/a.png?w=600&m=contain');
+        expect(fileUrl('a.png', { params: { e: undefined } })).toBe('/storage/download/a.png');
+    });
+
+    it('reads from the surface it is given', () => {
+        const { fileUrl } = useStorage();
+
+        expect(fileUrl('a.png', { prefix: '/public/lists/abc' })).toBe('/public/lists/abc/storage/download/a.png');
+    });
+});

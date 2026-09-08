@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { t } from "./i18n.js";
+import { t } from './i18n.js';
 
 /**
  * Format validation errors from Pydantic in a readable text.
@@ -12,15 +12,15 @@ import { t } from "./i18n.js";
  * @param {string} [defaultMessage] - What to say when the server named no reason, already translated by the caller
  * @returns {string | undefined} Formatted error message or undefined if no error
  */
-export function formatValidationErrors(error, defaultMessage = undefined) {
+export function formatValidationErrors(error, defaultMessage) {
     const errorDetail = error.data?.detail;
-    const fallback = defaultMessage || t("Unknown error");
+    const fallback = defaultMessage || t('Unknown error');
 
     if (!errorDetail) {
         return undefined;
     }
 
-    if (typeof errorDetail === "string") {
+    if (typeof errorDetail === 'string') {
         return errorDetail;
     }
 
@@ -34,13 +34,13 @@ export function formatValidationErrors(error, defaultMessage = undefined) {
         }
 
         const errorItems = errorDetail.map((err) => {
-            const field = err.loc ? err.loc.join(" → ") : "";
+            const field = err.loc ? err.loc.join(' → ') : '';
             const message = err.msg || fallback;
 
             return field ? `• ${field}: ${message}` : `• ${message}`;
         });
 
-        return errorItems.join("\n");
+        return errorItems.join('\n');
     }
 
     return fallback;

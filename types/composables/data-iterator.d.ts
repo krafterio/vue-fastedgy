@@ -2,7 +2,7 @@
  * Core composable for data iteration with server-side pagination, filters, and sorting
  * Used as base for DataTable and DataGrid
  *
- * @param {string|Object} model - Model name (e.g., 'retail_chains', 'tasks') or an api model (useXxxApiModel())
+ * @param {string|object} model - Model name (e.g., 'retail_chains', 'tasks') or an api model (useXxxApiModel())
  * @param {Object} options - Configuration options
  * @param {Array<string>} options.fields - Fields read by the caller (e.g. ['name', 'type.name'])
  * @param {Function|Array} options.fieldsResolver - Function that returns fields array or static array
@@ -20,7 +20,7 @@
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
  * @returns {Object} - DataIterator state and methods
  */
-export function useDataIterator(model: string | any, options?: {
+export declare function useDataIterator(model: string | object, options?: {
     fields: Array<string>;
     fieldsResolver: Function | any[];
     pageSize: number;

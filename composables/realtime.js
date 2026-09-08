@@ -32,7 +32,7 @@ import { useWorkspaceStore } from '../stores/workspace.js';
  * // An application that reads the workspace off the route itself
  * useRealtime(() => useRoute().params.workspace ?? null);
  */
-export function useRealtime(workspace = undefined) {
+export function useRealtime(workspace) {
     const authStore = useAuthStore();
     const source = workspace ?? (() => useWorkspaceStore().slug);
 
@@ -49,7 +49,7 @@ export function useRealtime(workspace = undefined) {
                 realtime.connect(token, slug);
             }
         },
-        { immediate: true },
+        { immediate: true }
     );
 
     onUnmounted(() => realtime.disconnect());
@@ -128,7 +128,7 @@ export function useResourceChanged(model, handler, options = {}) {
     });
 
     useBus(bus, 'realtime:reconnected', () =>
-        fire({ model, id: null, action: 'reconnected', changed: null, origin: null, truncated: true }),
+        fire({ model, id: null, action: 'reconnected', changed: null, origin: null, truncated: true })
     );
 
     realtime.subscribe(subscribed.model, subscribed.id);
@@ -140,7 +140,7 @@ export function useResourceChanged(model, handler, options = {}) {
                 realtime.unsubscribe(subscribed.model, subscribed.id);
                 subscribed.id = next;
                 realtime.subscribe(subscribed.model, subscribed.id);
-            },
+            }
         );
     }
 
@@ -178,7 +178,9 @@ export function touches(event, read) {
         return true;
     }
 
-    return moved.some((one) => read.some((other) => one === other || one.startsWith(`${other}.`) || other.startsWith(`${one}.`)));
+    return moved.some((one) =>
+        read.some((other) => one === other || one.startsWith(`${other}.`) || other.startsWith(`${one}.`))
+    );
 }
 
 /**
@@ -191,7 +193,7 @@ export function touches(event, read) {
  * @param {String}                                                             model
  * @param {String|Number|(function(): (String|Number|null))|
  *         import("vue").Ref<String|Number|null>}                              id
- * @param {{fields?: String|String[], params?: Object, immediate?: Boolean,
+ * @param {{fields?: String|String[], params?: object, immediate?: Boolean,
  *          api?: Object}}                                                     [options]
  *
  * @returns {{data: import("vue").Ref, status: import("vue").Ref<String>,
@@ -202,7 +204,7 @@ export function touches(event, read) {
  * const { data: company, status, isDeleted } = useApiRecord('company', () => route.params.id);
  */
 export function useApiRecord(model, id, options = {}) {
-    const { fields = undefined, params = {}, immediate = true, api = null } = options;
+    const { fields, params = {}, immediate = true, api = null } = options;
     // Its own reader when the application has one: a model served by a bespoke
     // endpoint is held exactly like any other.
     const reader = api ?? useApiModel(model, params);
@@ -258,20 +260,20 @@ export function useApiRecord(model, id, options = {}) {
                 return;
             }
 
-            read(true);
+            void read(true);
         },
-        { id: currentId, refreshDelay: 0 },
+        { id: currentId, refreshDelay: 0 }
     );
 
     if (typeof id === 'function' || id?.value !== undefined) {
         watch(currentId, () => {
             isDeleted.value = false;
-            read(false);
+            void read(false);
         });
     }
 
     if (immediate) {
-        read(false);
+        void read(false);
     }
 
     return { data, status, error, isDeleted, refresh: () => read(false) };
@@ -285,9 +287,9 @@ export function useApiRecord(model, id, options = {}) {
  * the server, and an update that moved nothing the list reads is left alone.
  *
  * @param {String}                                                       model
- * @param {Object|(function(): Object)|import("vue").Ref<Object>}        [query]
- * @param {{params?: Object, immediate?: Boolean, refreshDelay?: Number,
- *          watchFields?: String[]|null, api?: Object}}                  [options]
+ * @param {object|(function(): object)|import("vue").Ref<object>}        [query]
+ * @param {{params?: object, immediate?: Boolean, refreshDelay?: Number,
+ *          watchFields?: String[]|null, api?: object}}                  [options]
  *
  * @returns {{items: import("vue").Ref<Array>, total: import("vue").Ref<Number>,
  *           status: import("vue").Ref<String>, error: import("vue").Ref,
@@ -310,7 +312,12 @@ export function useApiCollection(model, query = {}, options = {}) {
     const read = () => {
         const asked = currentQuery();
 
-        return watchFields ?? String(asked.fields ?? '').split(',').filter(Boolean);
+        return (
+            watchFields ??
+            String(asked.fields ?? '')
+                .split(',')
+                .filter(Boolean)
+        );
     };
 
     async function load(quiet) {
@@ -361,15 +368,15 @@ export function useApiCollection(model, query = {}, options = {}) {
             clearTimeout(timer);
             timer = setTimeout(() => load(true), refreshDelay);
         },
-        { refreshDelay: 0 },
+        { refreshDelay: 0 }
     );
 
     if (typeof query === 'function' || query?.value !== undefined) {
-        watch(currentQuery, () => load(false), { deep: true });
+        watch(currentQuery, () => void load(false), { deep: true });
     }
 
     if (immediate) {
-        load(false);
+        void load(false);
     }
 
     onUnmounted(() => clearTimeout(timer));

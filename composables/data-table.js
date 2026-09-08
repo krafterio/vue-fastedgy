@@ -10,7 +10,7 @@ import { useMetadataStore } from '../stores/metadata.js';
 /**
  * A list read as columns: the data iterator, plus the columns it reads.
  *
- * @param {string|Object} model - Model name or an api model (useXxxApiModel())
+ * @param {string|object} model - Model name or an api model (useXxxApiModel())
  * @param {Object} options - Configuration options
  * @param {Array} options.columns - Column definitions [{key, label, width, sortable, type}, ...]
  * @param {Array} options.additionalFields - Fields to read without showing them

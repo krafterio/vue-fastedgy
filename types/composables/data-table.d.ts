@@ -1,7 +1,7 @@
 /**
  * A list read as columns: the data iterator, plus the columns it reads.
  *
- * @param {string|Object} model - Model name or an api model (useXxxApiModel())
+ * @param {string|object} model - Model name or an api model (useXxxApiModel())
  * @param {Object} options - Configuration options
  * @param {Array} options.columns - Column definitions [{key, label, width, sortable, type}, ...]
  * @param {Array} options.additionalFields - Fields to read without showing them
@@ -16,7 +16,7 @@
  * @param {boolean} options.enableSelection - Enable row selection (default: false)
  * @returns {Object} - The data iterator, with `columns`
  */
-export function useDataTable(model: string | any, options?: {
+export declare function useDataTable(model: string | object, options?: {
     columns: any[];
     additionalFields: any[];
     pageSize: number;

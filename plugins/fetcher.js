@@ -145,7 +145,7 @@ export const useOriginFetch = () => {
     const listener = (e) => {
         const { options } = e.detail;
 
-        options.headers = { ...(options.headers || {}), [ORIGIN_HEADER]: originId };
+        options.headers = { ...options.headers, [ORIGIN_HEADER]: originId };
     };
 
     fetchBus.addEventListener('fetch:request', listener);
@@ -283,7 +283,10 @@ const untilAuthSettled = async (authStore) => {
  * question of role: deciding the tenant from a role is what leaves a console
  * user who is also a member of a workspace unable to read it.
  */
-export const useUrlContextFetch = ({ surface = null, workspace = false, workspaceless = 'global' } = {}) => {
+export const useUrlContextFetch = (
+    /** @type {{surface?: String|null, workspace?: Boolean, workspaceless?: String}} */
+    { surface = null, workspace = false, workspaceless = 'global' } = {}
+) => {
     const listener = async (e) => {
         e.detail.url = absoluteUrl(e.detail.url);
 

@@ -1,9 +1,9 @@
 /**
  * Advanced navigation helper with smart back/forward detection
  */
-export function useNavigator(): {
-    goBackTo: (target: string | any) => Promise<void>;
-    goNextTo: (target: string | any) => Promise<void>;
+export declare function useNavigator(): {
+    goBackTo: (target: string | object) => Promise<void>;
+    goNextTo: (target: string | object) => Promise<void>;
     goBack: () => void;
     goNext: () => void;
 };

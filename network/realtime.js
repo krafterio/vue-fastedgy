@@ -236,7 +236,7 @@ export class RealtimeSocket {
                 JSON.stringify({
                     type: 'authenticate',
                     data: { token: this.token, workspace: this.announced },
-                }),
+                })
             );
         };
 

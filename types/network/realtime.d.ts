@@ -1,4 +1,24 @@
 /**
+ * The one event every holder listens to, whatever moved the record.
+ *
+ * A write made here fires it as soon as the request answers, and a write made
+ * anywhere else fires it when the server announces it. One vocabulary for one
+ * fact, so a view says once what it reads instead of wiring a refresh for its
+ * own mutations and another for everyone else's.
+ *
+ * @type {String}
+ */
+export declare const RESOURCE_CHANGED: string;
+/**
+ * The actions a record announcement can carry.
+ *
+ * What the server names a write. Anything else the server says, under whatever
+ * name it chose, is its own event and travels on the bus under that name.
+ *
+ * @type {String[]}
+ */
+export declare const RESOURCE_ACTIONS: string[];
+/**
  * Say a record moved, to whatever is holding it.
  *
  * Called by the API layer on its own writes and by the socket on the server's
@@ -9,7 +29,7 @@
  *          changed?: String[]|null, origin?: String|null,
  *          truncated?: Boolean}} event
  */
-export function notifyChanged(event: {
+export declare function notifyChanged(event: {
     model: string;
     id: (string | number | null);
     action: string;
@@ -17,35 +37,6 @@ export function notifyChanged(event: {
     origin?: string | null;
     truncated?: boolean;
 }): void;
-/**
- * `product` for a list, `product:42` for one record.
- *
- * @param {String}             model
- * @param {String|Number|null} id
- *
- * @returns {String}
- */
-export function channelOf(model: string, id: string | number | null): string;
-/**
- * The one event every holder listens to, whatever moved the record.
- *
- * A write made here fires it as soon as the request answers, and a write made
- * anywhere else fires it when the server announces it. One vocabulary for one
- * fact, so a view says once what it reads instead of wiring a refresh for its
- * own mutations and another for everyone else's.
- *
- * @type {String}
- */
-export const RESOURCE_CHANGED: string;
-/**
- * The actions a record announcement can carry.
- *
- * What the server names a write. Anything else the server says, under whatever
- * name it chose, is its own event and travels on the bus under that name.
- *
- * @type {String[]}
- */
-export const RESOURCE_ACTIONS: string[];
 /**
  * The workspace's live events, as the server sees them.
  *
@@ -58,17 +49,18 @@ export const RESOURCE_ACTIONS: string[];
  * Events carry identifiers, never content. One marked `truncated` is the server
  * saying it left the payload behind: read it back through the API.
  */
-export class RealtimeSocket {
-    socket: WebSocket;
-    token: string;
-    workspace: string;
+export declare class RealtimeSocket {
+    socket: WebSocket | null;
+    token: string | null;
+    workspace: string | null;
     authenticated: boolean;
     wanted: boolean;
     announced: any;
     channels: Map<any, any>;
     everConnected: boolean;
     retryDelay: number;
-    retryTimer: any;
+    retryTimer: number | null;
+    constructor();
     /**
      * Open the socket, or point the open one at another workspace.
      *
@@ -129,9 +121,18 @@ export class RealtimeSocket {
     scheduleReconnect(): void;
 }
 /**
+ * `product` for a list, `product:42` for one record.
+ *
+ * @param {String}             model
+ * @param {String|Number|null} id
+ *
+ * @returns {String}
+ */
+export declare function channelOf(model: string, id: string | number | null): string;
+/**
  * The one socket of this tab.
  *
  * @type {RealtimeSocket}
  */
-export const realtime: RealtimeSocket;
+export declare const realtime: RealtimeSocket;
 //# sourceMappingURL=realtime.d.ts.map

@@ -1,4 +1,4 @@
-import { useRouter } from "vue-router";
+import { useRouter } from 'vue-router';
 
 /**
  * Advanced navigation helper with smart back/forward detection
@@ -10,7 +10,7 @@ export function useNavigator() {
      * Navigate back if the previous route matches the target, otherwise push to target
      * Preserves query params, scroll position, and page state when going back
      *
-     * @param {string|Object} target - Route name (string) or route location object { name, params }
+     * @param {string|object} target - Route name (string) or route location object { name, params }
      * @returns {Promise<void>}
      *
      * @example
@@ -18,8 +18,7 @@ export function useNavigator() {
      * goBackTo({ name: 'User', params: { id: '123' } })
      */
     const goBackTo = (target) => {
-        const targetLocation =
-            typeof target === "string" ? { name: target } : target;
+        const targetLocation = typeof target === 'string' ? { name: target } : target;
 
         const previousPath = router.options.history.state.back;
 
@@ -34,7 +33,7 @@ export function useNavigator() {
      * Navigate forward if the next route matches the target, otherwise push to target
      * Useful for "redo" or "continue" actions
      *
-     * @param {string|Object} target - Route name (string) or route location object { name, params }
+     * @param {string|object} target - Route name (string) or route location object { name, params }
      * @returns {Promise<void>}
      *
      * @example
@@ -42,8 +41,7 @@ export function useNavigator() {
      * goNextTo({ name: 'User', params: { id: '456' } })
      */
     const goNextTo = (target) => {
-        const targetLocation =
-            typeof target === "string" ? { name: target } : target;
+        const targetLocation = typeof target === 'string' ? { name: target } : target;
 
         const nextPath = router.options.history.state.forward;
 
@@ -79,10 +77,7 @@ export function useNavigator() {
         const targetRoute = router.resolve(targetLocation);
 
         const isSameRoute = historyRoute.name === targetRoute.name;
-        const hasSameParams = compareParams(
-            historyRoute.params,
-            targetRoute.params
-        );
+        const hasSameParams = compareParams(historyRoute.params, targetRoute.params);
 
         return isSameRoute && hasSameParams;
     };

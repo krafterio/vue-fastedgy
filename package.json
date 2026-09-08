@@ -4,33 +4,40 @@
     "description": "Package to facilitate integration between a FastEdgy server and a Vue.js application",
     "type": "module",
     "main": "./index.js",
-    "peerDependencies": {
-        "pinia": "^2.1.7 || ^3.0.0 || ^4.0.0",
-        "vue": "^3.4.15",
-        "vue-i18n": "^11.1.12",
-        "vue-router": "^4.2.5 || ^5.0.0"
-    },
-    "devDependencies": {
-        "@types/node": "^24.5.2",
-        "typescript": "^5.9.2",
-        "@vue/test-utils": "^2.4.4",
-        "jsdom": "^24.0.0",
-        "vitest": "^3.1.2"
-    },
-    "engines": {
-        "node": ">=22.0.0"
-    },
-    "scripts": {
-        "build": "tsc -p tsconfig.json",
-        "test": "vitest run",
-        "test:watch": "vitest"
-    },
     "types": "./types/index.d.ts",
     "exports": {
         ".": {
             "import": "./index.js",
             "types": "./types/index.d.ts"
         }
+    },
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "lint": "npm run build && oxlint . --type-aware",
+        "fix": "oxlint --fix",
+        "format": "oxfmt --write index.js composables directives locales network plugins stores utils tests vitest.config.js vitest.setup.js",
+        "fcl": "npm run fix && npm run format && npm run lint",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "devDependencies": {
+        "@types/node": "^24.5.2",
+        "@vue/test-utils": "^2.4.4",
+        "jsdom": "^24.0.0",
+        "oxfmt": "^0.67.0",
+        "oxlint": "^1.82.0",
+        "oxlint-tsgolint": "^7.0.2001",
+        "typescript": "^7.0.2",
+        "vitest": "^3.1.2"
+    },
+    "peerDependencies": {
+        "pinia": "^2.1.7 || ^3.0.0 || ^4.0.0",
+        "vue": "^3.4.15",
+        "vue-i18n": "^11.1.12",
+        "vue-router": "^4.2.5 || ^5.0.0"
+    },
+    "engines": {
+        "node": ">=22.0.0"
     },
     "allowScripts": {
         "esbuild": false,

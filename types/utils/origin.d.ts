@@ -3,7 +3,7 @@
  *
  * @type {String}
  */
-export const ORIGIN_HEADER: string;
+export declare const ORIGIN_HEADER: string;
 /**
  * This running instance of the application, for the life of this page.
  *
@@ -16,5 +16,5 @@ export const ORIGIN_HEADER: string;
  *
  * @type {String}
  */
-export const originId: string;
+export declare const originId: string;
 //# sourceMappingURL=origin.d.ts.map

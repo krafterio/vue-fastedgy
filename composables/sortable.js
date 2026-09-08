@@ -10,7 +10,7 @@ import { useDataset } from './dataset.js';
  * Composable for drag & drop resequencing functionality
  *
  * @param {string} modelName - API model name
- * @param {Object|Promise<Object>} metadata - Model metadata from metadata store, which hands it back as a promise
+ * @param {object|Promise<object>} metadata - Model metadata from metadata store, which hands it back as a promise
  * @param {boolean|undefined} sortableConfig - Sortable configuration override
  * @returns {Object} Sortable state and methods, `ready` settling once the metadata is read
  */

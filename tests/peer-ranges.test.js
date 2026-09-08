@@ -34,7 +34,7 @@ describe('the peer ranges the package declares', () => {
 
         mount(
             { template: '<div />', setup: () => void (navigator = useNavigator()) },
-            { global: { plugins: [router] } },
+            { global: { plugins: [router] } }
         );
 
         await router.push({ name: 'User', params: { id: '1' } });

@@ -16,9 +16,9 @@
  *
  * app.use(apiModel);
  */
-export function createApiModel(config?: {
+export declare function createApiModel(config?: {
     export?: {
-        defaultRelationDelimiter?: "newline" | "semicolon" | "comma";
+        defaultRelationDelimiter?: 'newline' | 'semicolon' | 'comma';
     };
 }): import("vue").Plugin;
 /**
@@ -26,9 +26,9 @@ export function createApiModel(config?: {
  *
  * @returns {{ export?: { defaultRelationDelimiter?: 'newline' | 'semicolon' | 'comma' } }}
  */
-export function getApiModelConfig(): {
+export declare function getApiModelConfig(): {
     export?: {
-        defaultRelationDelimiter?: "newline" | "semicolon" | "comma";
+        defaultRelationDelimiter?: 'newline' | 'semicolon' | 'comma';
     };
 };
 /**
@@ -39,7 +39,7 @@ export function getApiModelConfig(): {
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>}
  */
-export function listAction(modelName: string, query?: {
+export declare function listAction(modelName: string, query?: {
     page?: number;
     size?: number;
     fields?: string | string[];
@@ -66,7 +66,7 @@ export function listAction(modelName: string, query?: {
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: any}>}
  */
-export function getAction(modelName: string, id: string | number, options?: {
+export declare function getAction(modelName: string, id: string | number, options?: {
     fields?: string | string[];
 }, params?: {
     prefix?: string;
@@ -83,7 +83,7 @@ export function getAction(modelName: string, id: string | number, options?: {
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: any}>}
  */
-export function createAction(modelName: string, payload: object, options?: {
+export declare function createAction(modelName: string, payload: object, options?: {
     fields?: string | string[];
 }, params?: {
     prefix?: string;
@@ -101,7 +101,7 @@ export function createAction(modelName: string, payload: object, options?: {
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: any}>}
  */
-export function patchAction(modelName: string, id: string | number, payload: object, options?: {
+export declare function patchAction(modelName: string, id: string | number, payload: object, options?: {
     fields?: string | string[];
 }, params?: {
     prefix?: string;
@@ -117,7 +117,7 @@ export function patchAction(modelName: string, id: string | number, payload: obj
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<void>}
  */
-export function deleteAction(modelName: string, id: string | number, params?: {
+export declare function deleteAction(modelName: string, id: string | number, params?: {
     prefix?: string;
     headers?: object;
 }): Promise<void>;
@@ -129,14 +129,14 @@ export function deleteAction(modelName: string, id: string | number, params?: {
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<any>}
  */
-export function exportAction(modelName: string, query?: {
+export declare function exportAction(modelName: string, query?: {
     page?: number;
     size?: number;
     fields?: string | string[];
     filter?: string | object;
     orderBy?: string | string[];
     format?: string;
-    relationDelimiter?: "newline" | "semicolon" | "comma";
+    relationDelimiter?: 'newline' | 'semicolon' | 'comma';
 }, params?: {
     prefix?: string;
     headers?: object;
@@ -149,7 +149,7 @@ export function exportAction(modelName: string, query?: {
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<any>}
  */
-export function importTemplateAction(modelName: string, query?: {
+export declare function importTemplateAction(modelName: string, query?: {
     fields?: string | string[];
     format?: string;
 }, params?: {
@@ -164,7 +164,7 @@ export function importTemplateAction(modelName: string, query?: {
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: {success: number, errors: number, created: number, updated: number, error_details?: Array<{row: number, error: string, data: object}>}}>}
  */
-export function importAction(modelName: string, file: File, params?: {
+export declare function importAction(modelName: string, file: File, params?: {
     prefix?: string;
     headers?: object;
 }): Promise<{
@@ -197,7 +197,7 @@ export function importAction(modelName: string, file: File, params?: {
  *  import: (file, params = {}) => Promise<{data: {success: number, errors: number, created: number, updated: number, error_details?: Array<{row: number, error: string, data: object}>}}>
  * } - Service with CRUD methods
  */
-export function useApiModel(modelName: string, defaultParams?: {
+export declare function useApiModel(modelName: string, defaultParams?: {
     prefix?: string;
     headers?: object;
 }): any;

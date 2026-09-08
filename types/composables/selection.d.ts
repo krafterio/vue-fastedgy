@@ -7,9 +7,9 @@
  * @param {import('vue').Ref<number>} options.total - Reference to total count
  * @returns {Object} Selection state and methods
  */
-export function useSelection({ enabled, items, total }: {
+export declare function useSelection({ enabled, items, total }: {
     enabled?: boolean;
-    items: import("vue").Ref<any[]>;
-    total: import("vue").Ref<number>;
+    items: import('vue').Ref<any[]>;
+    total: import('vue').Ref<number>;
 }): any;
 //# sourceMappingURL=selection.d.ts.map

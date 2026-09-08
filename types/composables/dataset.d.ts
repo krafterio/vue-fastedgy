@@ -9,7 +9,7 @@
  *
  * await resequence('aisle', [3, 1, 2]);
  */
-export function useDataset(defaultParams?: {
+export declare function useDataset(defaultParams?: {
     prefix?: string;
 }): {
     resequence: (modelName: string, ids: Array<number>, options?: any) => Promise<any>;

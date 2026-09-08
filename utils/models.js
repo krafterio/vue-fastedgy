@@ -17,7 +17,7 @@ export function cleanPayload(value) {
 
     // Handle arrays recursively
     if (Array.isArray(value)) {
-        return value.map(item => cleanPayload(item));
+        return value.map((item) => cleanPayload(item));
     }
 
     // Handle objects recursively (but not Date, File, FormData, etc.)

@@ -1,11 +1,11 @@
-export const useAuthStore: import("pinia").SetupStoreDefinition<"auth", {
-    user: import("vue").Ref<any, any>;
-    token: import("vue").Ref<string, string>;
+export declare const useAuthStore: import("pinia").SetupStoreDefinition<"auth", {
+    user: import("vue").Ref<null, null>;
+    token: import("vue").Ref<string | null, string | null>;
     loading: import("vue").Ref<boolean, boolean>;
     isAuthenticated: import("vue").ComputedRef<boolean>;
     canRefreshToken: import("vue").ComputedRef<boolean>;
     isTokenExpired: import("vue").ComputedRef<boolean>;
-    register: (userData: any, invitationToken?: any) => Promise<{
+    register: (userData: object, invitationToken?: string | null) => Promise<{
         success: boolean;
         message?: undefined;
     } | {
@@ -22,9 +22,9 @@ export const useAuthStore: import("pinia").SetupStoreDefinition<"auth", {
     logout: () => Promise<void>;
     setToken: (newToken: any) => void;
     setTokens: (accessToken: any, newRefreshToken: any) => void;
-    refreshToken: import("vue").Ref<string, string>;
+    refreshToken: import("vue").Ref<string | null, string | null>;
     refreshAccessToken: () => Promise<boolean>;
-    checkUser: () => Promise<any>;
-    refreshUser: () => Promise<any>;
+    checkUser: () => Promise<null>;
+    refreshUser: () => Promise<null>;
 }>;
 //# sourceMappingURL=auth.d.ts.map

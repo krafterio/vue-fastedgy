@@ -15,6 +15,7 @@ export const useMetadataStore = defineStore('metadata', () => {
     const prefix = ref(null);
     const authStore = useAuthStore();
     const fetcher = useFetcher({ abortOnUnmounted: false });
+    /** @type {Promise<void>|null} */
     let fetchPromise = null;
 
     function setPrefix(newPrefix) {

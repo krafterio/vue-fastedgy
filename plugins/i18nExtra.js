@@ -3,9 +3,9 @@
  * MIT License (see LICENSE file).
  */
 
-import {createI18nExtraTranslateContentDirective} from '../directives/i18nExtra.js';
-import {fr} from '../locales/fr.js';
-import {setI18n} from '../utils/i18n.js';
+import { createI18nExtraTranslateContentDirective } from '../directives/i18nExtra.js';
+import { fr } from '../locales/fr.js';
+import { setI18n } from '../utils/i18n.js';
 
 /**
  * Hand the application the translations of the package.
@@ -20,7 +20,7 @@ function mergeMessages(i18n) {
         return;
     }
 
-    for (const [locale, messages] of Object.entries({fr})) {
+    for (const [locale, messages] of Object.entries({ fr })) {
         const known = i18n.global.getLocaleMessage(locale) || {};
         const missing = Object.fromEntries(Object.entries(messages).filter(([key]) => !(key in known)));
 
@@ -44,6 +44,6 @@ export const createI18nExtra = (i18n) => {
     return {
         install(app) {
             app.directive('tc', createI18nExtraTranslateContentDirective(i18n));
-        }
+        },
     };
 };

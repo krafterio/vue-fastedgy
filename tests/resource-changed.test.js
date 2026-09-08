@@ -68,7 +68,9 @@ describe('useResourceChanged', () => {
     it('follows the record it was given as a getter', () => {
         const id = ref(7);
 
-        listening(() => useResourceChanged('company', (one) => heard.push(one), { id: () => id.value, refreshDelay: 0 }));
+        listening(() =>
+            useResourceChanged('company', (one) => heard.push(one), { id: () => id.value, refreshDelay: 0 })
+        );
         change({ id: 9 });
 
         expect(heard).toEqual([]);
@@ -88,7 +90,7 @@ describe('useResourceChanged', () => {
 
     it('leaves alone an update that moved nothing it reads', async () => {
         listening(() =>
-            useResourceChanged('company', (one) => heard.push(one), { watchFields: ['name'], refreshDelay: 0 }),
+            useResourceChanged('company', (one) => heard.push(one), { watchFields: ['name'], refreshDelay: 0 })
         );
         change({ changed: ['internal_note'] });
 
@@ -97,7 +99,7 @@ describe('useResourceChanged', () => {
 
     it('hears a create whatever its columns', () => {
         listening(() =>
-            useResourceChanged('company', (one) => heard.push(one), { watchFields: ['name'], refreshDelay: 0 }),
+            useResourceChanged('company', (one) => heard.push(one), { watchFields: ['name'], refreshDelay: 0 })
         );
         change({ action: 'created', changed: ['internal_note'] });
 

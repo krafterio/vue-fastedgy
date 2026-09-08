@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import {EventBus} from '../composables/bus.js';
+import { EventBus } from '../composables/bus.js';
 
 export const fetchBus = new EventBus();
 
@@ -13,7 +13,7 @@ export class HttpError extends Error {
      * @param {String}   message
      * @param {Object}   [data]
      */
-    constructor(response, message = undefined, data = undefined) {
+    constructor(response, message, data) {
         super(message);
         this.response = response;
         this.data = data;
@@ -24,9 +24,9 @@ export class HttpError extends Error {
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/fetch)
  *
  * @param {RequestInfo | URL}                                                url
- * @param {RequestInit | {params?: Object, body?: Object | BodyInit | null}} [options]
+ * @param {RequestInit | {params?: object, body?: object | BodyInit | null}} [options]
  *
- * @returns Promise<Response&{data?: Object}>
+ * @returns Promise<Response&{data?: object}>
  */
 export async function fetch(url, options = {}) {
     /**
@@ -51,18 +51,21 @@ export async function fetch(url, options = {}) {
         if ('params' in options) {
             const params = typeof options.params === 'object' ? new URLSearchParams(options.params) : options.params;
             params.forEach((value, key) => {
-                if (value === '' || value === undefined || value ===  'undefined') {
+                if (value === '' || value === undefined || value === 'undefined') {
                     params.delete(key);
                 }
             });
             const query = params.toString();
 
-            if (query) {
-                url += (url.includes('?') ? '&' : '?') + query;
+            // A Request carries its own url: only a string or a URL takes a query here.
+            if (query && (typeof url === 'string' || url instanceof URL)) {
+                const target = url.toString();
+
+                url = `${target}${target.includes('?') ? '&' : '?'}${query}`;
             }
         }
 
-        const headers = {...(options.headers || {})};
+        const headers = { ...options.headers };
         let body = options.body;
 
         if ((typeof body === 'object' || typeof body === 'string') && !(body instanceof FormData)) {

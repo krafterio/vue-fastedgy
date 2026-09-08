@@ -14,7 +14,7 @@
  * const path = await uploadModelField('aliment', aliment.id, 'image', file);
  * const src = fileUrl(path);
  */
-export function useStorage(defaultParams?: {
+export declare function useStorage(defaultParams?: {
     prefix?: string;
 }): {
     fileUrl: (path: string | null) => string | null;

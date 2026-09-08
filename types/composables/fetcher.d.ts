@@ -1,72 +1,72 @@
 /**
  * @param {{abortOnUnmounted: boolean}} options
  */
-export function useFetcher(options?: {
+export declare function useFetcher(options: {
     abortOnUnmounted: boolean;
 }): {
     fetch: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
-    abort: (id?: string) => void;
+    abort: (id?: string | undefined) => void;
     get: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
-    post: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
+    post: (url: RequestInfo | URL, body?: object | BodyInit | null, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
-    put: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
+    put: (url: RequestInfo | URL, body?: object | BodyInit | null, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
-    patch: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
+    patch: (url: RequestInfo | URL, body?: object | BodyInit | null, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
     delete: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
 };
-export function useFetcherService(options?: any): {
+export declare function useFetcherService(options: any): {
     fetch: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
-    abort: (id?: string) => void;
+    abort: (id?: string | undefined) => void;
     get: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
-    post: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
+    post: (url: RequestInfo | URL, body?: object | BodyInit | null, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
-    put: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
+    put: (url: RequestInfo | URL, body?: object | BodyInit | null, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
-    patch: (url: RequestInfo | URL, body?: any | BodyInit | null, options?: RequestInit | {
+    patch: (url: RequestInfo | URL, body?: object | BodyInit | null, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
     delete: (url: RequestInfo | URL, options?: RequestInit | {
         id?: string;
-        params?: any;
-        body?: any | BodyInit | null;
+        params?: object;
+        body?: object | BodyInit | null;
     }) => Promise<Response>;
 };
 //# sourceMappingURL=fetcher.d.ts.map

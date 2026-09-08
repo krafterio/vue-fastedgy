@@ -17,6 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
     const token = ref(localStorage.getItem('access_token'));
     const refreshToken = ref(localStorage.getItem('refresh_token'));
     const loading = ref(false);
+    /** @type {Promise<void>|null} */
     let checkUserPromise = null;
 
     const isAuthenticated = computed(() => !!token.value && !!refreshToken.value);
@@ -88,6 +89,10 @@ export const useAuthStore = defineStore('auth', () => {
         }
     };
 
+    /**
+     * @param {object} userData
+     * @param {String|null} [invitationToken]
+     */
     const register = async (userData, invitationToken = null) => {
         try {
             loading.value = true;

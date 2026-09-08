@@ -35,6 +35,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const workspaces = ref([]);
     const current = ref(null);
     const loading = ref(false);
+    /** @type {Promise<void>|null} */
     let loadPromise = null;
 
     const slug = computed(() => current.value?.slug || null);

@@ -10,5 +10,5 @@
  * @param {string|null} [storageKey] - Where the choice is remembered
  * @returns {import("vue").Ref<number>}
  */
-export function usePageSize(queryParam: number | string | null, availableSizes: Array<number>, defaultSize: number, storageKey?: string | null): import("vue").Ref<number>;
+export declare function usePageSize(queryParam: number | string | null, availableSizes: Array<number>, defaultSize: number, storageKey?: string | null): import("vue").Ref<number>;
 //# sourceMappingURL=page-size.d.ts.map

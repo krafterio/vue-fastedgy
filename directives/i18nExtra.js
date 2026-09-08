@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { watch } from "vue";
+import { watch } from 'vue';
 
 /**
  * Directive v-tc (translate content) to handle long translations.
@@ -16,11 +16,7 @@ export function createI18nExtraTranslateContentDirective(i18n) {
     const activeElements = new Map();
     let localeWatcher = null;
 
-    if (
-        i18n.global &&
-        typeof i18n.global.locale === "object" &&
-        i18n.global.locale.value
-    ) {
+    if (i18n.global && typeof i18n.global.locale === 'object' && i18n.global.locale.value) {
         localeWatcher = watch(i18n.global.locale, () => {
             activeElements.forEach((binding, element) => {
                 if (element.isConnected) {
@@ -44,8 +40,7 @@ export function createI18nExtraTranslateContentDirective(i18n) {
             translationKey = el._vTcOriginalContent || el.textContent.trim();
         }
 
-        let translationParams =
-            typeof params === "object" && params !== null ? params : {};
+        let translationParams = typeof params === 'object' && params !== null ? params : {};
 
         if (translationKey) {
             el.textContent = t(translationKey, translationParams);
@@ -59,10 +54,7 @@ export function createI18nExtraTranslateContentDirective(i18n) {
         },
 
         updated(el, binding) {
-            if (
-                JSON.stringify(binding.oldValue) !==
-                JSON.stringify(binding.value)
-            ) {
+            if (JSON.stringify(binding.oldValue) !== JSON.stringify(binding.value)) {
                 processElement(el, binding, false);
             }
 

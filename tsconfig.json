@@ -11,6 +11,7 @@
         "target": "ES2020",
         "skipLibCheck": true,
         "strict": false,
+        "strictNullChecks": true,
         "noImplicitAny": false,
         "noImplicitReturns": false,
         "noImplicitThis": false,
@@ -21,23 +22,8 @@
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": false,
         "resolveJsonModule": true,
-        "types": [],
-        "baseUrl": ".",
-        "paths": {
-            "vue-fastedgy/*": [
-                "./*"
-            ]
-        }
+        "types": []
     },
-    "include": [
-        "**/*.js"
-    ],
-    "exclude": [
-        "dist",
-        "node_modules",
-        "types",
-        "tests",
-        "vitest.config.js",
-        "vitest.setup.js"
-    ]
+    "include": ["**/*.js"],
+    "exclude": ["dist", "node_modules", "types", "tests", "vitest.config.js", "vitest.setup.js"]
 }

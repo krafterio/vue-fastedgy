@@ -20,7 +20,7 @@
  * // An application that reads the workspace off the route itself
  * useRealtime(() => useRoute().params.workspace ?? null);
  */
-export function useRealtime(workspace?: (() => (string | null)) | import("vue").Ref<string | null>): void;
+export declare function useRealtime(workspace: (Function)): void;
 /**
  * Hear about a model, or about one record of it, while a view is on screen.
  *
@@ -54,18 +54,10 @@ export function useRealtime(workspace?: (() => (string | null)) | import("vue").
  * // A list that only cares about the columns it shows
  * useResourceChanged('company', () => reload(), { watchFields: ['name', 'domain'] });
  */
-export function useResourceChanged(model: string, handler: (arg0: {
-    model: string;
-    id: (string | number | null);
-    action: string;
-    changed: (string[] | null);
-    origin: (string | null);
-    truncated: boolean;
-}) => void, options?: {
-    id?: string | number | null | (() => (string | number | null)) | import("vue").Ref<string | number | null>;
-    watchFields?: string[] | null;
-    refreshDelay?: number;
-}): () => void;
+export declare function useResourceChanged(model: string, handler: Function, options?: {
+    id?: string | number | null | (Function);
+    (): (string | number | null);
+}): Function;
 /**
  * Whether something reading [read] has anything to learn from a change.
  *
@@ -83,7 +75,7 @@ export function useResourceChanged(model: string, handler: (arg0: {
  *
  * @returns {Boolean}
  */
-export function touches(event: {
+export declare function touches(event: {
     action: string;
     changed?: string[] | null;
 }, read: string[]): boolean;
@@ -97,7 +89,7 @@ export function touches(event: {
  * @param {String}                                                             model
  * @param {String|Number|(function(): (String|Number|null))|
  *         import("vue").Ref<String|Number|null>}                              id
- * @param {{fields?: String|String[], params?: Object, immediate?: Boolean,
+ * @param {{fields?: String|String[], params?: object, immediate?: Boolean,
  *          api?: Object}}                                                     [options]
  *
  * @returns {{data: import("vue").Ref, status: import("vue").Ref<String>,
@@ -107,9 +99,9 @@ export function touches(event: {
  * @example
  * const { data: company, status, isDeleted } = useApiRecord('company', () => route.params.id);
  */
-export function useApiRecord(model: string, id: string | number | (() => (string | number | null)) | import("vue").Ref<string | number | null>, options?: {
+export declare function useApiRecord(model: string, id: string | number | (Function), options?: {
     fields?: string | string[];
-    params?: any;
+    params?: object;
     immediate?: boolean;
     api?: any;
 }): {
@@ -117,7 +109,8 @@ export function useApiRecord(model: string, id: string | number | (() => (string
     status: import("vue").Ref<string>;
     error: import("vue").Ref;
     isDeleted: import("vue").Ref<boolean>;
-    refresh: () => Promise<void>;
+    refresh: Function;
+    (): Promise<void>;
 };
 /**
  * Hold a list, and keep it in step with what happens to its model.
@@ -127,9 +120,9 @@ export function useApiRecord(model: string, id: string | number | (() => (string
  * the server, and an update that moved nothing the list reads is left alone.
  *
  * @param {String}                                                       model
- * @param {Object|(function(): Object)|import("vue").Ref<Object>}        [query]
- * @param {{params?: Object, immediate?: Boolean, refreshDelay?: Number,
- *          watchFields?: String[]|null, api?: Object}}                  [options]
+ * @param {object|(function(): object)|import("vue").Ref<object>}        [query]
+ * @param {{params?: object, immediate?: Boolean, refreshDelay?: Number,
+ *          watchFields?: String[]|null, api?: object}}                  [options]
  *
  * @returns {{items: import("vue").Ref<Array>, total: import("vue").Ref<Number>,
  *           status: import("vue").Ref<String>, error: import("vue").Ref,
@@ -138,17 +131,18 @@ export function useApiRecord(model: string, id: string | number | (() => (string
  * @example
  * const { items, total, status } = useApiCollection('company', () => ({ fields: 'id,name', limit: 25 }));
  */
-export function useApiCollection(model: string, query?: any | (() => any) | import("vue").Ref<any>, options?: {
-    params?: any;
+export declare function useApiCollection(model: string, query?: object | (Function), options?: {
+    params?: object;
     immediate?: boolean;
     refreshDelay?: number;
     watchFields?: string[] | null;
-    api?: any;
+    api?: object;
 }): {
     items: import("vue").Ref<any[]>;
     total: import("vue").Ref<number>;
     status: import("vue").Ref<string>;
     error: import("vue").Ref;
-    refresh: () => Promise<void>;
+    refresh: Function;
+    (): Promise<void>;
 };
 //# sourceMappingURL=realtime.d.ts.map

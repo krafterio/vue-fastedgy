@@ -8,13 +8,13 @@
  *
  * @param {import("vue-i18n").I18n|null} i18n
  */
-export function setI18n(i18n: import("vue-i18n").I18n | null): void;
+export declare function setI18n(i18n: import("vue-i18n").I18n | null): void;
 /**
  * The i18n the application handed over, for a package that needs more than `t`.
  *
  * @returns {import("vue-i18n").I18n|null}
  */
-export function getI18n(): import("vue-i18n").I18n | null;
+export declare function getI18n(): import("vue-i18n").I18n | null;
 /**
  * Translate a message of a package, English being the key.
  *
@@ -29,5 +29,5 @@ export function getI18n(): import("vue-i18n").I18n | null;
  * t('Not found');
  * t('{count} rows imported', { count: 12 });
  */
-export function t(key: string, named?: any): string;
+export declare function t(key: string, named?: any): string;
 //# sourceMappingURL=i18n.d.ts.map

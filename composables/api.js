@@ -3,11 +3,11 @@
  * MIT License (see LICENSE file).
  */
 
-import { useFetcher } from "./fetcher.js";
-import { useMetadataStore } from "../stores/metadata.js";
-import { cleanPayload } from "../utils/models.js";
-import { notifyChanged } from "../network/realtime.js";
-import { originId } from "../utils/origin.js";
+import { useFetcher } from './fetcher.js';
+import { useMetadataStore } from '../stores/metadata.js';
+import { cleanPayload } from '../utils/models.js';
+import { notifyChanged } from '../network/realtime.js';
+import { originId } from '../utils/origin.js';
 
 /**
  * Global API model configuration
@@ -38,7 +38,7 @@ export function createApiModel(config = {}) {
     return {
         install() {
             // Config is stored globally, no need to inject into app
-        }
+        },
     };
 }
 
@@ -75,8 +75,8 @@ async function resolveApiName(modelName) {
  * @param {string} prefix - Prefix to use (e.g., '/admin')
  * @returns {string} - Built URL
  */
-function buildUrl(modelName, path = "", prefix = "") {
-    return `${prefix || ""}/${modelName}${path}`;
+function buildUrl(modelName, path = '', prefix = '') {
+    return `${prefix || ''}/${modelName}${path}`;
 }
 
 /**
@@ -105,9 +105,7 @@ function buildQueryParams(query = {}) {
 
     // Standard ordering
     if (query.orderBy != null) {
-        queryParams.order_by = Array.isArray(query.orderBy)
-            ? query.orderBy.join(",")
-            : query.orderBy;
+        queryParams.order_by = Array.isArray(query.orderBy) ? query.orderBy.join(',') : query.orderBy;
     }
 
     // Export format
@@ -131,16 +129,11 @@ function buildHeaders(query = {}, params = {}) {
     const headers = { ...params.headers };
 
     if (query.fields != null) {
-        headers["X-Fields"] = Array.isArray(query.fields)
-            ? query.fields.join(",")
-            : query.fields;
+        headers['X-Fields'] = Array.isArray(query.fields) ? query.fields.join(',') : query.fields;
     }
 
     if (query.filter != null) {
-        headers["X-Filter"] =
-            typeof query.filter === "string"
-                ? query.filter
-                : JSON.stringify(query.filter);
+        headers['X-Filter'] = typeof query.filter === 'string' ? query.filter : JSON.stringify(query.filter);
     }
 
     return headers;
@@ -159,7 +152,7 @@ export async function listAction(modelName, query = {}, params = {}) {
     const apiName = await resolveApiName(modelName);
     const queryParams = buildQueryParams(query);
     const headers = buildHeaders(query, params);
-    const url = buildUrl(apiName, "", params.prefix);
+    const url = buildUrl(apiName, '', params.prefix);
 
     return await fetcher.get(url, { params: queryParams, headers });
 }
@@ -191,23 +184,18 @@ export async function getAction(modelName, id, options = {}, params = {}) {
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: any}>}
  */
-export async function createAction(
-    modelName,
-    payload,
-    options = {},
-    params = {}
-) {
+export async function createAction(modelName, payload, options = {}, params = {}) {
     const fetcher = useFetcher();
     const apiName = await resolveApiName(modelName);
     const headers = buildHeaders(options, params);
-    const url = buildUrl(apiName, "", params.prefix);
+    const url = buildUrl(apiName, '', params.prefix);
     const body = cleanPayload(payload);
     const response = await fetcher.post(url, body, { headers });
 
     notifyChanged({
         model: modelName,
         id: response?.id ?? null,
-        action: "created",
+        action: 'created',
         changed: Object.keys(body || {}),
         origin: originId,
     });
@@ -225,13 +213,7 @@ export async function createAction(
  * @param {{ prefix?: string, headers?: object }} params - Optional parameters
  * @returns {Promise<{data: any}>}
  */
-export async function patchAction(
-    modelName,
-    id,
-    payload,
-    options = {},
-    params = {}
-) {
+export async function patchAction(modelName, id, payload, options = {}, params = {}) {
     const fetcher = useFetcher();
     const apiName = await resolveApiName(modelName);
     const headers = buildHeaders(options, params);
@@ -242,7 +224,7 @@ export async function patchAction(
     notifyChanged({
         model: modelName,
         id,
-        action: "updated",
+        action: 'updated',
         changed: Object.keys(body || {}),
         origin: originId,
     });
@@ -265,7 +247,7 @@ export async function deleteAction(modelName, id, params = {}) {
     const url = buildUrl(apiName, `/${id}`, params.prefix);
     const response = await fetcher.delete(url, { headers });
 
-    notifyChanged({ model: modelName, id, action: "deleted", origin: originId });
+    notifyChanged({ model: modelName, id, action: 'deleted', origin: originId });
 
     return response;
 }
@@ -282,7 +264,7 @@ export async function exportAction(modelName, query = {}, params = {}) {
     const fetcher = useFetcher();
     const apiName = await resolveApiName(modelName);
     const config = getApiModelConfig();
-    const { format = "csv", relationDelimiter, ...rest } = query;
+    const { format = 'csv', relationDelimiter, ...rest } = query;
 
     // Use config default if relationDelimiter not provided
     const effectiveRelationDelimiter = relationDelimiter ?? config.export?.defaultRelationDelimiter;
@@ -294,7 +276,7 @@ export async function exportAction(modelName, query = {}, params = {}) {
     };
     const queryParams = buildQueryParams(queryWithFormat);
     const headers = buildHeaders(queryWithFormat, params);
-    const url = buildUrl(apiName, "/export", params.prefix);
+    const url = buildUrl(apiName, '/export', params.prefix);
 
     return await fetcher.get(url, { params: queryParams, headers });
 }
@@ -310,11 +292,11 @@ export async function exportAction(modelName, query = {}, params = {}) {
 export async function importTemplateAction(modelName, query = {}, params = {}) {
     const fetcher = useFetcher();
     const apiName = await resolveApiName(modelName);
-    const { format = "csv", ...rest } = query;
+    const { format = 'csv', ...rest } = query;
     const queryWithFormat = { ...rest, format };
     const queryParams = buildQueryParams(queryWithFormat);
     const headers = buildHeaders(queryWithFormat, params);
-    const url = buildUrl(apiName, "/import/template", params.prefix);
+    const url = buildUrl(apiName, '/import/template', params.prefix);
 
     return await fetcher.get(url, { params: queryParams, headers });
 }
@@ -330,11 +312,11 @@ export async function importTemplateAction(modelName, query = {}, params = {}) {
 export async function importAction(modelName, file, params = {}) {
     const fetcher = useFetcher();
     const apiName = await resolveApiName(modelName);
-    const url = buildUrl(apiName, "/import", params.prefix);
+    const url = buildUrl(apiName, '/import', params.prefix);
 
     // Create FormData for file upload
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
 
     // Headers for FormData (don't set Content-Type, browser will set it with boundary)
     const headers = { ...params.headers };
@@ -371,8 +353,7 @@ export function useApiModel(modelName, defaultParams = {}) {
          * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[] }} query
          * @param {{ prefix?: string, headers?: object }} params
          */
-        list: (query = {}, params = {}) =>
-            listAction(modelName, query, { ...defaultParams, ...params }),
+        list: (query = {}, params = {}) => listAction(modelName, query, { ...defaultParams, ...params }),
 
         /**
          * Get item by ID
@@ -416,16 +397,14 @@ export function useApiModel(modelName, defaultParams = {}) {
          * @param {string|number} id
          * @param {{ prefix?: string, headers?: object }} params
          */
-        delete: (id, params = {}) =>
-            deleteAction(modelName, id, { ...defaultParams, ...params }),
+        delete: (id, params = {}) => deleteAction(modelName, id, { ...defaultParams, ...params }),
 
         /**
          * Export items
          * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[], format?: string, relationDelimiter?: 'newline' | 'semicolon' | 'comma' }} query
          * @param {{ prefix?: string, headers?: object }} params
          */
-        export: (query = {}, params = {}) =>
-            exportAction(modelName, query, { ...defaultParams, ...params }),
+        export: (query = {}, params = {}) => exportAction(modelName, query, { ...defaultParams, ...params }),
 
         /**
          * Download import template
@@ -443,7 +422,6 @@ export function useApiModel(modelName, defaultParams = {}) {
          * @param {File} file - File to import (CSV, XLSX, ODS)
          * @param {{ prefix?: string, headers?: object }} params
          */
-        import: (file, params = {}) =>
-            importAction(modelName, file, { ...defaultParams, ...params }),
+        import: (file, params = {}) => importAction(modelName, file, { ...defaultParams, ...params }),
     };
 }

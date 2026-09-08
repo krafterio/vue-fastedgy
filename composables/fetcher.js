@@ -3,13 +3,13 @@
  * MIT License (see LICENSE file).
  */
 
-import {onUnmounted} from 'vue';
-import {fetch as _fetch} from '../network/fetch.js';
+import { onUnmounted } from 'vue';
+import { fetch as _fetch } from '../network/fetch.js';
 
 /**
  * @param {{abortOnUnmounted: boolean}} options
  */
-export function useFetcher(options = undefined) {
+export function useFetcher(options) {
     const controllers = new Map();
     const opt = options || {};
     opt.abortOnUnmounted = 'abortOnUnmounted' in opt ? opt.abortOnUnmounted : true;
@@ -18,9 +18,9 @@ export function useFetcher(options = undefined) {
      * [MDN Reference](https://developer.mozilla.org/docs/Web/API/fetch).
      *
      * @param {RequestInfo | URL}                                                             url
-     * @param {RequestInit | {id?: String, params?: Object, body?: Object | BodyInit | null}} [options]
+     * @param {RequestInit | {id?: String, params?: object, body?: object | BodyInit | null}} [options]
      *
-     * @returns Promise<Response&{data?: Object}>
+     * @returns Promise<Response&{data?: object}>
      */
     async function fetch(url, options = {}) {
         const id = options?.['id'] || url;
@@ -43,7 +43,7 @@ export function useFetcher(options = undefined) {
      *
      * @param {String} [id]
      */
-    function abort(id = undefined) {
+    function abort(id) {
         if (id) {
             controllers.get(id)?.abort('Abort request');
             controllers.delete(id);
@@ -58,55 +58,55 @@ export function useFetcher(options = undefined) {
 
     /**
      * @param {RequestInfo | URL}                                                             url
-     * @param {RequestInit | {id?: String, params?: Object, body?: Object | BodyInit | null}} [options]
+     * @param {RequestInit | {id?: String, params?: object, body?: object | BodyInit | null}} [options]
      *
-     * @returns Promise<Response&{data?: Object}>
+     * @returns Promise<Response&{data?: object}>
      */
     async function fetchGet(url, options = {}) {
-        return await fetch(url, {...options, method: 'GET'});
+        return await fetch(url, { ...options, method: 'GET' });
     }
 
     /**
      * @param {RequestInfo | URL}                                                             url
-     * @param {Object | BodyInit | null}                                                      body
-     * @param {RequestInit | {id?: String, params?: Object, body?: Object | BodyInit | null}} [options]
+     * @param {object | BodyInit | null}                                                      body
+     * @param {RequestInit | {id?: String, params?: object, body?: object | BodyInit | null}} [options]
      *
-     * @returns Promise<Response&{data?: Object}>
+     * @returns Promise<Response&{data?: object}>
      */
     async function fetchPost(url, body = null, options = {}) {
-        return await fetch(url, {body, ...options, method: 'POST'});
+        return await fetch(url, { body, ...options, method: 'POST' });
     }
 
     /**
      * @param {RequestInfo | URL}                                                             url
-     * @param {Object | BodyInit | null}                                                      body
-     * @param {RequestInit | {id?: String, params?: Object, body?: Object | BodyInit | null}} [options]
+     * @param {object | BodyInit | null}                                                      body
+     * @param {RequestInit | {id?: String, params?: object, body?: object | BodyInit | null}} [options]
      *
-     * @returns Promise<Response&{data?: Object}>
+     * @returns Promise<Response&{data?: object}>
      */
     async function fetchPut(url, body = null, options = {}) {
-        return await fetch(url, {body, ...options, method: 'PUT'});
+        return await fetch(url, { body, ...options, method: 'PUT' });
     }
 
     /**
      * @param {RequestInfo | URL}                                                             url
-     * @param {Object | BodyInit | null}                                                      body
-     * @param {RequestInit | {id?: String, params?: Object, body?: Object | BodyInit | null}} [options]
+     * @param {object | BodyInit | null}                                                      body
+     * @param {RequestInit | {id?: String, params?: object, body?: object | BodyInit | null}} [options]
      *
-     * @returns Promise<Response&{data?: Object}>
+     * @returns Promise<Response&{data?: object}>
      */
     async function fetchPatch(url, body = null, options = {}) {
-        return await fetch(url, {body, ...options, method: 'PATCH'});
+        return await fetch(url, { body, ...options, method: 'PATCH' });
     }
 
     /**
      * @param {RequestInfo | URL}                                                             url
-     * @param {RequestInit | {id?: String, params?: Object, body?: Object | BodyInit | null}} [options]
+     * @param {RequestInit | {id?: String, params?: object, body?: object | BodyInit | null}} [options]
      *
-     * @returns Promise<Response&{data?: Object}>
+     * @returns Promise<Response&{data?: object}>
      */
     async function fetchDelete(url, options = {}) {
-        return await fetch(url, {...options, method: 'DELETE'});
+        return await fetch(url, { ...options, method: 'DELETE' });
     }
 
     if (opt.abortOnUnmounted) {
@@ -126,6 +126,6 @@ export function useFetcher(options = undefined) {
     };
 }
 
-export function useFetcherService(options = undefined) {
-    return useFetcher(Object.assign({abortOnUnmounted: false}, options || {}));
+export function useFetcherService(options) {
+    return useFetcher(Object.assign({ abortOnUnmounted: false }, options || {}));
 }

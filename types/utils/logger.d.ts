@@ -1,20 +1,20 @@
+export declare const LOG_LEVELS: {
+    NONE: string;
+    ERROR: string;
+    WARNING: string;
+    INFO: string;
+    DEBUG: string;
+};
 /**
  * Initialise le logger avec le niveau de log spécifié
  * @param {string} logLevel - Niveau de log (voir LOG_LEVELS)
  */
-export function initializeLogger(logLevel: string): void;
-export namespace LOG_LEVELS {
-    let NONE: string;
-    let ERROR: string;
-    let WARNING: string;
-    let INFO: string;
-    let DEBUG: string;
-}
-export namespace logger {
-    function error(...args: any[]): void;
-    function warn(...args: any[]): void;
-    function info(...args: any[]): void;
-    function log(...args: any[]): void;
-    function debug(...args: any[]): void;
-}
+export declare function initializeLogger(logLevel: string): void;
+export declare const logger: {
+    error: (...args: any[]) => void;
+    warn: (...args: any[]) => void;
+    info: (...args: any[]) => void;
+    log: (...args: any[]) => void;
+    debug: (...args: any[]) => void;
+};
 //# sourceMappingURL=logger.d.ts.map

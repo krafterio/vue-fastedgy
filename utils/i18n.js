@@ -42,7 +42,7 @@ export function getI18n() {
  * t('Not found');
  * t('{count} rows imported', { count: 12 });
  */
-export function t(key, named = undefined) {
+export function t(key, named) {
     const global = instance?.global;
 
     if (!key || typeof global?.t !== 'function') {

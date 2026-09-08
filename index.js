@@ -6,10 +6,16 @@
 // Composables
 export * from './composables/api.js';
 export * from './composables/bus.js';
+export * from './composables/data-grid.js';
+export * from './composables/data-iterator.js';
+export * from './composables/data-table.js';
 export * from './composables/dataset.js';
 export * from './composables/fetcher.js';
 export * from './composables/navigator.js';
+export * from './composables/page-size.js';
 export * from './composables/realtime.js';
+export * from './composables/selection.js';
+export * from './composables/sortable.js';
 export * from './composables/storage.js';
 
 // Directives
@@ -30,6 +36,7 @@ export * from './stores/metadata.js';
 export * from './stores/workspace.js';
 
 // Utils
+export * from './utils/i18n.js';
 export * from './utils/logger.js';
 export * from './utils/models.js';
 export * from './utils/origin.js';

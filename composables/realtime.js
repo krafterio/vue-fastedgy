@@ -230,7 +230,9 @@ export function useApiRecord(model, id, options = {}) {
         try {
             // The previous value is kept until the new one arrives: a silent
             // re-read must not blank the screen it is refreshing.
-            data.value = await reader.get(wanted, fields ? { fields } : {});
+            const response = await reader.get(wanted, fields ? { fields } : {});
+
+            data.value = response?.data ?? null;
             error.value = null;
             status.value = 'success';
         } catch (e) {
@@ -317,10 +319,11 @@ export function useApiCollection(model, query = {}, options = {}) {
         }
 
         try {
-            const page = await reader.list(currentQuery());
+            const response = await reader.list(currentQuery());
+            const page = response?.data ?? {};
 
-            items.value = page?.items ?? [];
-            total.value = page?.total ?? items.value.length;
+            items.value = page.items ?? [];
+            total.value = page.total ?? items.value.length;
             error.value = null;
             status.value = 'success';
         } catch (e) {

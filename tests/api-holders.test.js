@@ -28,7 +28,7 @@ describe('useApiRecord', () => {
   let get;
 
   beforeEach(() => {
-    get = vi.fn().mockResolvedValue({ id: 7, name: 'Krafter' });
+    get = vi.fn().mockResolvedValue({ data: { id: 7, name: 'Krafter' } });
   });
 
   it('reads the record it is pointed at', async () => {
@@ -44,7 +44,7 @@ describe('useApiRecord', () => {
     const { held } = harness(() => useApiRecord('company', 7, { api: { get } }));
 
     await flushPromises();
-    get.mockResolvedValue({ id: 7, name: 'Krafter SAS' });
+    get.mockResolvedValue({ data: { id: 7, name: 'Krafter SAS' } });
     change({ id: 7, action: 'updated' });
     await flushPromises();
 
@@ -78,7 +78,7 @@ describe('useApiRecord', () => {
     const { held } = harness(() => useApiRecord('company', () => id.value, { api: { get } }));
 
     await flushPromises();
-    get.mockResolvedValue({ id: 9, name: 'Studio Nord' });
+    get.mockResolvedValue({ data: { id: 9, name: 'Studio Nord' } });
     id.value = 9;
     await flushPromises();
 
@@ -90,7 +90,7 @@ describe('useApiCollection', () => {
   let list;
 
   beforeEach(() => {
-    list = vi.fn().mockResolvedValue({ items: [{ id: 7 }, { id: 9 }], total: 2 });
+    list = vi.fn().mockResolvedValue({ data: { items: [{ id: 7 }, { id: 9 }], total: 2 } });
   });
 
   it('drops a deleted row without going back to the server', async () => {

@@ -4,6 +4,7 @@
  */
 
 import { bus } from '../composables/bus.js';
+import { t } from '../utils/i18n.js';
 import { useFetcherService } from '../composables/fetcher.js';
 import { setDefaultAuthorization } from '../plugins/fetcher.js';
 import { defineStore } from 'pinia';
@@ -77,11 +78,11 @@ export const useAuthStore = defineStore('auth', () => {
             bus.trigger('auth:logged');
             return { success: true };
         } catch (error) {
-            let message = error.data?.detail || error.response?.data?.detail || 'Erreur de connexion';
-            if (message === 'Incorrect email or password') {
-                message = 'Email ou mot de passe incorrect';
-            }
-            return { success: false, message };
+            // The server localizes what it sends, so its message is displayed as it
+            // comes: only the wording of the package is translated here.
+            const detail = error.data?.detail || error.response?.data?.detail;
+
+            return { success: false, message: detail || t('Connection error') };
         } finally {
             loading.value = false;
         }
@@ -91,7 +92,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             loading.value = true;
 
-            // Construire l'URL avec le token si fourni
+            // Build the url with the token when one is given
             const url = invitationToken ? `/auth/register?token=${invitationToken}` : '/auth/register';
 
             await fetcher.post(url, userData);
@@ -103,9 +104,9 @@ export const useAuthStore = defineStore('auth', () => {
 
             return loginResult;
         } catch (error) {
-            let message = error.data?.detail || error.response?.data?.detail || "Erreur lors de l'inscription";
-            if (message === 'Email already registered') message = 'Email déjà enregistré';
-            return { success: false, message };
+            const detail = error.data?.detail || error.response?.data?.detail;
+
+            return { success: false, message: detail || t('Registration error') };
         } finally {
             loading.value = false;
         }
@@ -117,7 +118,7 @@ export const useAuthStore = defineStore('auth', () => {
             setTokens(null, null);
             bus.trigger('auth:logout');
         } catch (error) {
-            console.error('Erreur lors de la déconnexion:', error);
+            console.error('Logout failed:', error);
         }
     };
 
@@ -143,7 +144,7 @@ export const useAuthStore = defineStore('auth', () => {
                 // Network or server error: the refresh token may still be
                 // valid, keep the session so the app recovers when the
                 // server comes back.
-                console.error('Erreur lors du refresh du token:', error);
+                console.error('Token refresh failed:', error);
             }
 
             return false;

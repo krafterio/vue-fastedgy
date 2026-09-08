@@ -7,6 +7,7 @@ import { fetchBus, fetch } from '../network/fetch.js';
 import { fetcherSrc } from '../directives/fetcher.js';
 import { useAuthStore } from '../stores/auth.js';
 import { useWorkspaceStore } from '../stores/workspace.js';
+import { ORIGIN_HEADER, originId } from '../utils/origin.js';
 
 const defaultHeaders = {};
 let defaultBaseUrl = '';
@@ -121,6 +122,28 @@ export function absoluteUrl(url) {
 export function getApiUrl() {
     return defaultBaseUrl;
 }
+
+/**
+ * Stamp every request with the client instance that made it.
+ *
+ * The server hands it back on the announcement of that write, so this instance
+ * can tell its own echo from someone else's news. Nothing depends on it: a
+ * request without it is a write nobody can attribute, which is exactly what an
+ * agent writing through the API is.
+ *
+ * @returns {function(): void} Stop stamping
+ */
+export const useOriginFetch = () => {
+    const listener = (e) => {
+        const { options } = e.detail;
+
+        options.headers = { ...(options.headers || {}), [ORIGIN_HEADER]: originId };
+    };
+
+    fetchBus.addEventListener('fetch:request', listener);
+
+    return () => fetchBus.removeEventListener('fetch:request', listener);
+};
 
 export const useAuthFetch = () => {
     fetchBus.addEventListener('fetch:request', async (e) => {
@@ -307,6 +330,7 @@ export const useUrlContextFetch = ({ surface = null, workspace = false, workspac
 export const createFetcher = (options = {}) => {
     return {
         install(app) {
+            useOriginFetch();
             useAuthFetch();
             useUrlContextFetch(options);
 

@@ -18,6 +18,7 @@ export function setDefaultAuthorization(token: string | null, authType?: string)
  */
 export function absoluteUrl(url: string): string | null;
 export function getApiUrl(): string;
+export function useOriginFetch(): () => void;
 export function useAuthFetch(): void;
 export function useUrlContextFetch({ surface, workspace, workspaceless }?: {
     surface?: any;

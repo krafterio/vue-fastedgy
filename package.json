@@ -12,13 +12,18 @@
     },
     "devDependencies": {
         "@types/node": "^24.5.2",
-        "typescript": "^5.9.2"
+        "typescript": "^5.9.2",
+        "@vue/test-utils": "^2.4.4",
+        "jsdom": "^24.0.0",
+        "vitest": "^3.1.2"
     },
     "engines": {
         "node": ">=22.0.0"
     },
     "scripts": {
-        "build": "tsc -p tsconfig.json"
+        "build": "tsc -p tsconfig.json",
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "types": "./types/index.d.ts",
     "exports": {

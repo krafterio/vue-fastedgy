@@ -24,11 +24,20 @@
         "types": [],
         "baseUrl": ".",
         "paths": {
-            "vue-fastedgy/*": ["./*"]
+            "vue-fastedgy/*": [
+                "./*"
+            ]
         }
     },
     "include": [
         "**/*.js"
     ],
-    "exclude": ["dist", "node_modules", "types"]
+    "exclude": [
+        "dist",
+        "node_modules",
+        "types",
+        "tests",
+        "vitest.config.js",
+        "vitest.setup.js"
+    ]
 }

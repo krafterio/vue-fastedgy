@@ -6,6 +6,8 @@
 import { useFetcher } from "./fetcher.js";
 import { useMetadataStore } from "../stores/metadata.js";
 import { cleanPayload } from "../utils/models.js";
+import { notifyChanged } from "../network/realtime.js";
+import { originId } from "../utils/origin.js";
 
 /**
  * Global API model configuration
@@ -199,8 +201,18 @@ export async function createAction(
     const apiName = await resolveApiName(modelName);
     const headers = buildHeaders(options, params);
     const url = buildUrl(apiName, "", params.prefix);
+    const body = cleanPayload(payload);
+    const response = await fetcher.post(url, body, { headers });
 
-    return await fetcher.post(url, cleanPayload(payload), { headers });
+    notifyChanged({
+        model: modelName,
+        id: response?.id ?? null,
+        action: "created",
+        changed: Object.keys(body || {}),
+        origin: originId,
+    });
+
+    return response;
 }
 
 /**
@@ -224,8 +236,18 @@ export async function patchAction(
     const apiName = await resolveApiName(modelName);
     const headers = buildHeaders(options, params);
     const url = buildUrl(apiName, `/${id}`, params.prefix);
+    const body = cleanPayload(payload);
+    const response = await fetcher.patch(url, body, { headers });
 
-    return await fetcher.patch(url, cleanPayload(payload), { headers });
+    notifyChanged({
+        model: modelName,
+        id,
+        action: "updated",
+        changed: Object.keys(body || {}),
+        origin: originId,
+    });
+
+    return response;
 }
 
 /**
@@ -241,8 +263,11 @@ export async function deleteAction(modelName, id, params = {}) {
     const apiName = await resolveApiName(modelName);
     const headers = buildHeaders({}, params);
     const url = buildUrl(apiName, `/${id}`, params.prefix);
+    const response = await fetcher.delete(url, { headers });
 
-    return await fetcher.delete(url, { headers });
+    notifyChanged({ model: modelName, id, action: "deleted", origin: originId });
+
+    return response;
 }
 
 /**

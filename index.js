@@ -37,6 +37,7 @@ export * from './stores/metadata.js';
 export * from './stores/workspace.js';
 
 // Utils
+export * from './utils/browser.js';
 export * from './utils/i18n.js';
 export * from './utils/logger.js';
 export * from './utils/models.js';

@@ -20,30 +20,31 @@ export const fetcherSrc = {
         }
     },
     updated(el, binding, node) {
-        const initialSetup = node.props.src && node.props.src !== el.lastSrc && !node.props.src.startsWith('data:');
-        const refreshAlreadyLoaded = el.srcLoaded && !el.src.startsWith('blob:');
+        // Only a source the caller changed asks for another read. The element
+        // holds a blob and the vnode holds the url it was given: comparing the
+        // two would see a difference on every render and read the image again.
+        if (!node.props.src || node.props.src === el.lastSrc || node.props.src.startsWith('data:')) {
+            return;
+        }
 
-        if (initialSetup || refreshAlreadyLoaded) {
-            el.srcLoaded = false;
-            el.style.display = 'none';
+        el.srcLoaded = false;
+        el.style.display = 'none';
 
-            if (el.src && el.src.startsWith('blob:')) {
-                URL.revokeObjectURL(el.src);
-            }
+        if (el.src && el.src.startsWith('blob:')) {
+            URL.revokeObjectURL(el.src);
+        }
 
-            if (el.fetcher) {
-                el.fetcher.abort();
-                delete el.fetcher;
-            }
+        if (el.fetcher) {
+            el.fetcher.abort();
+            delete el.fetcher;
+        }
 
-            el.lastSrc = node.props.src;
-            const isLazy = binding.modifiers.lazy;
+        el.lastSrc = node.props.src;
 
-            if (isLazy) {
-                setupLazyLoading(el, binding, node);
-            } else {
-                loadImage(el, binding, node);
-            }
+        if (binding.modifiers.lazy) {
+            setupLazyLoading(el, binding, node);
+        } else {
+            loadImage(el, binding, node);
         }
     },
     beforeUnmount(el) {
@@ -101,8 +102,11 @@ function loadImage(el, binding, node) {
     el.fetcher = useFetcher({ abortOnUnmounted: false });
     const srcUrl = absoluteUrl(node.props.src);
     const params = optimizationParams(el, binding);
+
+    // The blob goes on the element and nowhere else: writing it into the vnode
+    // props makes Vue's next diff see a change nobody made, patch the attribute
+    // back to the url, and the image reload on every render of its parent.
     el.src = '';
-    node.props.src = '';
 
     el.fetcher
         .get(srcUrl, params ? { params } : undefined)
@@ -115,7 +119,6 @@ function loadImage(el, binding, node) {
                 return URL.revokeObjectURL(url);
             };
             el.src = url;
-            node.props.src = url;
 
             if (el.style.display === 'none') {
                 el.style.display = '';

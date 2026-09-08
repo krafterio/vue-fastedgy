@@ -186,6 +186,7 @@ export function importAction(modelName: string, file: File, params?: {
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {{ prefix?: string, headers?: object }} defaultParams - Default parameters
  * @returns {
+ *  modelName: string,
  *  list: (query = {}, params = {}) => Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>,
  *  get: (id, options = {}, params = {}) => Promise<{data: any}>,
  *  create: (payload, options = {}, params = {}) => Promise<{data: any}>,

@@ -348,6 +348,7 @@ export async function importAction(modelName, file, params = {}) {
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {{ prefix?: string, headers?: object }} defaultParams - Default parameters
  * @returns {
+ *  modelName: string,
  *  list: (query = {}, params = {}) => Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>,
  *  get: (id, options = {}, params = {}) => Promise<{data: any}>,
  *  create: (payload, options = {}, params = {}) => Promise<{data: any}>,
@@ -360,6 +361,11 @@ export async function importAction(modelName, file, params = {}) {
  */
 export function useApiModel(modelName, defaultParams = {}) {
     return {
+        /**
+         * Model name
+         */
+        modelName,
+
         /**
          * List items
          * @param {{ page?: number, size?: number, fields?: string|string[], filter?: string|object, orderBy?: string|string[] }} query

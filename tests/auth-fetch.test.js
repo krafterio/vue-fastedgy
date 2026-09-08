@@ -6,6 +6,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetch } from '../network/fetch.js';
+import { useFetcher } from '../composables/fetcher.js';
 import { absoluteUrl, setDefaultBaseUrl, useAuthFetch, useUrlContextFetch } from '../plugins/fetcher.js';
 
 const jsonResponse = (payload) => ({
@@ -120,5 +121,26 @@ describe('useUrlContextFetch', () => {
 
     it('leaves the placeholder where it is when no surface is named', async () => {
         expect(await asking({}, '/{app}/users')).toBe('/api/{app}/users');
+    });
+});
+
+describe('useFetcher, outside a component', () => {
+    it('reads without asking Vue for a lifecycle it has no instance for', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        window.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            headers: { get: () => 'application/json' },
+            json: async () => ({ id: 1 }),
+        });
+
+        const fetcher = useFetcher();
+
+        await fetcher.get('/companies/1');
+
+        expect(warn).not.toHaveBeenCalled();
+
+        warn.mockRestore();
     });
 });

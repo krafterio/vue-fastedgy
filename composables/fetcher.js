@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { onUnmounted } from 'vue';
+import { getCurrentInstance, onUnmounted } from 'vue';
 import { fetch as _fetch } from '../network/fetch.js';
 
 /**
@@ -109,7 +109,11 @@ export function useFetcher(options) {
         return await fetch(url, { ...options, method: 'DELETE' });
     }
 
-    if (opt.abortOnUnmounted) {
+    // Aborting on unmount only means something to a caller that is a component
+    // being set up. An api model reached from an event handler, a store or a
+    // test has no instance to hang the hook on, and asking for one there is
+    // what makes Vue warn about a lifecycle call outside setup.
+    if (opt.abortOnUnmounted && getCurrentInstance()) {
         onUnmounted(() => {
             abort();
         });

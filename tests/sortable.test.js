@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { useSortable } from '../composables/sortable.js';
 
 describe('useSortable', () => {
@@ -35,5 +35,23 @@ describe('useSortable', () => {
 
         expect(isSortable.value).toBe(true);
         expect(sortableField.value).toBe('sequence');
+    });
+
+    it('sends the order where the dataset routes answer', async () => {
+        const fetchSpy = vi.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            headers: { get: () => 'application/json' },
+            json: async () => ({ model_name: 'aisle', records: [] }),
+        });
+
+        window.fetch = fetchSpy;
+
+        const { resequence, ready } = useSortable('aisle', Promise.resolve({}), true, { prefix: '/{workspace}' });
+
+        await ready;
+        await resequence([2, 1]);
+
+        expect(fetchSpy.mock.calls[0][0]).toContain('/{workspace}/dataset/resequence');
     });
 });

@@ -17,6 +17,7 @@
  * @param {boolean} options.orderable - Enable column sorting (default: true)
  * @param {boolean} options.enableSelection - Enable row selection (default: false)
  * @param {boolean} options.append - Keep the loaded items and append the next pages (default: false)
+ * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
  * @returns {Object} - DataIterator state and methods
  */
@@ -34,6 +35,7 @@ export declare function useDataIterator(model: string | object, options?: {
     orderable: boolean;
     enableSelection: boolean;
     append: boolean;
+    datasetPrefix: string;
     pageSizeKey: string;
 }): any;
 //# sourceMappingURL=data-iterator.d.ts.map

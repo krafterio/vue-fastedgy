@@ -45,6 +45,7 @@ const DEFAULT_OPTIONS = {
  * @param {boolean} options.orderable - Enable column sorting (default: true)
  * @param {boolean} options.enableSelection - Enable row selection (default: false)
  * @param {boolean} options.append - Keep the loaded items and append the next pages (default: false)
+ * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
  * @returns {Object} - DataIterator state and methods
  */
@@ -96,7 +97,7 @@ export function useDataIterator(model, options = {}) {
         sortableField,
         resequence,
         ready: sortableReady,
-    } = useSortable(modelName, metadata, config.sortable);
+    } = useSortable(modelName, metadata, config.sortable, { prefix: config.datasetPrefix });
 
     const fields = computed(() => {
         let baseFields = [];

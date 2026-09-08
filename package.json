@@ -5,10 +5,10 @@
     "type": "module",
     "main": "./index.js",
     "peerDependencies": {
-        "pinia": "^2.1.7",
+        "pinia": "^2.1.7 || ^3.0.0 || ^4.0.0",
         "vue": "^3.4.15",
         "vue-i18n": "^11.1.12",
-        "vue-router": "^4.2.5"
+        "vue-router": "^4.2.5 || ^5.0.0"
     },
     "devDependencies": {
         "@types/node": "^24.5.2",
@@ -31,5 +31,9 @@
             "import": "./index.js",
             "types": "./types/index.d.ts"
         }
+    },
+    "allowScripts": {
+        "esbuild": false,
+        "fsevents": false
     }
 }

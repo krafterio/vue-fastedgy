@@ -15,6 +15,7 @@ export * from './composables/fetcher.js';
 export * from './composables/navigator.js';
 export * from './composables/page-size.js';
 export * from './composables/realtime.js';
+export * from './composables/api-model-form.js';
 export * from './composables/selection.js';
 export * from './composables/sortable.js';
 export * from './composables/storage.js';

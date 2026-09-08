@@ -73,3 +73,42 @@ describe('useStorage file url', () => {
         expect(fileUrl('a.png', { prefix: '/public/lists/abc' })).toBe('/public/lists/abc/storage/download/a.png');
     });
 });
+
+describe('useStorage attachment url', () => {
+    it('reads an attachment by its id', () => {
+        const { attachmentUrl } = useStorage();
+
+        expect(attachmentUrl(7)).toBe('/storage/download/attachments/7');
+        expect(attachmentUrl(7, { params: { force_download: true } })).toBe(
+            '/storage/download/attachments/7?force_download=true'
+        );
+    });
+});
+
+describe('useStorage attachments', () => {
+    it('stores files that answer for themselves', async () => {
+        const fetchSpy = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                headers: { get: () => 'application/json' },
+                json: async () => ({ attachments: [{ id: 1 }, { id: 2 }] }),
+            })
+        );
+
+        window.fetch = fetchSpy;
+
+        const { uploadAttachments } = useStorage();
+        const attachments = await uploadAttachments([
+            new File(['a'], 'a.png', { type: 'image/png' }),
+            new File(['b'], 'b.png', { type: 'image/png' }),
+        ]);
+
+        const [url, options] = fetchSpy.mock.calls[0];
+
+        expect(url).toBe('/storage/upload/attachments');
+        expect(options.body).toBeInstanceOf(FormData);
+        expect([...options.body.keys()]).toEqual(['a.png', 'b.png']);
+        expect(attachments).toEqual([{ id: 1 }, { id: 2 }]);
+    });
+});

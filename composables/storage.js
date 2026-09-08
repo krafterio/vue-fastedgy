@@ -11,7 +11,9 @@ import { useFetcherService } from './fetcher.js';
  * @param {{ prefix?: string }} [defaultParams] - Default parameters
  * @returns {{
  *  fileUrl: (path: string|null) => string|null,
+ *  attachmentUrl: (id: string|number) => string,
  *  uploadModelField: (model: string, id: string|number, field: string, file: File) => Promise<string|null>,
+ *  uploadAttachments: (files: File[]) => Promise<Array<object>>,
  *  deleteModelField: (model: string, id: string|number, field: string) => Promise<void>
  * }}
  *
@@ -51,6 +53,17 @@ export function useStorage(defaultParams = {}) {
     }
 
     /**
+     * URL an attachment is read from.
+     *
+     * @param {string|number} id
+     * @param {{ prefix?: string, params?: object }} [options]
+     * @returns {string}
+     */
+    function attachmentUrl(id, options = {}) {
+        return fileUrl(`attachments/${id}`, options);
+    }
+
+    /**
      * Write a file in a model field, replacing what it held.
      *
      * @param {string} model - Model name: metadata 'name' or 'api_name'
@@ -71,6 +84,25 @@ export function useStorage(defaultParams = {}) {
     }
 
     /**
+     * Store files as attachments, which answer for themselves rather than for a field.
+     *
+     * @param {File[]|FileList} files
+     * @param {{ prefix?: string }} [options]
+     * @returns {Promise<Array<object>>} - The attachments the server created
+     */
+    async function uploadAttachments(files, options = {}) {
+        const body = new FormData();
+
+        for (const file of files) {
+            body.append(file.name, file);
+        }
+
+        const response = await fetcher.post(`${base(options.prefix)}/storage/upload/attachments`, body);
+
+        return response?.data?.attachments ?? [];
+    }
+
+    /**
      * Empty a model field of the file it holds.
      *
      * @param {string} model - Model name: metadata 'name' or 'api_name'
@@ -83,5 +115,5 @@ export function useStorage(defaultParams = {}) {
         await fetcher.delete(`${base(options.prefix)}/storage/file/${model}/${id}/${field}`);
     }
 
-    return { fileUrl, uploadModelField, deleteModelField };
+    return { fileUrl, attachmentUrl, uploadModelField, uploadAttachments, deleteModelField };
 }

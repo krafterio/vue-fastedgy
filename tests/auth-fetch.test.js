@@ -6,7 +6,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetch } from '../network/fetch.js';
-import { absoluteUrl, setDefaultBaseUrl, useAuthFetch } from '../plugins/fetcher.js';
+import { absoluteUrl, setDefaultBaseUrl, useAuthFetch, useUrlContextFetch } from '../plugins/fetcher.js';
 
 const jsonResponse = (payload) => ({
     ok: true,
@@ -82,5 +82,43 @@ describe('absoluteUrl', () => {
     it('leaves an absolute url alone', () => {
         expect(absoluteUrl('https://krafter.io/me')).toBe('https://krafter.io/me');
         expect(absoluteUrl('//krafter.io/me')).toBe('//krafter.io/me');
+    });
+});
+
+describe('useUrlContextFetch', () => {
+    const jsonOk = () => ({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({}),
+    });
+
+    // The listener lives on the bus of the module: a test that leaves it there
+    // answers for the next one.
+    const asking = async (options, url) => {
+        const fetchSpy = vi.fn(() => Promise.resolve(jsonOk()));
+        const stop = useUrlContextFetch(options);
+
+        window.fetch = fetchSpy;
+
+        try {
+            await fetch(url);
+        } finally {
+            stop();
+        }
+
+        return fetchSpy.mock.calls[0][0];
+    };
+
+    it('fills the surface an application names', async () => {
+        expect(await asking({ surface: 'console' }, '/{app}/users')).toBe('/api/console/users');
+    });
+
+    it('erases the placeholder for a surface with no segment of its own', async () => {
+        expect(await asking({ surface: '' }, '/{app}/users')).toBe('/api/users');
+    });
+
+    it('leaves the placeholder where it is when no surface is named', async () => {
+        expect(await asking({}, '/{app}/users')).toBe('/api/{app}/users');
     });
 });

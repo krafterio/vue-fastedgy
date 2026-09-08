@@ -38,6 +38,11 @@ export declare const useAuthFetch: () => void;
  * being read, which the workspace the user picked decides. Neither is a
  * question of role: deciding the tenant from a role is what leaves a console
  * user who is also a member of a workspace unable to read it.
+ *
+ * A surface named as an empty string is a surface with no segment of its own:
+ * the placeholder is erased rather than filled, which is what an application
+ * served at the root of the api needs. Naming none at all leaves the
+ * placeholder where it is, for an application that does not use it.
  */
 export declare const useUrlContextFetch: (
 /** @type {{surface?: String|null, workspace?: Boolean, workspaceless?: String}} */
@@ -47,9 +52,10 @@ export declare const useUrlContextFetch: (
     workspaceless?: string;
 }) => () => void;
 /**
- * `surface` names what this application is, for `/{app}/`. `workspace` says
- * whether it serves one workspace at a time, and `workspaceless` names what
- * stands where a tenant would, for what no workspace owns.
+ * `surface` names what this application is, for `/{app}/`: a segment, or an
+ * empty string for an application served at the root of the api. `workspace`
+ * says whether it serves one workspace at a time, and `workspaceless` names
+ * what stands where a tenant would, for what no workspace owns.
  */
 export declare const createFetcher: (options?: {}) => {
     install(app: any): void;

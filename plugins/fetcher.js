@@ -282,6 +282,11 @@ const untilAuthSettled = async (authStore) => {
  * being read, which the workspace the user picked decides. Neither is a
  * question of role: deciding the tenant from a role is what leaves a console
  * user who is also a member of a workspace unable to read it.
+ *
+ * A surface named as an empty string is a surface with no segment of its own:
+ * the placeholder is erased rather than filled, which is what an application
+ * served at the root of the api needs. Naming none at all leaves the
+ * placeholder where it is, for an application that does not use it.
  */
 export const useUrlContextFetch = (
     /** @type {{surface?: String|null, workspace?: Boolean, workspaceless?: String}} */
@@ -290,8 +295,8 @@ export const useUrlContextFetch = (
     const listener = async (e) => {
         e.detail.url = absoluteUrl(e.detail.url);
 
-        if (surface && e.detail.url.includes(APP_PLACEHOLDER)) {
-            e.detail.url = e.detail.url.replace(APP_PLACEHOLDER, `/${surface}/`);
+        if (surface !== null && e.detail.url.includes(APP_PLACEHOLDER)) {
+            e.detail.url = e.detail.url.replace(APP_PLACEHOLDER, surface ? `/${surface}/` : '/');
         }
 
         if (e.detail.url.includes(WORKSPACE_PLACEHOLDER)) {
@@ -322,9 +327,10 @@ export const useUrlContextFetch = (
 };
 
 /**
- * `surface` names what this application is, for `/{app}/`. `workspace` says
- * whether it serves one workspace at a time, and `workspaceless` names what
- * stands where a tenant would, for what no workspace owns.
+ * `surface` names what this application is, for `/{app}/`: a segment, or an
+ * empty string for an application served at the root of the api. `workspace`
+ * says whether it serves one workspace at a time, and `workspaceless` names
+ * what stands where a tenant would, for what no workspace owns.
  */
 export const createFetcher = (options = {}) => {
     return {

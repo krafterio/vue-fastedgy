@@ -4,7 +4,9 @@
  * @param {{ prefix?: string }} [defaultParams] - Default parameters
  * @returns {{
  *  fileUrl: (path: string|null) => string|null,
+ *  attachmentUrl: (id: string|number) => string,
  *  uploadModelField: (model: string, id: string|number, field: string, file: File) => Promise<string|null>,
+ *  uploadAttachments: (files: File[]) => Promise<Array<object>>,
  *  deleteModelField: (model: string, id: string|number, field: string) => Promise<void>
  * }}
  *
@@ -18,7 +20,9 @@ export declare function useStorage(defaultParams?: {
     prefix?: string;
 }): {
     fileUrl: (path: string | null) => string | null;
+    attachmentUrl: (id: string | number) => string;
     uploadModelField: (model: string, id: string | number, field: string, file: File) => Promise<string | null>;
+    uploadAttachments: (files: File[]) => Promise<Array<object>>;
     deleteModelField: (model: string, id: string | number, field: string) => Promise<void>;
 };
 //# sourceMappingURL=storage.d.ts.map

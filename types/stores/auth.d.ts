@@ -26,5 +26,15 @@ export declare const useAuthStore: import("pinia").SetupStoreDefinition<"auth", 
     refreshAccessToken: () => Promise<boolean>;
     checkUser: () => Promise<null>;
     refreshUser: () => Promise<null>;
+    forgotPassword: (email: string) => Promise<{
+        message: string;
+    }>;
+    validatePasswordToken: (token: string) => Promise<{
+        valid: boolean;
+        email?: string;
+    }>;
+    resetPassword: (token: string, password: string) => Promise<{
+        message: string;
+    }>;
 }>;
 //# sourceMappingURL=auth.d.ts.map

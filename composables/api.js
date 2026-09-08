@@ -325,6 +325,70 @@ export async function importAction(modelName, file, params = {}) {
 }
 
 /**
+ * Write a record and hold what the form needs to know while it is written.
+ *
+ * The id decides: a record that has one is updated, a record that has none is
+ * created. A write already under way is not started twice, and a server that
+ * refuses raises, the form saying so as it sees fit.
+ *
+ * @param {string|object} model - Model name: metadata 'name' or 'api_name', or an api model
+ * @param {{params?: object, fields?: string|string[]}} [options]
+ * @returns {{saving: import("vue").Ref<boolean>,
+ *            save: (id: (string|number|null), payload: object) => Promise<any>,
+ *            remove: (id: (string|number)) => Promise<void>}}
+ *
+ * @example
+ * const { saving, save, remove } = useApiForm('vehicle');
+ *
+ * await save(vehicle.id, { name });
+ */
+export function useApiForm(model, options = {}) {
+    const { params = {}, fields } = options;
+    const writer = typeof model === 'string' ? useApiModel(model, params) : model;
+    const selection = fields ? { fields } : {};
+    const saving = ref(false);
+
+    async function write(action) {
+        if (saving.value) {
+            return undefined;
+        }
+
+        saving.value = true;
+
+        try {
+            return await action();
+        } finally {
+            saving.value = false;
+        }
+    }
+
+    return {
+        saving,
+
+        /**
+         * @param {string|number|null} id - Id of the record, none for a creation
+         * @param {object} payload
+         * @returns {Promise<any>} - The record the server answers with
+         */
+        save: async (id, payload) => {
+            const response = await write(() =>
+                id ? writer.update(id, payload, selection) : writer.create(payload, selection)
+            );
+
+            return response?.data;
+        },
+
+        /**
+         * @param {string|number} id
+         * @returns {Promise<void>}
+         */
+        remove: async (id) => {
+            await write(() => writer.delete(id));
+        },
+    };
+}
+
+/**
  * Create an API service for a model.
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'

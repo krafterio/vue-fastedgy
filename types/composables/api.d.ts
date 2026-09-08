@@ -181,6 +181,32 @@ export declare function importAction(modelName: string, file: File, params?: {
     };
 }>;
 /**
+ * Write a record and hold what the form needs to know while it is written.
+ *
+ * The id decides: a record that has one is updated, a record that has none is
+ * created. A write already under way is not started twice, and a server that
+ * refuses raises, the form saying so as it sees fit.
+ *
+ * @param {string|object} model - Model name: metadata 'name' or 'api_name', or an api model
+ * @param {{params?: object, fields?: string|string[]}} [options]
+ * @returns {{saving: import("vue").Ref<boolean>,
+ *            save: (id: (string|number|null), payload: object) => Promise<any>,
+ *            remove: (id: (string|number)) => Promise<void>}}
+ *
+ * @example
+ * const { saving, save, remove } = useApiForm('vehicle');
+ *
+ * await save(vehicle.id, { name });
+ */
+export declare function useApiForm(model: string | object, options?: {
+    params?: object;
+    fields?: string | string[];
+}): {
+    saving: import("vue").Ref<boolean>;
+    save: (id: (string | number | null), payload: object) => Promise<any>;
+    remove: (id: (string | number)) => Promise<void>;
+};
+/**
  * Create an API service for a model.
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'

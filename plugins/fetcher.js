@@ -116,7 +116,15 @@ export function absoluteUrl(url) {
         url = `/${url}`;
     }
 
-    return `${getApiUrl()}${url}`;
+    const base = getApiUrl();
+
+    // A retried request comes back already resolved: resolving it a second time
+    // would send it to `<base><base>/...`.
+    if (base && (url === base || url.startsWith(`${base}/`))) {
+        return url;
+    }
+
+    return `${base}${url}`;
 }
 
 export function getApiUrl() {
@@ -154,28 +162,16 @@ export const useAuthFetch = () => {
 
         if (authStore.isAuthenticated && url && !url.includes('auth/refresh')) {
             if (authStore.isTokenExpired && authStore.canRefreshToken) {
-                e.detail.next = new Promise(async (resolve, reject) => {
-                    try {
-                        const refreshSuccess = await refreshToken();
-
-                        if (refreshSuccess) {
-                            options.headers = options.headers || {};
-                            options.headers['Authorization'] = `Bearer ${authStore.token}`;
-
-                            if (options.signal && options.signal.aborted) {
-                                reject(new DOMException('The operation was aborted.', 'AbortError'));
-
-                                return;
-                            }
-
-                            const response = await fetch(url, options);
-                            resolve(response);
-                        } else {
-                            reject(new Error('Failed to refresh token'));
-                        }
-                    } catch (error) {
-                        reject(error);
+                // Only the token is settled here. `fetch` waits on this and then
+                // sends the request once, with the header this leaves behind:
+                // sending it here as well is the same request twice on the wire.
+                e.detail.next = refreshToken().then((refreshSuccess) => {
+                    if (!refreshSuccess) {
+                        throw new Error('Failed to refresh token');
                     }
+
+                    options.headers = options.headers || {};
+                    options.headers['Authorization'] = `Bearer ${authStore.token}`;
                 });
             } else {
                 options.headers = options.headers || {};

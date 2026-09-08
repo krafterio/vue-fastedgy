@@ -45,14 +45,40 @@ export function useRealtime(workspace) {
                 return;
             }
 
-            if (slug) {
-                realtime.connect(token, slug);
+            // The server reads the token once, at the handshake: opening with a
+            // dead one is refused for as long as it stays dead. The refresh
+            // changes the token this watches, which comes back here.
+            if (authStore.isTokenExpired && authStore.canRefreshToken) {
+                void authStore.refreshAccessToken();
+
+                return;
             }
+
+            // An application that serves no workspace still wants the socket:
+            // the one it names, when it names one, is announced as it arrives.
+            realtime.connect(token, slug ?? null);
         },
         { immediate: true }
     );
 
     onUnmounted(() => realtime.disconnect());
+}
+
+/**
+ * Hear one of the events the server announces for itself, while a view is on screen.
+ *
+ * Those are the announcements that belong to no model: a job that finished, a
+ * message that arrived, whatever an application broadcasts under its own name.
+ * The handler is called with the payload the server sent, and nothing else.
+ *
+ * @param {String}                 type    - Name the server announces it under
+ * @param {function(any): void}    handler
+ *
+ * @example
+ * useRealtimeEvent('aliment_image_generated', ({ label }) => toast.success(label));
+ */
+export function useRealtimeEvent(type, handler) {
+    useBus(bus, type, (event) => handler(event.detail?.data ?? null));
 }
 
 /**

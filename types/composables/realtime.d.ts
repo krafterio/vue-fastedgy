@@ -22,6 +22,20 @@
  */
 export declare function useRealtime(workspace: (Function)): void;
 /**
+ * Hear one of the events the server announces for itself, while a view is on screen.
+ *
+ * Those are the announcements that belong to no model: a job that finished, a
+ * message that arrived, whatever an application broadcasts under its own name.
+ * The handler is called with the payload the server sent, and nothing else.
+ *
+ * @param {String}                 type    - Name the server announces it under
+ * @param {function(any): void}    handler
+ *
+ * @example
+ * useRealtimeEvent('aliment_image_generated', ({ label }) => toast.success(label));
+ */
+export declare function useRealtimeEvent(type: string, handler: Function): void;
+/**
  * Hear about a model, or about one record of it, while a view is on screen.
  *
  * The one stream: a write made here and a write made by anyone else say the

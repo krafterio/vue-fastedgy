@@ -304,3 +304,60 @@ describe('realtime socket', () => {
         vi.useRealTimers();
     });
 });
+
+describe('realtime heartbeat and connection notice', () => {
+    beforeEach(() => {
+        realtime.disconnect();
+        sockets.length = 0;
+        vi.stubGlobal('WebSocket', FakeWebSocket);
+    });
+
+    it('says it is connected on every handshake, and whether it had been before', () => {
+        const seen = [];
+        const listener = (event) => seen.push(event.detail);
+
+        bus.addEventListener('realtime:connected', listener);
+
+        const socket = connect();
+        socket.receive({ type: 'auth_success' });
+        socket.close();
+        lastSocket().onopen();
+        lastSocket().receive({ type: 'auth_success' });
+
+        bus.removeEventListener('realtime:connected', listener);
+
+        expect(seen).toEqual([{ reconnected: false }, { reconnected: true }]);
+    });
+
+    it('keeps the connection alive while it is authenticated', () => {
+        vi.useFakeTimers();
+
+        const socket = connect();
+        socket.receive({ type: 'auth_success' });
+        socket.sent.length = 0;
+
+        vi.advanceTimersByTime(60000);
+
+        expect(socket.sent).toEqual([
+            { type: 'heartbeat', data: null },
+            { type: 'heartbeat', data: null },
+        ]);
+
+        vi.useRealTimers();
+    });
+
+    it('stops saying it once the socket is gone', () => {
+        vi.useFakeTimers();
+
+        const socket = connect();
+        socket.receive({ type: 'auth_success' });
+        realtime.disconnect();
+        socket.sent.length = 0;
+
+        vi.advanceTimersByTime(60000);
+
+        expect(socket.sent).toEqual([]);
+
+        vi.useRealTimers();
+    });
+});

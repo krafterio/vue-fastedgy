@@ -60,6 +60,7 @@ export declare class RealtimeSocket {
     everConnected: boolean;
     retryDelay: number;
     retryTimer: number | null;
+    heartbeatTimer: number | null;
     constructor();
     /**
      * Open the socket, or point the open one at another workspace.
@@ -107,6 +108,8 @@ export declare class RealtimeSocket {
      * @param {String|Number|null} [id]
      */
     unsubscribe(model: string, id?: string | number | null): void;
+    startHeartbeat(): void;
+    stopHeartbeat(): void;
     /**
      * @param {String} type
      * @param {Object} [data]

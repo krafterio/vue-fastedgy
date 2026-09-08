@@ -24,6 +24,12 @@ const PATH = '/ws';
 const RECONNECT_START = 1000;
 
 /**
+ * How often the socket says it is still there. An idle connection is dropped by
+ * whatever sits between the browser and the server.
+ */
+const HEARTBEAT_INTERVAL = 30000;
+
+/**
  * @type {Number}
  */
 const RECONNECT_MAX = 30000;
@@ -94,6 +100,7 @@ export class RealtimeSocket {
         this.everConnected = false;
         this.retryDelay = RECONNECT_START;
         this.retryTimer = null;
+        this.heartbeatTimer = null;
     }
 
     /**
@@ -206,6 +213,16 @@ export class RealtimeSocket {
         this.send('unsubscribe', { channels: [channel] });
     }
 
+    startHeartbeat() {
+        this.stopHeartbeat();
+        this.heartbeatTimer = setInterval(() => this.send('heartbeat', null), HEARTBEAT_INTERVAL);
+    }
+
+    stopHeartbeat() {
+        clearInterval(this.heartbeatTimer);
+        this.heartbeatTimer = null;
+    }
+
     /**
      * @param {String} type
      * @param {Object} [data]
@@ -253,6 +270,7 @@ export class RealtimeSocket {
 
     close() {
         this.authenticated = false;
+        this.stopHeartbeat();
         // A new socket knows nothing of what the old one was told.
         this.announced = null;
 
@@ -279,6 +297,12 @@ export class RealtimeSocket {
         if (message.type === 'auth_success') {
             this.authenticated = true;
             this.retryDelay = RECONNECT_START;
+
+            this.startHeartbeat();
+
+            // The socket answers again, whether for the first time or not: what
+            // a view has to say for itself on a fresh connection is said here.
+            bus.trigger('realtime:connected', { reconnected: this.everConnected });
 
             // Nothing is replayed: whatever happened while the socket was down
             // was said to nobody. A view that updates itself has to read again

@@ -156,6 +156,43 @@ export const useAuthStore = defineStore('auth', () => {
         }
     };
 
+    /**
+     * Ask for the mail that starts a password reset.
+     *
+     * @param {String} email
+     * @returns {Promise<{message: String}>}
+     */
+    const forgotPassword = async (email) => {
+        const response = await fetcher.post('/auth/password/forgot', { email });
+
+        return response.data;
+    };
+
+    /**
+     * Whether a reset token is still worth a form.
+     *
+     * @param {String} token
+     * @returns {Promise<{valid: Boolean, email?: String}>}
+     */
+    const validatePasswordToken = async (token) => {
+        const response = await fetcher.post('/auth/password/validate', { token });
+
+        return response.data;
+    };
+
+    /**
+     * Set the password the reset token was sent for.
+     *
+     * @param {String} token
+     * @param {String} password
+     * @returns {Promise<{message: String}>}
+     */
+    const resetPassword = async (token, password) => {
+        const response = await fetcher.post('/auth/password/reset', { token, password });
+
+        return response.data;
+    };
+
     const checkUser = async () => {
         if (token.value && !user.value) {
             checkUserPromise ??= fetcher
@@ -197,5 +234,8 @@ export const useAuthStore = defineStore('auth', () => {
         refreshAccessToken,
         checkUser,
         refreshUser,
+        forgotPassword,
+        validatePasswordToken,
+        resetPassword,
     };
 });

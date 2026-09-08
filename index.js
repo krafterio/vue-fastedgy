@@ -6,9 +6,11 @@
 // Composables
 export * from './composables/api.js';
 export * from './composables/bus.js';
+export * from './composables/dataset.js';
 export * from './composables/fetcher.js';
 export * from './composables/navigator.js';
 export * from './composables/realtime.js';
+export * from './composables/storage.js';
 
 // Directives
 export * from './directives/fetcher.js';

@@ -26,6 +26,7 @@ export declare const useAuthStore: import("pinia").SetupStoreDefinition<"auth", 
     refreshAccessToken: () => Promise<boolean>;
     checkUser: () => Promise<null>;
     refreshUser: () => Promise<null>;
+    updateUser: (payload: object) => Promise<object | null>;
     forgotPassword: (email: string) => Promise<{
         message: string;
     }>;

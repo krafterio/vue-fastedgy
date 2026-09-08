@@ -210,6 +210,20 @@ export const useAuthStore = defineStore('auth', () => {
         return user.value;
     };
 
+    /**
+     * Change what the account holds, and keep what is held here in step.
+     *
+     * @param {object} payload
+     * @returns {Promise<object|null>} - The account as the server answers it
+     */
+    const updateUser = async (payload) => {
+        const response = await fetcher.patch('/me', payload);
+
+        user.value = response.data ?? user.value;
+
+        return user.value;
+    };
+
     const refreshUser = async () => {
         if (token.value) {
             user.value = (await fetcher.get('/me')).data;
@@ -234,6 +248,7 @@ export const useAuthStore = defineStore('auth', () => {
         refreshAccessToken,
         checkUser,
         refreshUser,
+        updateUser,
         forgotPassword,
         validatePasswordToken,
         resetPassword,

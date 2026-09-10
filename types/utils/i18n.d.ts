@@ -10,6 +10,20 @@
  */
 export declare function setI18n(i18n: import("vue-i18n").I18n | null): void;
 /**
+ * Hand over the words a package says, by locale, English being the key.
+ *
+ * A key the application already translates is left alone: its wording wins over
+ * the one a package ships, which is what makes a default overridable rather than
+ * imposed. Called at import time by the package itself, so an application that
+ * installs it gets its words and writes none of them.
+ *
+ * @param {Record<string, Record<string, string>>} messages - By locale
+ *
+ * @example
+ * addLocaleMessages({ fr: { Bold: 'Gras' } });
+ */
+export declare function addLocaleMessages(messages: Record<string, Record<string, string>>): void;
+/**
  * The i18n the application handed over, for a package that needs more than `t`.
  *
  * @returns {import("vue-i18n").I18n|null}

@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import { createI18nExtra } from '../plugins/i18nExtra.js';
-import { setI18n, t } from '../utils/i18n.js';
+import { addLocaleMessages, setI18n, t } from '../utils/i18n.js';
 import { formatValidationErrors } from '../utils/validations.js';
 
 const application = (messages = {}) =>
@@ -65,6 +65,32 @@ describe('createI18nExtra', () => {
         createI18nExtra(i18n);
 
         expect(i18n.global.t('Household not found')).toBe('Household not found');
+    });
+});
+
+describe('addLocaleMessages', () => {
+    it('takes the words of another package, whenever they are handed over', () => {
+        addLocaleMessages({ fr: { Bold: 'Gras' } });
+
+        const i18n = application();
+
+        createI18nExtra(i18n);
+
+        expect(i18n.global.t('Bold')).toBe('Gras');
+
+        // And after, for a package imported later than the application.
+        addLocaleMessages({ fr: { Italic: 'Italique' } });
+
+        expect(i18n.global.t('Italic')).toBe('Italique');
+    });
+
+    it('leaves the wording the application already has', () => {
+        const i18n = application({ Quote: 'Bloc de citation' });
+
+        createI18nExtra(i18n);
+        addLocaleMessages({ fr: { Quote: 'Citation' } });
+
+        expect(i18n.global.t('Quote')).toBe('Bloc de citation');
     });
 });
 

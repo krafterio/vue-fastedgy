@@ -3,10 +3,13 @@
  * MIT License (see LICENSE file).
  */
 
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
+import { bus } from '../composables/bus.js';
 import { useFetcherService } from '../composables/fetcher.js';
+import { REALTIME_SOURCE, REALTIME_SOURCE_REQUEST } from '../composables/realtime.js';
 import { useAuthStore } from './auth.js';
+import { METADATA_INVALIDATED } from './metadata.js';
 
 const SELECTED_KEY = 'workspace.slug';
 
@@ -39,6 +42,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     let loadPromise = null;
 
     const slug = computed(() => current.value?.slug || null);
+
+    // What the socket scopes itself to, said on the bus rather than read from
+    // here: it holds a workspace without knowing what one is, and an
+    // application that serves a single tenant has no store to be read.
+    bus.trigger(REALTIME_SOURCE, { source: slug });
+
+    // A socket that started before this store existed, and heard nothing.
+    bus.addEventListener(REALTIME_SOURCE_REQUEST, (event) => {
+        event.detail.source = slug;
+    });
+
+    // The slug rather than the record: a list read again is the same tenant,
+    // and what a model declares is what this workspace added to it, which the
+    // next one adds otherwise.
+    watch(slug, () => bus.trigger(METADATA_INVALIDATED));
 
     function api() {
         return useFetcherService();

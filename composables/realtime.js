@@ -8,19 +8,41 @@ import { bus, useBus } from './bus.js';
 import { useApiModel } from './api.js';
 import { RESOURCE_CHANGED, realtime } from '../network/realtime.js';
 import { useAuthStore } from '../stores/auth.js';
-import { useWorkspaceStore } from '../stores/workspace.js';
+
+/**
+ * Hand the socket the scope it reads, as something it can read again.
+ *
+ * The payload is `{source}`, a getter or a ref answering the name of what this
+ * tab is reading, and null for a tab reading everything the account reaches.
+ * Whoever knows announces itself here as it comes into being; the socket knows
+ * nothing of what that name means.
+ *
+ * @type {String}
+ *
+ * @example
+ * bus.trigger(REALTIME_SOURCE, { source: () => store.slug });
+ */
+export const REALTIME_SOURCE = 'realtime:source';
+
+/**
+ * The socket asking for a scope, because it started before one was announced.
+ *
+ * Sent with [EventBus.triggerAndWait] and a `{source}` payload to fill in, so
+ * whoever knows answers into it, taking its time if it has to. Nobody answering
+ * means there is nothing to scope the socket to, which [REALTIME_SOURCE] says
+ * if it ever comes.
+ *
+ * @type {String}
+ */
+export const REALTIME_SOURCE_REQUEST = 'realtime:source-request';
 
 /**
  * Keep the live socket in step with who is signed in and what they are reading.
  *
- * Called once, from the application shell. The workspace comes from the
- * workspace store, which the router keeps on the one in the URL; an application
- * that names it another way passes its own source.
- *
- * A page with no workspace (an onboarding, an auth screen) has nothing to
- * listen to: the socket waits rather than opening on nothing.
- *
- * @param {(function(): (String|null))|import("vue").Ref<String|null>} [workspace]
+ * Called once, from the application shell, and takes nothing: what the socket
+ * reads is whatever answers on [REALTIME_SOURCE], a store in an application
+ * that serves one tenant at a time, a router in one that reads the scope off
+ * the URL, nobody in one that has none.
  *
  * @example
  * // In the application shell
@@ -29,16 +51,31 @@ import { useWorkspaceStore } from '../stores/workspace.js';
  * useRealtime();
  *
  * @example
- * // An application that reads the workspace off the route itself
- * useRealtime(() => useRoute().params.workspace ?? null);
+ * // Whatever knows the scope, saying so for itself
+ * bus.trigger(REALTIME_SOURCE, { source: () => route.params.tenant ?? null });
  */
-export function useRealtime(workspace) {
+export function useRealtime() {
     const authStore = useAuthStore();
-    const source = workspace ?? (() => useWorkspaceStore().slug);
+    /** @type {import("vue").Ref<(function(): (String|null))|import("vue").Ref<String|null>|null>} */
+    const source = ref(null);
+    const take = (event) => {
+        source.value = event.detail?.source ?? null;
+    };
+
+    bus.addEventListener(REALTIME_SOURCE, take);
+    onUnmounted(() => bus.removeEventListener(REALTIME_SOURCE, take));
+
+    // Whoever knows may have come into being before this socket did, and has
+    // nothing left to announce.
+    const asked = { source: null };
+
+    void bus.triggerAndWait(REALTIME_SOURCE_REQUEST, asked).then(() => {
+        source.value ??= asked.source;
+    });
 
     watch(
-        () => [authStore.isAuthenticated, authStore.token, toValue(source)],
-        ([isAuthenticated, token, slug]) => {
+        () => [authStore.isAuthenticated, authStore.token, toValue(source.value)],
+        ([isAuthenticated, token, scope]) => {
             if (!isAuthenticated || !token) {
                 realtime.disconnect();
 
@@ -54,9 +91,9 @@ export function useRealtime(workspace) {
                 return;
             }
 
-            // An application that serves no workspace still wants the socket:
-            // the one it names, when it names one, is announced as it arrives.
-            realtime.connect(token, slug ?? null);
+            // An application that scopes the socket to nothing still wants it:
+            // the scope, when something names one, is announced as it arrives.
+            realtime.connect(token, scope ?? null);
         },
         { immediate: true }
     );

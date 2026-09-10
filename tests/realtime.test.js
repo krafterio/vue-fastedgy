@@ -35,8 +35,8 @@ class FakeWebSocket {
 
 const lastSocket = () => sockets[sockets.length - 1];
 
-function connect(token = 'a-token', workspace = 'krafter') {
-    realtime.connect(token, workspace);
+function connect(token = 'a-token', scope = 'krafter') {
+    realtime.connect(token, scope);
     lastSocket().onopen();
 
     return lastSocket();
@@ -52,7 +52,7 @@ describe('realtime socket', () => {
     it('authenticates itself with the first frame it sends', () => {
         const socket = connect();
 
-        expect(socket.sent).toEqual([{ type: 'authenticate', data: { token: 'a-token', workspace: 'krafter' } }]);
+        expect(socket.sent).toEqual([{ type: 'authenticate', data: { token: 'a-token', scope: 'krafter' } }]);
     });
 
     it('opens against the api path, over the websocket scheme', () => {
@@ -116,25 +116,25 @@ describe('realtime socket', () => {
         expect(heard).toEqual([{ data: { rows: 12 }, changed: null, origin: null, truncated: false }]);
     });
 
-    it('tells the server when the tab reads another workspace', () => {
+    it('tells the server when the tab reads another scope', () => {
         const socket = connect();
 
         socket.receive({ type: 'auth_success', data: {} });
         realtime.watch('studio-nord');
 
-        expect(socket.sent.at(-1)).toEqual({ type: 'watch', data: { workspace: 'studio-nord' } });
+        expect(socket.sent.at(-1)).toEqual({ type: 'watch', data: { scope: 'studio-nord' } });
     });
 
-    it('catches up when the workspace changed while it was authenticating', () => {
+    it('catches up when the scope changed while it was authenticating', () => {
         const socket = connect('a-token', 'krafter');
 
         realtime.watch('studio-nord');
         socket.receive({ type: 'auth_success', data: {} });
 
-        expect(socket.sent.at(-1)).toEqual({ type: 'watch', data: { workspace: 'studio-nord' } });
+        expect(socket.sent.at(-1)).toEqual({ type: 'watch', data: { scope: 'studio-nord' } });
     });
 
-    it('says its channels again to the workspace it moves to', () => {
+    it('says its channels again to the scope it moves to', () => {
         const socket = connect('a-token', null);
 
         socket.receive({ type: 'auth_success', data: {} });
@@ -145,7 +145,7 @@ describe('realtime socket', () => {
         expect(socket.sent.at(-1)).toEqual({ type: 'subscribe', data: { channels: ['engram', 'engram:42'] } });
     });
 
-    it('says a workspace once, however many times it is asked to', () => {
+    it('says a scope once, however many times it is asked to', () => {
         const socket = connect('a-token', 'krafter');
 
         socket.receive({ type: 'auth_success', data: {} });
@@ -155,7 +155,7 @@ describe('realtime socket', () => {
 
         const watches = socket.sent.filter((frame) => frame.type === 'watch');
 
-        expect(watches).toEqual([{ type: 'watch', data: { workspace: 'studio-nord' } }]);
+        expect(watches).toEqual([{ type: 'watch', data: { scope: 'studio-nord' } }]);
     });
 
     it('asks to hear about a model, and about one of its records', () => {

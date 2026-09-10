@@ -77,7 +77,7 @@ export function notifyChanged(event) {
 }
 
 /**
- * The workspace's live events, as the server sees them.
+ * The live events of what this tab reads, as the server sees them.
  *
  * One socket per tab, authenticated by its first frame because a browser cannot
  * put a header on a WebSocket handshake. Everything the server announces is
@@ -92,7 +92,7 @@ export class RealtimeSocket {
     constructor() {
         this.socket = null;
         this.token = null;
-        this.workspace = null;
+        this.scope = null;
         this.authenticated = false;
         this.wanted = false;
         this.announced = null;
@@ -104,17 +104,17 @@ export class RealtimeSocket {
     }
 
     /**
-     * Open the socket, or point the open one at another workspace.
+     * Open the socket, or point the open one at another scope.
      *
      * @param {String}      token
-     * @param {String|null} [workspace]
+     * @param {String|null} [scope]
      */
-    connect(token, workspace = null) {
+    connect(token, scope = null) {
         this.wanted = true;
-        this.workspace = workspace ?? null;
+        this.scope = scope ?? null;
 
         if (this.socket && this.token === token) {
-            this.watch(this.workspace);
+            this.watch(this.scope);
 
             return;
         }
@@ -146,22 +146,22 @@ export class RealtimeSocket {
     }
 
     /**
-     * Say which workspace this tab is reading, so it hears that one only.
+     * Say what this tab is reading, so it hears that and nothing else.
      *
-     * `announced` is what the server already knows, so the same workspace said
+     * `announced` is what the server already knows, so the same scope said
      * twice, by the caller and by the catch-up on authentication, is one frame.
      *
-     * @param {String|null} workspace
+     * @param {String|null} scope
      */
-    watch(workspace) {
-        this.workspace = workspace ?? null;
+    watch(scope) {
+        this.scope = scope ?? null;
 
-        if (this.authenticated && this.workspace !== this.announced) {
-            this.announced = this.workspace;
-            this.send('watch', { workspace: this.workspace });
+        if (this.authenticated && this.scope !== this.announced) {
+            this.announced = this.scope;
+            this.send('watch', { scope: this.scope });
 
-            // A socket leaving a workspace loses there what it subscribed to,
-            // and one that opened before its workspace was known subscribed to
+            // A socket leaving a scope loses there what it subscribed to, and
+            // one that opened before its scope was known subscribed to
             // nothing. Either way the channels the views hold are said again.
             if (this.channels.size) {
                 this.send('subscribe', { channels: [...this.channels.keys()] });
@@ -252,14 +252,14 @@ export class RealtimeSocket {
 
         socket.onopen = () => {
             // What the handshake tells the server it is reading. Kept so a
-            // workspace changed while it was in flight is caught up on, and so
-            // the same one is never said twice.
-            this.announced = this.workspace;
+            // scope changed while it was in flight is caught up on, and so the
+            // same one is never said twice.
+            this.announced = this.scope;
 
             socket.send(
                 JSON.stringify({
                     type: 'authenticate',
-                    data: { token: this.token, workspace: this.announced },
+                    data: { token: this.token, scope: this.announced },
                 })
             );
         };
@@ -320,12 +320,12 @@ export class RealtimeSocket {
 
             this.everConnected = true;
 
-            // The workspace changed while the handshake was in flight: what the
+            // The scope changed while the handshake was in flight: what the
             // server was told is out of date.
-            this.watch(this.workspace);
+            this.watch(this.scope);
 
             // A new socket was told nothing, and the server drops what a socket
-            // subscribed to when it leaves a workspace.
+            // subscribed to when it leaves a scope.
             if (this.channels.size) {
                 this.send('subscribe', { channels: [...this.channels.keys()] });
             }

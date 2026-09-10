@@ -1,14 +1,35 @@
 /**
+ * Hand the socket the scope it reads, as something it can read again.
+ *
+ * The payload is `{source}`, a getter or a ref answering the name of what this
+ * tab is reading, and null for a tab reading everything the account reaches.
+ * Whoever knows announces itself here as it comes into being; the socket knows
+ * nothing of what that name means.
+ *
+ * @type {String}
+ *
+ * @example
+ * bus.trigger(REALTIME_SOURCE, { source: () => store.slug });
+ */
+export declare const REALTIME_SOURCE: string;
+/**
+ * The socket asking for a scope, because it started before one was announced.
+ *
+ * Sent with [EventBus.triggerAndWait] and a `{source}` payload to fill in, so
+ * whoever knows answers into it, taking its time if it has to. Nobody answering
+ * means there is nothing to scope the socket to, which [REALTIME_SOURCE] says
+ * if it ever comes.
+ *
+ * @type {String}
+ */
+export declare const REALTIME_SOURCE_REQUEST: string;
+/**
  * Keep the live socket in step with who is signed in and what they are reading.
  *
- * Called once, from the application shell. The workspace comes from the
- * workspace store, which the router keeps on the one in the URL; an application
- * that names it another way passes its own source.
- *
- * A page with no workspace (an onboarding, an auth screen) has nothing to
- * listen to: the socket waits rather than opening on nothing.
- *
- * @param {(function(): (String|null))|import("vue").Ref<String|null>} [workspace]
+ * Called once, from the application shell, and takes nothing: what the socket
+ * reads is whatever answers on [REALTIME_SOURCE], a store in an application
+ * that serves one tenant at a time, a router in one that reads the scope off
+ * the URL, nobody in one that has none.
  *
  * @example
  * // In the application shell
@@ -17,10 +38,10 @@
  * useRealtime();
  *
  * @example
- * // An application that reads the workspace off the route itself
- * useRealtime(() => useRoute().params.workspace ?? null);
+ * // Whatever knows the scope, saying so for itself
+ * bus.trigger(REALTIME_SOURCE, { source: () => route.params.tenant ?? null });
  */
-export declare function useRealtime(workspace: (Function)): void;
+export declare function useRealtime(): void;
 /**
  * Hear one of the events the server announces for itself, while a view is on screen.
  *

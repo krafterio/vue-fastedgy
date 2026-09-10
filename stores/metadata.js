@@ -6,7 +6,23 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useAuthStore } from './auth.js';
+import { bus } from '../composables/bus.js';
 import { useFetcher } from '../composables/fetcher.js';
+
+/**
+ * Say that what this store holds is not what the application reads any more.
+ *
+ * What a metadata describes depends on who is reading it: a tenant adds its own
+ * fields to a model, and the next one adds others. Whatever knows that changed
+ * announces it here, and the store reads again when it is next asked, rather
+ * than depending on something it knows nothing about.
+ *
+ * @type {String}
+ *
+ * @example
+ * bus.trigger(METADATA_INVALIDATED);
+ */
+export const METADATA_INVALIDATED = 'metadata:invalidated';
 
 export const useMetadataStore = defineStore('metadata', () => {
     const metadatas = ref(null);
@@ -17,6 +33,15 @@ export const useMetadataStore = defineStore('metadata', () => {
     const fetcher = useFetcher({ abortOnUnmounted: false });
     /** @type {Promise<void>|null} */
     let fetchPromise = null;
+    // Which set of metadatas is the one being asked for: a read started before
+    // an invalidation answers for what nobody reads any more.
+    let generation = 0;
+
+    bus.addEventListener(METADATA_INVALIDATED, () => {
+        generation += 1;
+        metadatas.value = null;
+        fetchPromise = null;
+    });
 
     function setPrefix(newPrefix) {
         prefix.value = newPrefix;
@@ -31,18 +56,26 @@ export const useMetadataStore = defineStore('metadata', () => {
             return;
         }
 
+        const asked = generation;
+
         fetchPromise ??= (async () => {
             loading.value = true;
             error.value = null;
 
             try {
                 const response = await fetcher.get((prefix.value || '') + '/dataset/metadatas');
-                setMetadatas(response.data);
+
+                if (asked === generation) {
+                    setMetadatas(response.data);
+                }
             } catch (err) {
                 error.value = err;
             } finally {
                 loading.value = false;
-                fetchPromise = null;
+
+                if (asked === generation) {
+                    fetchPromise = null;
+                }
             }
         })();
 

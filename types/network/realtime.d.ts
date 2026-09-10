@@ -38,7 +38,7 @@ export declare function notifyChanged(event: {
     truncated?: boolean;
 }): void;
 /**
- * The workspace's live events, as the server sees them.
+ * The live events of what this tab reads, as the server sees them.
  *
  * One socket per tab, authenticated by its first frame because a browser cannot
  * put a header on a WebSocket handshake. Everything the server announces is
@@ -52,7 +52,7 @@ export declare function notifyChanged(event: {
 export declare class RealtimeSocket {
     socket: WebSocket | null;
     token: string | null;
-    workspace: string | null;
+    scope: string | null;
     authenticated: boolean;
     wanted: boolean;
     announced: any;
@@ -63,12 +63,12 @@ export declare class RealtimeSocket {
     heartbeatTimer: number | null;
     constructor();
     /**
-     * Open the socket, or point the open one at another workspace.
+     * Open the socket, or point the open one at another scope.
      *
      * @param {String}      token
-     * @param {String|null} [workspace]
+     * @param {String|null} [scope]
      */
-    connect(token: string, workspace?: string | null): void;
+    connect(token: string, scope?: string | null): void;
     /**
      * Close for good, and forget what was asked for.
      *
@@ -78,14 +78,14 @@ export declare class RealtimeSocket {
      */
     disconnect(): void;
     /**
-     * Say which workspace this tab is reading, so it hears that one only.
+     * Say what this tab is reading, so it hears that and nothing else.
      *
-     * `announced` is what the server already knows, so the same workspace said
+     * `announced` is what the server already knows, so the same scope said
      * twice, by the caller and by the catch-up on authentication, is one frame.
      *
-     * @param {String|null} workspace
+     * @param {String|null} scope
      */
-    watch(workspace: string | null): void;
+    watch(scope: string | null): void;
     /**
      * Ask to hear about a model, or about one of its records.
      *

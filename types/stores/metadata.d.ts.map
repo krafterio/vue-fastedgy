@@ -1,1 +1,1 @@
-{"version":3,"file":"metadata.d.ts","sourceRoot":"","sources":["../../stores/metadata.js"],"names":[],"mappings":"AAUA,eAAO,MAAM,gBAAgB;;;;;;;;;;EAsE3B,CAAC"}
+{"version":3,"file":"metadata.d.ts","sourceRoot":"","sources":["../../stores/metadata.js"],"names":[],"mappings":"AAWA;;;;;;;;;;;;GAYG;AACH,eAAO,MAAM,oBAAoB,QAAyB,CAAC;AAE3D,eAAO,MAAM,gBAAgB;;;;;;;;;;EAuF3B,CAAC"}

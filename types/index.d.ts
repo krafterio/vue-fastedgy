@@ -6,6 +6,7 @@ export * from './composables/data-iterator.js';
 export * from './composables/data-table.js';
 export * from './composables/dataset.js';
 export * from './composables/fetcher.js';
+export * from './composables/file-drop.js';
 export * from './composables/navigator.js';
 export * from './composables/page-size.js';
 export * from './composables/realtime.js';

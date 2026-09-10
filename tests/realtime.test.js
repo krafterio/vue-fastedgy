@@ -134,6 +134,17 @@ describe('realtime socket', () => {
         expect(socket.sent.at(-1)).toEqual({ type: 'watch', data: { workspace: 'studio-nord' } });
     });
 
+    it('says its channels again to the workspace it moves to', () => {
+        const socket = connect('a-token', null);
+
+        socket.receive({ type: 'auth_success', data: {} });
+        realtime.subscribe('engram');
+        realtime.subscribe('engram', 42);
+        realtime.watch('studio-nord');
+
+        expect(socket.sent.at(-1)).toEqual({ type: 'subscribe', data: { channels: ['engram', 'engram:42'] } });
+    });
+
     it('says a workspace once, however many times it is asked to', () => {
         const socket = connect('a-token', 'krafter');
 

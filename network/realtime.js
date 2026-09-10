@@ -159,6 +159,13 @@ export class RealtimeSocket {
         if (this.authenticated && this.workspace !== this.announced) {
             this.announced = this.workspace;
             this.send('watch', { workspace: this.workspace });
+
+            // A socket leaving a workspace loses there what it subscribed to,
+            // and one that opened before its workspace was known subscribed to
+            // nothing. Either way the channels the views hold are said again.
+            if (this.channels.size) {
+                this.send('subscribe', { channels: [...this.channels.keys()] });
+            }
         }
     }
 

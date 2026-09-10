@@ -111,4 +111,27 @@ describe('useStorage attachments', () => {
         expect([...options.body.keys()]).toEqual(['a.png', 'b.png']);
         expect(attachments).toEqual([{ id: 1 }, { id: 2 }]);
     });
+
+    it('says what the files are when it is told', async () => {
+        const fetchSpy = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                headers: { get: () => 'application/json' },
+                json: async () => ({ attachments: [{ id: 1 }] }),
+            })
+        );
+
+        window.fetch = fetchSpy;
+
+        const { uploadAttachments } = useStorage();
+        const meta = { record: { model: 'note', id: 12 }, inline_field: 'content' };
+
+        await uploadAttachments([new File(['a'], 'a.png', { type: 'image/png' })], { meta });
+
+        const [, options] = fetchSpy.mock.calls[0];
+
+        expect([...options.body.keys()]).toEqual(['a.png', 'meta']);
+        expect(JSON.parse(options.body.get('meta'))).toEqual(meta);
+    });
 });

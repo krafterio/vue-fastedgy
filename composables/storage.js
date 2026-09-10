@@ -13,7 +13,7 @@ import { useFetcherService } from './fetcher.js';
  *  fileUrl: (path: string|null) => string|null,
  *  attachmentUrl: (id: string|number) => string,
  *  uploadModelField: (model: string, id: string|number, field: string, file: File) => Promise<string|null>,
- *  uploadAttachments: (files: File[]) => Promise<Array<object>>,
+ *  uploadAttachments: (files: File[], options?: { meta?: object, prefix?: string }) => Promise<Array<object>>,
  *  deleteModelField: (model: string, id: string|number, field: string) => Promise<void>
  * }}
  *
@@ -95,6 +95,13 @@ export function useStorage(defaultParams = {}) {
 
         for (const file of files) {
             body.append(file.name, file);
+        }
+
+        // What the files are, said in the same pass as the upload: the record
+        // they belong to, and the field whose text holds them. Sent apart, the
+        // server would have written rows nothing points at.
+        if (options.meta) {
+            body.append('meta', JSON.stringify(options.meta));
         }
 
         const response = await fetcher.post(`${base(options.prefix)}/storage/upload/attachments`, body);

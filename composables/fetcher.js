@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { getCurrentInstance, onUnmounted } from 'vue';
+import { getCurrentScope, onScopeDispose } from 'vue';
 import { fetch as _fetch } from '../network/fetch.js';
 
 /**
@@ -109,12 +109,12 @@ export function useFetcher(options) {
         return await fetch(url, { ...options, method: 'DELETE' });
     }
 
-    // Aborting on unmount only means something to a caller that is a component
-    // being set up. An api model reached from an event handler, a store or a
-    // test has no instance to hang the hook on, and asking for one there is
-    // what makes Vue warn about a lifecycle call outside setup.
-    if (opt.abortOnUnmounted && getCurrentInstance()) {
-        onUnmounted(() => {
+    // Aborting at the end only means something to a caller set up in a scope, a
+    // component's ending at its unmount. A render, an event handler or a test
+    // runs in none: Vue still hands out the instance being rendered, but refuses
+    // it a lifecycle hook, hence the scope rather than the instance.
+    if (opt.abortOnUnmounted && getCurrentScope()) {
+        onScopeDispose(() => {
             abort();
         });
     }

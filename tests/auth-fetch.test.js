@@ -4,7 +4,9 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia';
+import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { h } from 'vue';
 import { fetch } from '../network/fetch.js';
 import { useFetcher } from '../composables/fetcher.js';
 import { absoluteUrl, setDefaultBaseUrl, useAuthFetch, useUrlContextFetch } from '../plugins/fetcher.js';
@@ -142,5 +144,44 @@ describe('useFetcher, outside a component', () => {
         expect(warn).not.toHaveBeenCalled();
 
         warn.mockRestore();
+    });
+
+    it('reads from a render without asking Vue for a lifecycle', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        mount({
+            render() {
+                useFetcher();
+
+                return h('div');
+            },
+        });
+
+        expect(warn).not.toHaveBeenCalled();
+
+        warn.mockRestore();
+    });
+
+    it('aborts what a component asked for when it unmounts', async () => {
+        let signal = null;
+
+        window.fetch = vi.fn((url, options) => {
+            signal = options.signal;
+
+            return new Promise(() => {});
+        });
+
+        const view = mount({
+            setup() {
+                void useFetcher().get('/companies/1');
+
+                return () => h('div');
+            },
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        view.unmount();
+
+        expect(signal?.aborted).toBe(true);
     });
 });

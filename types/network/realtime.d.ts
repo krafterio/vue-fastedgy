@@ -29,7 +29,7 @@ export declare const RESOURCE_ACTIONS: string[];
  *
  * @param {{model: String, id: (String|Number|null), action: String,
  *          changed?: String[]|null, origin?: String|null,
- *          truncated?: Boolean, data?: Object|null}} event
+ *          truncated?: Boolean, data?: Object<String, *>|null}} event
  */
 export declare function notifyChanged(event: {
     model: string;
@@ -38,7 +38,7 @@ export declare function notifyChanged(event: {
     changed?: string[] | null;
     origin?: string | null;
     truncated?: boolean;
-    data?: any | null;
+    data?: Record<string, any> | null;
 }): void;
 /**
  * The live events of what this tab reads, as the server sees them.

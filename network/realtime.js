@@ -67,7 +67,7 @@ export const RESOURCE_ACTIONS = ['created', 'updated', 'deleted'];
  *
  * @param {{model: String, id: (String|Number|null), action: String,
  *          changed?: String[]|null, origin?: String|null,
- *          truncated?: Boolean, data?: Object|null}} event
+ *          truncated?: Boolean, data?: Object<String, *>|null}} event
  */
 export function notifyChanged(event) {
     bus.trigger(RESOURCE_CHANGED, {

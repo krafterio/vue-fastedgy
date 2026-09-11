@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { ref, computed, watch } from 'vue';
+import { ref, computed, toValue, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useApiModel } from './api.js';
 import { formatOrderBy, parseOrderBy } from '../utils/order-by.js';
@@ -47,6 +47,9 @@ const DEFAULT_OPTIONS = {
  * @param {boolean} options.append - Keep the loaded items and append the next pages (default: false)
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
+ * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
+ *   page waits for it, so a screen still resolving its fields or filter does not read the list more than once
+ *   (default: true)
  * @returns {Object} - DataIterator state and methods
  */
 export function useDataIterator(model, options = {}) {
@@ -125,7 +128,19 @@ export function useDataIterator(model, options = {}) {
     /**
      * Fetch items from API with current filters, pagination, and sorting
      */
+    const enabled = () => toValue(config.enabled) !== false;
+
+    // Only the latest read lands: an earlier one answering last would put back
+    // the rows of a filter or a field list the screen has already left.
+    let latest = 0;
+
     const fetchItems = async (append = false) => {
+        if (!enabled()) {
+            return;
+        }
+
+        const run = ++latest;
+
         try {
             loading.value = true;
             error.value = null;
@@ -138,13 +153,21 @@ export function useDataIterator(model, options = {}) {
                 orderBy: orderBy.value,
             });
 
+            if (run !== latest) {
+                return;
+            }
+
             items.value = append ? [...items.value, ...result.data.items] : result.data.items;
             total.value = result.data.total;
         } catch (err) {
-            error.value = err;
+            if (run === latest) {
+                error.value = err;
+            }
         } finally {
-            loading.value = false;
-            loaded.value = true;
+            if (run === latest) {
+                loading.value = false;
+                loaded.value = true;
+            }
         }
     };
 
@@ -352,8 +375,14 @@ export function useDataIterator(model, options = {}) {
         void fetchItems();
     });
 
-    // Initial fetch
+    // Initial fetch, held back until the caller says the list is ready
     void sortableReady.then(() => fetchItems());
+
+    watch(enabled, (on) => {
+        if (on) {
+            void sortableReady.then(() => fetchItems());
+        }
+    });
 
     return {
         // Data

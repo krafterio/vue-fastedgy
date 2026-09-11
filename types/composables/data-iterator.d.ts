@@ -19,6 +19,9 @@
  * @param {boolean} options.append - Keep the loaded items and append the next pages (default: false)
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
+ * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
+ *   page waits for it, so a screen still resolving its fields or filter does not read the list more than once
+ *   (default: true)
  * @returns {Object} - DataIterator state and methods
  */
 export declare function useDataIterator(model: string | object, options?: {
@@ -37,5 +40,6 @@ export declare function useDataIterator(model: string | object, options?: {
     append: boolean;
     datasetPrefix: string;
     pageSizeKey: string;
+    enabled: boolean | Function | import('vue').Ref<boolean>;
 }): any;
 //# sourceMappingURL=data-iterator.d.ts.map

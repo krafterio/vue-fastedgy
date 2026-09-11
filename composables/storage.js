@@ -6,6 +6,37 @@
 import { useFetcherService } from './fetcher.js';
 
 /**
+ * The surface every `useStorage()` reads from when it names none.
+ *
+ * @type {{ prefix?: string }}
+ */
+let storageConfig = {};
+
+/**
+ * Say once where the application keeps its files.
+ *
+ * What a package reads through `useStorage()` without naming a surface goes
+ * there too: an application whose files live under its workspace gets an editor
+ * that stores its pictures there, without handing it a prefix call by call.
+ *
+ * @param {{ prefix?: string }} config
+ * @returns {import("vue").Plugin}
+ *
+ * @example
+ * // In main.js
+ * app.use(createStorage({ prefix: '/{workspace}' }));
+ */
+export function createStorage(config = {}) {
+    storageConfig = config;
+
+    return {
+        install() {
+            // Config is stored globally, no need to inject into app
+        },
+    };
+}
+
+/**
  * Files a model field holds: where to read one, how to replace it, how to drop it.
  *
  * @param {{ prefix?: string }} [defaultParams] - Default parameters
@@ -25,7 +56,7 @@ import { useFetcherService } from './fetcher.js';
  */
 export function useStorage(defaultParams = {}) {
     const fetcher = useFetcherService();
-    const base = (prefix) => (prefix === undefined ? defaultParams.prefix : prefix) || '';
+    const base = (prefix) => (prefix === undefined ? (defaultParams.prefix ?? storageConfig.prefix) : prefix) || '';
 
     /**
      * URL a stored file is read from, to be given to `v-fetcher-src` or to the fetcher.

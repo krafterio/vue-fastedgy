@@ -1,4 +1,21 @@
 /**
+ * Say once where the application keeps its files.
+ *
+ * What a package reads through `useStorage()` without naming a surface goes
+ * there too: an application whose files live under its workspace gets an editor
+ * that stores its pictures there, without handing it a prefix call by call.
+ *
+ * @param {{ prefix?: string }} config
+ * @returns {import("vue").Plugin}
+ *
+ * @example
+ * // In main.js
+ * app.use(createStorage({ prefix: '/{workspace}' }));
+ */
+export declare function createStorage(config?: {
+    prefix?: string;
+}): import("vue").Plugin;
+/**
  * Files a model field holds: where to read one, how to replace it, how to drop it.
  *
  * @param {{ prefix?: string }} [defaultParams] - Default parameters

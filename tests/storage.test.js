@@ -3,8 +3,8 @@
  * MIT License (see LICENSE file).
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useStorage } from '../composables/storage.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createStorage, useStorage } from '../composables/storage.js';
 
 const jsonResponse = (payload) => ({
     ok: true,
@@ -71,6 +71,20 @@ describe('useStorage file url', () => {
         const { fileUrl } = useStorage();
 
         expect(fileUrl('a.png', { prefix: '/public/lists/abc' })).toBe('/public/lists/abc/storage/download/a.png');
+    });
+});
+
+describe('useStorage default surface', () => {
+    afterEach(() => createStorage());
+
+    it('reads from the surface the application set, unless told another', () => {
+        createStorage({ prefix: '/{workspace}' });
+
+        const { attachmentUrl } = useStorage();
+
+        expect(attachmentUrl(7)).toBe('/{workspace}/storage/download/attachments/7');
+        expect(useStorage({ prefix: '/global' }).attachmentUrl(7)).toBe('/global/storage/download/attachments/7');
+        expect(attachmentUrl(7, { prefix: '' })).toBe('/storage/download/attachments/7');
     });
 });
 

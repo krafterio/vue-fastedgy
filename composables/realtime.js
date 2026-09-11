@@ -453,3 +453,107 @@ export function useApiCollection(model, query = {}, options = {}) {
 
     return { items, total, status, error, refresh: () => load(false) };
 }
+
+/**
+ * Hold the records either side of one, in the list a filter and an ordering
+ * describe, for a detail screen that steps through the list it was opened from.
+ *
+ * The neighbours re-read when the id or the query moves, and after a write on
+ * the model anywhere: a record created, deleted or re-sorted shifts them. The
+ * previous ones stay until the new ones arrive, `status` telling them apart.
+ * The model needs the `siblings` route action.
+ *
+ * @param {String}                                                             model
+ * @param {String|Number|(function(): (String|Number|null))|
+ *         import("vue").Ref<String|Number|null>}                              id
+ * @param {{filter?: String|object, orderBy?: String|String[]}|
+ *         (function(): object)|import("vue").Ref<object>}                     [query]
+ * @param {{params?: object, immediate?: Boolean, refreshDelay?: Number,
+ *          api?: object}}                                                     [options]
+ *
+ * @returns {{previous: import("vue").Ref<Number|null>, next: import("vue").Ref<Number|null>,
+ *           status: import("vue").Ref<String>, error: import("vue").Ref,
+ *           refresh: function(): Promise<void>}}
+ *
+ * @example
+ * const { previous, next } = useApiSiblings('flow', () => route.params.id, () => ({ orderBy: 'name:asc' }));
+ */
+export function useApiSiblings(model, id, query = {}, options = {}) {
+    const { params = {}, immediate = true, refreshDelay = 250, api = null } = options;
+    const reader = api ?? useApiModel(model, params);
+    const previous = ref(null);
+    const next = ref(null);
+    const status = ref('idle');
+    const error = ref(null);
+    let timer = null;
+    let generation = 0;
+
+    const currentId = () => toValue(id) ?? null;
+    const currentQuery = () => toValue(query) || {};
+
+    async function read(quiet) {
+        const wanted = currentId();
+        const asked = ++generation;
+
+        if (wanted === null) {
+            previous.value = null;
+            next.value = null;
+            status.value = 'idle';
+
+            return;
+        }
+
+        if (!quiet) {
+            status.value = 'loading';
+        }
+
+        try {
+            const response = await reader.siblings(wanted, currentQuery());
+
+            // Stepping fast outruns the server: only the last id asked answers.
+            if (asked !== generation) {
+                return;
+            }
+
+            previous.value = response?.data?.previous ?? null;
+            next.value = response?.data?.next ?? null;
+            error.value = null;
+            status.value = 'success';
+        } catch (e) {
+            if (quiet || asked !== generation) {
+                return;
+            }
+
+            previous.value = null;
+            next.value = null;
+            error.value = e;
+            status.value = 'error';
+        }
+    }
+
+    useResourceChanged(
+        model,
+        () => {
+            if (status.value === 'idle') {
+                return;
+            }
+
+            clearTimeout(timer);
+            timer = setTimeout(() => read(true), refreshDelay);
+        },
+        { refreshDelay: 0 }
+    );
+
+    watch(
+        () => JSON.stringify([currentId(), currentQuery()]),
+        () => void read(false)
+    );
+
+    if (immediate) {
+        void read(false);
+    }
+
+    onUnmounted(() => clearTimeout(timer));
+
+    return { previous, next, status, error, refresh: () => read(false) };
+}

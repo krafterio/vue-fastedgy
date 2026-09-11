@@ -187,4 +187,44 @@ export declare function useApiCollection(model: string, query?: object | (Functi
     refresh: Function;
     (): Promise<void>;
 };
+/**
+ * Hold the records either side of one, in the list a filter and an ordering
+ * describe, for a detail screen that steps through the list it was opened from.
+ *
+ * The neighbours re-read when the id or the query moves, and after a write on
+ * the model anywhere: a record created, deleted or re-sorted shifts them. The
+ * previous ones stay until the new ones arrive, `status` telling them apart.
+ * The model needs the `siblings` route action.
+ *
+ * @param {String}                                                             model
+ * @param {String|Number|(function(): (String|Number|null))|
+ *         import("vue").Ref<String|Number|null>}                              id
+ * @param {{filter?: String|object, orderBy?: String|String[]}|
+ *         (function(): object)|import("vue").Ref<object>}                     [query]
+ * @param {{params?: object, immediate?: Boolean, refreshDelay?: Number,
+ *          api?: object}}                                                     [options]
+ *
+ * @returns {{previous: import("vue").Ref<Number|null>, next: import("vue").Ref<Number|null>,
+ *           status: import("vue").Ref<String>, error: import("vue").Ref,
+ *           refresh: function(): Promise<void>}}
+ *
+ * @example
+ * const { previous, next } = useApiSiblings('flow', () => route.params.id, () => ({ orderBy: 'name:asc' }));
+ */
+export declare function useApiSiblings(model: string, id: string | number | (Function), query?: {
+    filter?: string | object;
+    orderBy?: string | string[];
+} | (Function), options?: {
+    params?: object;
+    immediate?: boolean;
+    refreshDelay?: number;
+    api?: object;
+}): {
+    previous: import("vue").Ref<number | null>;
+    next: import("vue").Ref<number | null>;
+    status: import("vue").Ref<string>;
+    error: import("vue").Ref;
+    refresh: Function;
+    (): Promise<void>;
+};
 //# sourceMappingURL=realtime.d.ts.map

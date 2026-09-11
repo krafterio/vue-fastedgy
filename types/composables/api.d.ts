@@ -245,6 +245,7 @@ export declare function useApiForm(model: string | object, options?: {
  *  action: (method, path, body = undefined, query = {}, params = {}) => Promise<{data: any}>,
  *  list: (query = {}, params = {}) => Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>,
  *  get: (id, options = {}, params = {}) => Promise<{data: any}>,
+ *  siblings: (id, query = {}, params = {}) => Promise<{data: {previous: number|null, next: number|null}}>,
  *  create: (payload, options = {}, params = {}) => Promise<{data: any}>,
  *  update: (id, payload, options = {}, params = {}) => Promise<{data: any}>,
  *  delete: (id, params = {}) => Promise<void>,

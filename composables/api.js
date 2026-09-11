@@ -427,6 +427,7 @@ export function useApiForm(model, options = {}) {
  *  action: (method, path, body = undefined, query = {}, params = {}) => Promise<{data: any}>,
  *  list: (query = {}, params = {}) => Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>,
  *  get: (id, options = {}, params = {}) => Promise<{data: any}>,
+ *  siblings: (id, query = {}, params = {}) => Promise<{data: {previous: number|null, next: number|null}}>,
  *  create: (payload, options = {}, params = {}) => Promise<{data: any}>,
  *  update: (id, payload, options = {}, params = {}) => Promise<{data: any}>,
  *  delete: (id, params = {}) => Promise<void>,
@@ -471,6 +472,16 @@ export function useApiModel(modelName, defaultParams = {}) {
                 ...defaultParams,
                 ...params,
             }),
+
+        /**
+         * The ids before and after an item, in the list a filter and an ordering describe
+         * @param {string|number} id
+         * @param {{ filter?: string|object, orderBy?: string|string[] }} query
+         * @param {{ prefix?: string, headers?: object }} params
+         * @returns {Promise<{data: {previous: number|null, next: number|null}}>}
+         */
+        siblings: (id, query = {}, params = {}) =>
+            actionRequest(modelName, 'get', `/${id}/siblings`, undefined, query, { ...defaultParams, ...params }),
 
         /**
          * Create item

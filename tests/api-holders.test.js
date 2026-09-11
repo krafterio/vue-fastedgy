@@ -6,7 +6,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
-import { useApiCollection, useApiRecord } from '../composables/realtime.js';
+import { useApiCollection, useApiRecord, useApiSiblings } from '../composables/realtime.js';
 import { notifyChanged } from '../network/realtime.js';
 
 function harness(setup) {
@@ -153,5 +153,82 @@ describe('useApiCollection', () => {
         await flushPromises();
 
         expect(list).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('useApiSiblings', () => {
+    let siblings;
+
+    beforeEach(() => {
+        siblings = vi.fn().mockResolvedValue({ data: { previous: 5, next: 9 } });
+    });
+
+    it('asks for the neighbours in the list it is given', async () => {
+        const query = { filter: ['status', '=', 3], orderBy: 'name:asc' };
+        const { held } = harness(() => useApiSiblings('company', 7, query, { api: { siblings } }));
+
+        await flushPromises();
+
+        expect(siblings).toHaveBeenCalledWith(7, query);
+        expect(held().previous.value).toBe(5);
+        expect(held().next.value).toBe(9);
+        expect(held().status.value).toBe('success');
+    });
+
+    it('follows the id once per step', async () => {
+        const id = ref(7);
+        harness(() =>
+            useApiSiblings(
+                'company',
+                () => id.value,
+                () => ({ orderBy: 'name:asc' }),
+                { api: { siblings } }
+            )
+        );
+
+        await flushPromises();
+        id.value = 9;
+        await flushPromises();
+
+        expect(siblings).toHaveBeenCalledTimes(2);
+        expect(siblings).toHaveBeenLastCalledWith(9, { orderBy: 'name:asc' });
+    });
+
+    it('keeps the answer of the last id asked when an earlier one lands after it', async () => {
+        const id = ref(7);
+        let answerFirst;
+
+        siblings.mockReturnValueOnce(new Promise((resolve) => (answerFirst = resolve)));
+        siblings.mockResolvedValueOnce({ data: { previous: 7, next: 11 } });
+
+        const { held } = harness(() => useApiSiblings('company', () => id.value, {}, { api: { siblings } }));
+
+        id.value = 9;
+        await flushPromises();
+        answerFirst({ data: { previous: 5, next: 9 } });
+        await flushPromises();
+
+        expect(held().previous.value).toBe(7);
+        expect(held().next.value).toBe(11);
+    });
+
+    it('re-reads when the model changes anywhere', async () => {
+        harness(() => useApiSiblings('company', 7, {}, { api: { siblings }, refreshDelay: 0 }));
+
+        await flushPromises();
+        change({ id: 42, action: 'created' });
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        await flushPromises();
+
+        expect(siblings).toHaveBeenCalledTimes(2);
+    });
+
+    it('holds nothing without an id', async () => {
+        const { held } = harness(() => useApiSiblings('company', () => null, {}, { api: { siblings } }));
+
+        await flushPromises();
+
+        expect(siblings).not.toHaveBeenCalled();
+        expect(held().status.value).toBe('idle');
     });
 });

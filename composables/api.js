@@ -133,7 +133,7 @@ function buildHeaders(query = {}, params = {}) {
         headers['X-Fields'] = Array.isArray(query.fields) ? query.fields.join(',') : query.fields;
     }
 
-    if (query.filter != null) {
+    if (query.filter != null && !(Array.isArray(query.filter) && query.filter.length === 0)) {
         headers['X-Filter'] = typeof query.filter === 'string' ? query.filter : JSON.stringify(query.filter);
     }
 

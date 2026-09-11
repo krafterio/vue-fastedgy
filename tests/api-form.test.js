@@ -90,3 +90,29 @@ describe('useApiModel action', () => {
         expect(response.data).toEqual({ started: true });
     });
 });
+
+describe('useApiModel list', () => {
+    it('sends no filter for a list of no rule', async () => {
+        setActivePinia(createPinia());
+        useMetadataStore().setMetadatas({ aliment: { name: 'aliment', api_name: 'aliments' } });
+
+        const fetchSpy = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                headers: { get: () => 'application/json' },
+                json: async () => ({ items: [], total: 0 }),
+            })
+        );
+
+        window.fetch = fetchSpy;
+
+        const { list } = useApiModel('aliment');
+
+        await list({ filter: [] });
+        await list({ filter: [['name', '=', 'pomme']] });
+
+        expect(new Headers(fetchSpy.mock.calls[0][1].headers).has('X-Filter')).toBe(false);
+        expect(new Headers(fetchSpy.mock.calls[1][1].headers).get('X-Filter')).toBe('[["name","=","pomme"]]');
+    });
+});

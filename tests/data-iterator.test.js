@@ -64,6 +64,28 @@ describe('useDataIterator', () => {
         expect(iterator.loading.value).toBe(false);
     });
 
+    it('reads again for a column it has not read, not for the fields it just read', async () => {
+        const fields = ref(['id', 'name']);
+        const service = { modelName: 'aisle', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        useDataIterator(service, { sortable: false, fieldsResolver: () => fields.value });
+
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(1);
+        expect(service.list.mock.calls[0][0].fields).toEqual(['id', 'name']);
+
+        fields.value = ['id', 'name'];
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(1);
+
+        fields.value = ['id', 'name', 'status.name'];
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(2);
+    });
+
     it('reads again on the rules a filter says, not on the array that says them', async () => {
         const closed = ref('is false');
         const rebuilt = ref(0);

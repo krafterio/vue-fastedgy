@@ -134,12 +134,18 @@ export function useDataIterator(model, options = {}) {
     // the rows of a filter or a field list the screen has already left.
     let latest = 0;
 
+    // What the last read asked for: a screen settles its fields as its metadata
+    // arrives, and the read that goes out then already carries them.
+    let readFields = null;
+
     const fetchItems = async (append = false) => {
         if (!enabled()) {
             return;
         }
 
         const run = ++latest;
+
+        readFields = fields.value.join(',');
 
         try {
             loading.value = true;
@@ -337,6 +343,17 @@ export function useDataIterator(model, options = {}) {
     watch(
         () => JSON.stringify(customFilter.value ?? null),
         () => reload()
+    );
+
+    // A column added or removed is another read; the fields the read already
+    // carried are not.
+    watch(
+        () => fields.value.join(','),
+        (next) => {
+            if (latest > 0 && next !== readFields) {
+                void refresh();
+            }
+        }
     );
 
     // Watch sorting changes - update URL and fetch

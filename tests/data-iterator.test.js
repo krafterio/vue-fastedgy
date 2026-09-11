@@ -63,4 +63,35 @@ describe('useDataIterator', () => {
         expect(iterator.items.value).toEqual([{ id: 2 }]);
         expect(iterator.loading.value).toBe(false);
     });
+
+    it('reads again on the rules a filter says, not on the array that says them', async () => {
+        const closed = ref('is false');
+        const rebuilt = ref(0);
+        const service = { modelName: 'aisle', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        useDataIterator(service, {
+            sortable: false,
+            // What a screen hands over: a new array on every recompute, of
+            // whatever the columns and the model fields around it are worth.
+            filter: () => {
+                void rebuilt.value;
+
+                return [['closed', closed.value]];
+            },
+        });
+
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(1);
+
+        rebuilt.value += 1;
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(1);
+
+        closed.value = 'is true';
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(2);
+    });
 });

@@ -325,11 +325,19 @@ export function useDataIterator(model, options = {}) {
         total,
     });
 
-    // Watch filter changes - reset to first page and fetch
-    watch(filter, reload, { deep: true });
+    // On what the rules say, not on the array that says it: the filter is built
+    // again whenever anything it reads is recomputed, and a deep watcher takes
+    // each of those for a change, so the screen read its whole list again for
+    // rules it was already showing.
+    watch(
+        () => JSON.stringify(filter.value ?? null),
+        () => reload()
+    );
 
-    // Watch custom filter changes - reset to first page and fetch
-    watch(customFilter, reload, { deep: true });
+    watch(
+        () => JSON.stringify(customFilter.value ?? null),
+        () => reload()
+    );
 
     // Watch sorting changes - update URL and fetch
     watch(

@@ -29,7 +29,12 @@ export declare function getApiUrl(): string;
  * @returns {function(): void} Stop stamping
  */
 export declare const useOriginFetch: () => Function;
-export declare const useAuthFetch: () => void;
+/**
+ * Carry the token on every request, and get a new one when it is refused.
+ *
+ * @returns {function(): void} Stop authorizing
+ */
+export declare const useAuthFetch: () => Function;
 /**
  * Resolve the context placeholders a request URL carries.
  *

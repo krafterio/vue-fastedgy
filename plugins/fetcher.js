@@ -153,8 +153,13 @@ export const useOriginFetch = () => {
     return () => fetchBus.removeEventListener('fetch:request', listener);
 };
 
+/**
+ * Carry the token on every request, and get a new one when it is refused.
+ *
+ * @returns {function(): void} Stop authorizing
+ */
 export const useAuthFetch = () => {
-    fetchBus.addEventListener('fetch:request', async (e) => {
+    const authorize = async (e) => {
         e.detail.url = absoluteUrl(e.detail.url);
 
         const authStore = useAuthStore();
@@ -178,9 +183,9 @@ export const useAuthFetch = () => {
                 options.headers['Authorization'] = `Bearer ${authStore.token}`;
             }
         }
-    });
+    };
 
-    fetchBus.addEventListener('fetch:error', async (e) => {
+    const reauthorize = async (e) => {
         const authStore = useAuthStore();
         const { url, options, error } = e.detail;
 
@@ -247,7 +252,15 @@ export const useAuthFetch = () => {
         }
 
         await refreshToken();
-    });
+    };
+
+    fetchBus.addEventListener('fetch:request', authorize);
+    fetchBus.addEventListener('fetch:error', reauthorize);
+
+    return () => {
+        fetchBus.removeEventListener('fetch:request', authorize);
+        fetchBus.removeEventListener('fetch:error', reauthorize);
+    };
 };
 
 const APP_PLACEHOLDER = '/{app}/';
@@ -335,11 +348,13 @@ export const useUrlContextFetch = (
 export const createFetcher = (options = {}) => {
     return {
         install(app) {
-            useOriginFetch();
-            useAuthFetch();
-            useUrlContextFetch(options);
+            const stops = [useOriginFetch(), useAuthFetch(), useUrlContextFetch(options)];
 
             app.directive('fetcher-src', fetcherSrc);
+
+            // The requests of an application are listened to while it lives: one
+            // mounted again, as every test mounts one, is listened to once.
+            app.onUnmount(() => stops.forEach((stop) => stop()));
         },
     };
 };

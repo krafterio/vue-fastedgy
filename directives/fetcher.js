@@ -131,7 +131,7 @@ function loadImage(el, binding, node) {
         })
         .catch((e) => {
             if (!['AbortError', undefined].includes(e.name)) {
-                console.error('[v-fetcher-src] fetch error', e, 'aaa', e.name);
+                console.error('[v-fetcher-src] fetch error', e);
             }
         });
 }

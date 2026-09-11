@@ -1,1 +1,1 @@
-{"version":3,"file":"workspace.d.ts","sourceRoot":"","sources":["../../stores/workspace.js"],"names":[],"mappings":"AAiBA;;;GAGG;AACH,wBAAgB,kBAAkB,CAAC,MAAM,KAAA,QAExC;AAED;;;;;GAKG;AACH,wBAAgB,mBAAmB,kBAElC;AAED,eAAO,MAAM,iBAAiB;;;;;;;;;;EA+H5B,CAAC"}
+{"version":3,"file":"workspace.d.ts","sourceRoot":"","sources":["../../stores/workspace.js"],"names":[],"mappings":"AAiBA;;;GAGG;AACH,wBAAgB,kBAAkB,CAAC,MAAM,KAAA,QAExC;AAED;;;;;GAKG;AACH,wBAAgB,mBAAmB,kBAElC;AAED,eAAO,MAAM,iBAAiB;;;;;;;;;;EAoI5B,CAAC"}

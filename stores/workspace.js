@@ -55,8 +55,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
     // The slug rather than the record: a list read again is the same tenant,
     // and what a model declares is what this workspace added to it, which the
-    // next one adds otherwise.
-    watch(slug, () => bus.trigger(METADATA_INVALIDATED));
+    // next one adds otherwise. Opening the first one is not leaving another:
+    // what was read before it was read under it already.
+    watch(slug, (next, previous) => {
+        if (previous && previous !== next) {
+            bus.trigger(METADATA_INVALIDATED);
+        }
+    });
 
     function api() {
         return useFetcherService();

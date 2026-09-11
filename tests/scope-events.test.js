@@ -156,12 +156,17 @@ describe('the workspace store, saying what it knows', () => {
         expect(toValue(asked.source)).toBe('studio-nord');
     });
 
-    it('says the metadatas are stale when the tenant changes', async () => {
+    it('says the metadatas are stale when the tenant changes, and not when the first one opens', async () => {
         const store = useWorkspaceStore();
         const stale = vi.fn();
 
         bus.addEventListener(METADATA_INVALIDATED, stale);
         store.current = { slug: 'studio-nord' };
+        await nextTick();
+
+        expect(stale).not.toHaveBeenCalled();
+
+        store.current = { slug: 'studio-sud' };
         await nextTick();
         bus.removeEventListener(METADATA_INVALIDATED, stale);
 

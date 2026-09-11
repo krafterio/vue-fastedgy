@@ -61,14 +61,17 @@ export const RESOURCE_ACTIONS = ['created', 'updated', 'deleted'];
  *
  * Called by the API layer on its own writes and by the socket on the server's
  * announcements. `changed` names the columns the write moved, when it is known,
- * and `origin` the client instance behind it.
+ * `origin` the client instance behind it, and `data` what the server announced
+ * with the id: the columns the model declared to carry, so a view can tell
+ * whether the write is any of its business. A write of this tab carries none.
  *
  * @param {{model: String, id: (String|Number|null), action: String,
  *          changed?: String[]|null, origin?: String|null,
- *          truncated?: Boolean}} event
+ *          truncated?: Boolean, data?: Object|null}} event
  */
 export function notifyChanged(event) {
     bus.trigger(RESOURCE_CHANGED, {
+        data: null,
         changed: null,
         origin: null,
         truncated: false,
@@ -359,7 +362,7 @@ export class RealtimeSocket {
         const [model, action] = String(message.type).split('.');
 
         if (model && RESOURCE_ACTIONS.includes(action)) {
-            notifyChanged({ model, id: data?.id ?? null, action, ...meta });
+            notifyChanged({ model, id: data?.id ?? null, action, data, ...meta });
 
             return;
         }

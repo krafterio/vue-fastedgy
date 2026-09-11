@@ -23,11 +23,13 @@ export declare const RESOURCE_ACTIONS: string[];
  *
  * Called by the API layer on its own writes and by the socket on the server's
  * announcements. `changed` names the columns the write moved, when it is known,
- * and `origin` the client instance behind it.
+ * `origin` the client instance behind it, and `data` what the server announced
+ * with the id: the columns the model declared to carry, so a view can tell
+ * whether the write is any of its business. A write of this tab carries none.
  *
  * @param {{model: String, id: (String|Number|null), action: String,
  *          changed?: String[]|null, origin?: String|null,
- *          truncated?: Boolean}} event
+ *          truncated?: Boolean, data?: Object|null}} event
  */
 export declare function notifyChanged(event: {
     model: string;
@@ -36,6 +38,7 @@ export declare function notifyChanged(event: {
     changed?: string[] | null;
     origin?: string | null;
     truncated?: boolean;
+    data?: any | null;
 }): void;
 /**
  * The live events of what this tab reads, as the server sees them.

@@ -123,8 +123,10 @@ export function useRealtimeEvent(type, handler) {
  *
  * The one stream: a write made here and a write made by anyone else say the
  * same thing, once. The handler is called with `{model, id, action, changed,
- * origin, truncated}`, and events carry identifiers only, so read the record
- * back through the API.
+ * origin, truncated, data}`, and events carry identifiers only, so read the
+ * record back through the API. `data` holds the columns the model declared to
+ * carry (`realtime_model(fields=[...])`) when the server announced the write,
+ * and is null for a write of this tab.
  *
  * It is also called with `action: 'reconnected'` and no id when the socket
  * comes back, because nothing is replayed: what happened while it was down was
@@ -134,7 +136,7 @@ export function useRealtimeEvent(type, handler) {
  * @param {String}                                                          model
  * @param {function({model: String, id: (String|Number|null), action: String,
  *                   changed: (String[]|null), origin: (String|null),
- *                   truncated: Boolean}): void}                            handler
+ *                   truncated: Boolean, data: (Object|null)}): void}       handler
  * @param {{id?: String|Number|null|(function(): (String|Number|null))|
  *              import("vue").Ref<String|Number|null>,
  *          watchFields?: String[]|null, refreshDelay?: Number}}            [options]
@@ -150,6 +152,11 @@ export function useRealtimeEvent(type, handler) {
  *
  * // A list that only cares about the columns it shows
  * useResourceChanged('company', () => reload(), { watchFields: ['name', 'domain'] });
+ *
+ * // The messages of one thread, the server carrying `thread` with the id
+ * useResourceChanged('message', ({ data }) => {
+ *     if (data?.thread == null || data.thread === threadId) reload();
+ * });
  */
 export function useResourceChanged(model, handler, options = {}) {
     const { id = null, watchFields = null, refreshDelay = 250 } = options;
@@ -191,7 +198,7 @@ export function useResourceChanged(model, handler, options = {}) {
     });
 
     useBus(bus, 'realtime:reconnected', () =>
-        fire({ model, id: null, action: 'reconnected', changed: null, origin: null, truncated: true })
+        fire({ model, id: null, action: 'reconnected', changed: null, origin: null, truncated: true, data: null })
     );
 
     realtime.subscribe(subscribed.model, subscribed.id);

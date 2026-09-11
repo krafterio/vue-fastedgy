@@ -90,8 +90,27 @@ describe('realtime socket', () => {
         socket.receive({ type: 'company.updated', data: { id: 7 }, changed: ['name'], origin: 'another-tab' });
 
         expect(heard).toEqual([
-            { model: 'company', id: 7, action: 'updated', changed: ['name'], origin: 'another-tab', truncated: false },
+            {
+                model: 'company',
+                id: 7,
+                action: 'updated',
+                data: { id: 7 },
+                changed: ['name'],
+                origin: 'another-tab',
+                truncated: false,
+            },
         ]);
+    });
+
+    it('hands on the columns the server carries with the id', () => {
+        const socket = connect();
+        const heard = [];
+
+        bus.addEventListener(RESOURCE_CHANGED, (event) => heard.push(event.detail));
+        socket.receive({ type: 'auth_success', data: {} });
+        socket.receive({ type: 'message.created', data: { model: 'message', id: 4, thread: 9 } });
+
+        expect(heard[0].data).toEqual({ model: 'message', id: 4, thread: 9 });
     });
 
     it('leaves its own echo alone on the unified stream', () => {

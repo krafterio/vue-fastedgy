@@ -48,7 +48,8 @@ export declare function resolveWidget(field: any): any;
  * @param {Array<string>} [options.fields] Field order; defaults to metadata order
  * @param {Array<string>} [options.exclude] Extra fields to leave out
  * @param {Object} [options.defaults] Values a new record starts with — how a
- *   nested editor tells the form which parent it is creating under
+ *   nested editor tells the form which parent it is creating under. A field
+ *   left empty takes its declared default on the server
  */
 export declare function useApiModelForm(modelName: string, options?: {
     prefix?: string;
@@ -65,6 +66,7 @@ export declare function useApiModelForm(modelName: string, options?: {
         required: boolean;
         readonly: boolean;
         choices: any;
+        default: any;
         target: any;
         fullWidth: boolean;
         meta: any;

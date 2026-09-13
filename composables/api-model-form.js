@@ -71,7 +71,8 @@ export function resolveWidget(field) {
  * @param {Array<string>} [options.fields] Field order; defaults to metadata order
  * @param {Array<string>} [options.exclude] Extra fields to leave out
  * @param {Object} [options.defaults] Values a new record starts with — how a
- *   nested editor tells the form which parent it is creating under
+ *   nested editor tells the form which parent it is creating under. A field
+ *   left empty takes its declared default on the server
  */
 export function useApiModelForm(modelName, options = {}) {
     const metadataStore = useMetadataStore();
@@ -113,6 +114,7 @@ export function useApiModelForm(modelName, options = {}) {
                     required: field.required === true,
                     readonly: field.readonly === true,
                     choices: field.choices || null,
+                    default: field.default ?? null,
                     target: field.target || null,
                     fullWidth: FULL_WIDTH_WIDGETS.has(widget),
                     meta: field,

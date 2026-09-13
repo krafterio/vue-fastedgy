@@ -13,9 +13,10 @@ const METADATA = {
         id: { type: 'integer' },
         name: { type: 'string', label: 'Nom', required: true },
         note: { type: 'text' },
-        active: { type: 'boolean' },
+        active: { type: 'boolean', default: true },
         author: { type: 'foreignkey', target: 'user' },
         created_at: { type: 'datetime' },
+        extra_stage: { type: 'string', extra: true, default: 'Seed' },
     },
 };
 
@@ -49,7 +50,13 @@ describe('useApiModelForm', () => {
 
         await form.start();
 
-        expect(form.fields.value.map((field) => field.name)).toEqual(['name', 'note', 'active', 'author']);
+        expect(form.fields.value.map((field) => field.name)).toEqual([
+            'name',
+            'note',
+            'active',
+            'author',
+            'extra_stage',
+        ]);
         expect(form.fields.value[0]).toMatchObject({ label: 'Nom', widget: 'text', required: true });
     });
 
@@ -72,5 +79,20 @@ describe('useApiModelForm', () => {
 
         expect(form.values.active).toBe(true);
         expect(form.values.name).toBe(null);
+    });
+
+    it('exposes the declared defaults and leaves them to the server', async () => {
+        const form = useApiModelForm('article');
+
+        await form.start();
+        await settled();
+
+        const defaultOf = (name) => form.fields.value.find((field) => field.name === name)?.default;
+
+        expect(defaultOf('active')).toBe(true);
+        expect(defaultOf('extra_stage')).toBe('Seed');
+        expect(defaultOf('name')).toBe(null);
+        expect(form.values.active).toBe(null);
+        expect(form.values.extra_stage).toBe(null);
     });
 });

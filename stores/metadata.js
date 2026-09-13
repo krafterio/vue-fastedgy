@@ -24,6 +24,34 @@ import { useFetcher } from '../composables/fetcher.js';
  */
 export const METADATA_INVALIDATED = 'metadata:invalidated';
 
+/**
+ * @typedef {Object} MetadataField
+ * @property {string} name
+ * @property {string} label
+ * @property {string} type
+ * @property {boolean} readonly
+ * @property {boolean} required
+ * @property {boolean} searchable
+ * @property {boolean} extra A field a workspace added to the model
+ * @property {Array<string>} filter_operators
+ * @property {string|null} [target]
+ * @property {Array<string>|null} [targets]
+ * @property {Record<string, string>|null} [choices]
+ * @property {any} [default] The static value a new record starts with; null when
+ *   the server computes it on save
+ * @property {string|null} [local_placeholder]
+ */
+
+/**
+ * @typedef {Object} MetadataModel
+ * @property {string} name
+ * @property {string} api_name
+ * @property {string} label
+ * @property {string} label_plural
+ * @property {boolean} has_extra_fields
+ * @property {Record<string, MetadataField>} fields
+ */
+
 export const useMetadataStore = defineStore('metadata', () => {
     const metadatas = ref(null);
     const loading = ref(false);
@@ -94,6 +122,10 @@ export const useMetadataStore = defineStore('metadata', () => {
         return metadatas.value;
     }
 
+    /**
+     * @param {string} modelName
+     * @returns {Promise<MetadataModel|null>}
+     */
     async function getMetadata(modelName) {
         const metadatas = await getMetadatas();
 

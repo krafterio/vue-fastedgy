@@ -7,8 +7,8 @@ import { ref } from 'vue';
 import { useFetcher } from './fetcher.js';
 import { useMetadataStore } from '../stores/metadata.js';
 import { cleanPayload } from '../utils/models.js';
-import { notifyChanged } from '../network/realtime.js';
-import { originId } from '../utils/origin.js';
+import { notifyChanged, realtime } from '../network/realtime.js';
+import { ORIGIN_HEADER, originId, requestOrigin } from '../utils/origin.js';
 
 /**
  * Global API model configuration
@@ -141,6 +141,22 @@ function buildHeaders(query = {}, params = {}) {
 }
 
 /**
+ * Stamp a write with an origin of its own, and have the socket expect its echo.
+ *
+ * @param {string}             modelName - Model name: metadata 'name'
+ * @param {string|number|null} id - None for a create
+ * @param {object}             headers
+ * @returns {object} - The headers, stamped
+ */
+function expectEcho(modelName, id, headers) {
+    const origin = requestOrigin();
+
+    realtime.expect(origin, modelName, id);
+
+    return { ...headers, [ORIGIN_HEADER]: origin };
+}
+
+/**
  * List action with pagination and filters
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
@@ -188,14 +204,14 @@ export async function getAction(modelName, id, options = {}, params = {}) {
 export async function createAction(modelName, payload, options = {}, params = {}) {
     const fetcher = useFetcher();
     const apiName = await resolveApiName(modelName);
-    const headers = buildHeaders(options, params);
+    const headers = expectEcho(modelName, null, buildHeaders(options, params));
     const url = buildUrl(apiName, '', params.prefix);
     const body = cleanPayload(payload);
     const response = await fetcher.post(url, body, { headers });
 
     notifyChanged({
         model: modelName,
-        id: response?.id ?? null,
+        id: response?.data?.id ?? null,
         action: 'created',
         changed: Object.keys(body || {}),
         origin: originId,
@@ -217,7 +233,7 @@ export async function createAction(modelName, payload, options = {}, params = {}
 export async function patchAction(modelName, id, payload, options = {}, params = {}) {
     const fetcher = useFetcher();
     const apiName = await resolveApiName(modelName);
-    const headers = buildHeaders(options, params);
+    const headers = expectEcho(modelName, id, buildHeaders(options, params));
     const url = buildUrl(apiName, `/${id}`, params.prefix);
     const body = cleanPayload(payload);
     const response = await fetcher.patch(url, body, { headers });
@@ -244,7 +260,7 @@ export async function patchAction(modelName, id, payload, options = {}, params =
 export async function deleteAction(modelName, id, params = {}) {
     const fetcher = useFetcher();
     const apiName = await resolveApiName(modelName);
-    const headers = buildHeaders({}, params);
+    const headers = expectEcho(modelName, id, buildHeaders({}, params));
     const url = buildUrl(apiName, `/${id}`, params.prefix);
     const response = await fetcher.delete(url, { headers });
 

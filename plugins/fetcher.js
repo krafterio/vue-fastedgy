@@ -135,9 +135,10 @@ export function getApiUrl() {
  * Stamp every request with the client instance that made it.
  *
  * The server hands it back on the announcement of that write, so this instance
- * can tell its own echo from someone else's news. Nothing depends on it: a
- * request without it is a write nobody can attribute, which is exactly what an
- * agent writing through the API is.
+ * can tell its own writes from someone else's news. A request that names its
+ * own origin keeps it: a write of the api layer does, to have its echo known.
+ * Nothing depends on it: a request without it is a write nobody can attribute,
+ * which is exactly what an agent writing through the API is.
  *
  * @returns {function(): void} Stop stamping
  */
@@ -145,7 +146,7 @@ export const useOriginFetch = () => {
     const listener = (e) => {
         const { options } = e.detail;
 
-        options.headers = { ...options.headers, [ORIGIN_HEADER]: originId };
+        options.headers = { [ORIGIN_HEADER]: originId, ...options.headers };
     };
 
     fetchBus.addEventListener('fetch:request', listener);

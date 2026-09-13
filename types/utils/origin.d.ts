@@ -17,4 +17,13 @@ export declare const ORIGIN_HEADER: string;
  * @type {String}
  */
 export declare const originId: string;
+/**
+ * An origin of its own for one request: `<originId>.<n>`.
+ *
+ * A write the api layer announces carries one, so the socket drops the echo of
+ * that request, and of it alone.
+ *
+ * @returns {String}
+ */
+export declare function requestOrigin(): string;
 //# sourceMappingURL=origin.d.ts.map

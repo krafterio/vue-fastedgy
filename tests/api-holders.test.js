@@ -73,6 +73,29 @@ describe('useApiRecord', () => {
         expect(held().data.value).toBeNull();
     });
 
+    it('re-reads on a delete that names no record', async () => {
+        const { held } = harness(() => useApiRecord('company', 7, { api: { get } }));
+
+        await flushPromises();
+        change({ id: null, action: 'deleted' });
+        await flushPromises();
+
+        expect(get).toHaveBeenCalledTimes(2);
+        expect(held().isDeleted.value).toBe(false);
+    });
+
+    it('says the record is gone when a quiet re-read finds nothing', async () => {
+        const { held } = harness(() => useApiRecord('company', 7, { api: { get } }));
+
+        await flushPromises();
+        get.mockRejectedValue(Object.assign(new Error('Not Found'), { response: { status: 404 } }));
+        change({ id: 7, action: 'updated' });
+        await flushPromises();
+
+        expect(held().isDeleted.value).toBe(true);
+        expect(held().data.value).toBeNull();
+    });
+
     it('follows the id it was given as a getter', async () => {
         const id = ref(7);
         const { held } = harness(() => useApiRecord('company', () => id.value, { api: { get } }));

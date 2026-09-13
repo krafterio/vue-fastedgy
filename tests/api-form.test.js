@@ -5,8 +5,11 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
+import { bus } from '../composables/bus.js';
 import { useApiForm, useApiModel } from '../composables/api.js';
+import { realtime, RESOURCE_CHANGED } from '../network/realtime.js';
 import { useMetadataStore } from '../stores/metadata.js';
+import { ORIGIN_HEADER, originId } from '../utils/origin.js';
 
 const record = (data) => Promise.resolve({ data });
 
@@ -114,5 +117,50 @@ describe('useApiModel list', () => {
 
         expect(new Headers(fetchSpy.mock.calls[0][1].headers).has('X-Filter')).toBe(false);
         expect(new Headers(fetchSpy.mock.calls[1][1].headers).get('X-Filter')).toBe('[["name","=","pomme"]]');
+    });
+});
+
+describe('useApiModel writes', () => {
+    let fetchSpy;
+
+    beforeEach(() => {
+        setActivePinia(createPinia());
+        useMetadataStore().setMetadatas({ aliment: { name: 'aliment', api_name: 'aliments' } });
+
+        fetchSpy = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                headers: { get: () => 'application/json' },
+                json: async () => ({ id: 12, name: 'Pomme' }),
+            })
+        );
+
+        window.fetch = fetchSpy;
+    });
+
+    it('stamps a request origin of its own, and expects its echo before the request leaves', async () => {
+        const expectSpy = vi.spyOn(realtime, 'expect');
+
+        await useApiModel('aliment').update(12, { name: 'Pomme' });
+
+        const origin = new Headers(fetchSpy.mock.calls[0][1].headers).get(ORIGIN_HEADER);
+
+        expect(origin).toMatch(new RegExp(`^${originId}\\.\\d+$`));
+        expect(expectSpy).toHaveBeenCalledWith(origin, 'aliment', 12);
+        expect(expectSpy.mock.invocationCallOrder[0]).toBeLessThan(fetchSpy.mock.invocationCallOrder[0]);
+
+        expectSpy.mockRestore();
+    });
+
+    it('announces the id of the record it created', async () => {
+        const heard = [];
+        const listener = (event) => heard.push(event.detail);
+
+        bus.addEventListener(RESOURCE_CHANGED, listener);
+        await useApiModel('aliment').create({ name: 'Pomme' });
+        bus.removeEventListener(RESOURCE_CHANGED, listener);
+
+        expect(heard[0]).toMatchObject({ model: 'aliment', id: 12, action: 'created', announced: false });
     });
 });

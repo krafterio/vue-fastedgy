@@ -5,7 +5,7 @@
 
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import { bus } from '../composables/bus.js';
 import { useResourceChanged } from '../composables/realtime.js';
 import { notifyChanged, realtime } from '../network/realtime.js';
@@ -30,11 +30,21 @@ function listening(setup) {
 const change = (event) => notifyChanged({ model: 'company', action: 'updated', id: 7, ...event });
 const settle = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+let visibility = 'visible';
+
+Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => visibility });
+
+function hide(hidden) {
+    visibility = hidden ? 'hidden' : 'visible';
+    document.dispatchEvent(new Event('visibilitychange'));
+}
+
 describe('useResourceChanged', () => {
     let heard;
 
     beforeEach(() => {
         heard = [];
+        hide(false);
         realtime.disconnect();
     });
 
@@ -128,5 +138,55 @@ describe('useResourceChanged', () => {
 
         subscribe.mockRestore();
         unsubscribe.mockRestore();
+    });
+
+    it('holds a change while the document is hidden, and calls once when it shows', async () => {
+        listening(() => useResourceChanged('company', (one) => heard.push(one), { refreshDelay: 0 }));
+        hide(true);
+        change({});
+        change({ id: 9 });
+
+        expect(heard).toEqual([]);
+
+        hide(false);
+        await nextTick();
+
+        expect(heard.map((one) => one.action)).toEqual(['stale']);
+    });
+
+    it('calls nothing when nothing came while hidden', async () => {
+        listening(() => useResourceChanged('company', (one) => heard.push(one), { refreshDelay: 0 }));
+        hide(true);
+        hide(false);
+        await nextTick();
+
+        expect(heard).toEqual([]);
+    });
+
+    it('owes the call a collapse was about to make when the document hid', async () => {
+        listening(() => useResourceChanged('company', (one) => heard.push(one), { refreshDelay: 20 }));
+        change({});
+        hide(true);
+        await settle(50);
+
+        expect(heard).toEqual([]);
+
+        hide(false);
+        await nextTick();
+
+        expect(heard.map((one) => one.action)).toEqual(['stale']);
+    });
+
+    it('hears an update of extra when it reads a custom field', () => {
+        listening(() =>
+            useResourceChanged('company', (one) => heard.push(one), {
+                watchFields: ['extra_priority'],
+                refreshDelay: 0,
+            })
+        );
+        change({ changed: ['extra', 'updated_at'] });
+        change({ changed: ['name'] });
+
+        expect(heard).toHaveLength(1);
     });
 });

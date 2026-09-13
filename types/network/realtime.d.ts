@@ -26,10 +26,12 @@ export declare const RESOURCE_ACTIONS: string[];
  * `origin` the client instance behind it, and `data` what the server announced
  * with the id: the columns the model declared to carry, so a view can tell
  * whether the write is any of its business. A write of this tab carries none.
+ * `announced` says the socket heard it, rather than the API layer.
  *
  * @param {{model: String, id: (String|Number|null), action: String,
  *          changed?: String[]|null, origin?: String|null,
- *          truncated?: Boolean, data?: Object<String, *>|null}} event
+ *          truncated?: Boolean, data?: Object<String, *>|null,
+ *          announced?: Boolean}} event
  */
 export declare function notifyChanged(event: {
     model: string;
@@ -39,6 +41,7 @@ export declare function notifyChanged(event: {
     origin?: string | null;
     truncated?: boolean;
     data?: Record<string, any> | null;
+    announced?: boolean;
 }): void;
 /**
  * The live events of what this tab reads, as the server sees them.
@@ -60,6 +63,7 @@ export declare class RealtimeSocket {
     wanted: boolean;
     announced: any;
     channels: Map<any, any>;
+    expected: Map<any, any>;
     everConnected: boolean;
     retryDelay: number;
     retryTimer: number | null;
@@ -111,6 +115,28 @@ export declare class RealtimeSocket {
      * @param {String|Number|null} [id]
      */
     unsubscribe(model: string, id?: string | number | null): void;
+    /**
+     * Expect the echo of a write about to leave, under the origin its request carries.
+     *
+     * The frame answering it is dropped, once: the api layer announces that change
+     * when the request answers. What else the request made the server announce, a
+     * signal writing another record, is heard.
+     *
+     * @param {String}             origin - The request origin, from `requestOrigin()`
+     * @param {String}             model
+     * @param {String|Number|null} [id]   - None for a create, whose id is not known yet
+     */
+    expect(origin: string, model: string, id?: string | number | null): void;
+    /**
+     * Whether a record frame is an expected echo, spending the expectation if so.
+     *
+     * @param {String|null|undefined} origin
+     * @param {String}                model
+     * @param {String|Number|null}    id
+     *
+     * @returns {Boolean}
+     */
+    answered(origin: string | null | undefined, model: string, id: string | number | null): boolean;
     startHeartbeat(): void;
     stopHeartbeat(): void;
     /**

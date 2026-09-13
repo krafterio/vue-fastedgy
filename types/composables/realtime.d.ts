@@ -69,7 +69,11 @@ export declare function useRealtimeEvent(type: string, handler: Function): void;
  * It is also called with `action: 'reconnected'` and no id when the socket
  * comes back, because nothing is replayed: what happened while it was down was
  * said to nobody, and the view has to read again to stop showing a stale
- * screen. That one is never held back.
+ * screen. That one is never held back by the collapse.
+ *
+ * While the document is hidden, a tab in the background, it is not called: what
+ * came meanwhile is owed as one call with `action: 'stale'` when the document
+ * shows again.
  *
  * @param {String}                                                          model
  * @param {function({model: String, id: (String|Number|null), action: String,
@@ -110,7 +114,8 @@ export declare function useResourceChanged(model: string, handler: Function, opt
  * cannot be told it is not concerned.
  *
  * A dotted path counts either way round, `company` moving being news to a
- * holder reading `company.name`.
+ * holder reading `company.name`. So does a custom field and the column that
+ * stores it: the server announces `extra` where a view reads `extra_priority`.
  *
  * @param {{action: String, changed?: String[]|null}} event
  * @param {String[]}                                  read
@@ -125,7 +130,8 @@ export declare function touches(event: {
  * Hold one record, and keep it in step with what happens to it.
  *
  * It re-reads itself silently when the record is updated anywhere, and flips
- * `isDeleted` when it goes, so a detail screen can close itself. `id` may be a
+ * `isDeleted` when it goes, so a detail screen can close itself, or when a
+ * silent re-read finds it gone. `id` may be a
  * getter or a ref, and the holder follows it.
  *
  * @param {String}                                                             model

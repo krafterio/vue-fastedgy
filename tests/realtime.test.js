@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { bus } from '../composables/bus.js';
 import { realtime, RESOURCE_CHANGED } from '../network/realtime.js';
-import { originId } from '../utils/origin.js';
+import { originId, requestOrigin } from '../utils/origin.js';
 
 const sockets = [];
 
@@ -98,6 +98,7 @@ describe('realtime socket', () => {
                 changed: ['name'],
                 origin: 'another-tab',
                 truncated: false,
+                announced: true,
             },
         ]);
     });
@@ -113,7 +114,36 @@ describe('realtime socket', () => {
         expect(heard[0].data).toEqual({ model: 'message', id: 4, thread: 9 });
     });
 
-    it('leaves its own echo alone on the unified stream', () => {
+    it('leaves alone the echo it expected, once', () => {
+        const socket = connect();
+        const heard = [];
+        const origin = requestOrigin();
+
+        bus.addEventListener(RESOURCE_CHANGED, (event) => heard.push(event.detail));
+        socket.receive({ type: 'auth_success', data: {} });
+        realtime.expect(origin, 'company', '7');
+        socket.receive({ type: 'company.updated', data: { id: 7 }, origin });
+        socket.receive({ type: 'company.updated', data: { id: 7 }, origin });
+
+        expect(heard).toHaveLength(1);
+        expect(heard[0].origin).toBe(originId);
+    });
+
+    it('hears what a signal wrote on another record while serving an expected request', () => {
+        const socket = connect();
+        const heard = [];
+        const origin = requestOrigin();
+
+        bus.addEventListener(RESOURCE_CHANGED, (event) => heard.push(event.detail));
+        socket.receive({ type: 'auth_success', data: {} });
+        realtime.expect(origin, 'message');
+        socket.receive({ type: 'message.created', data: { id: 4 }, origin });
+        socket.receive({ type: 'subscription.created', data: { id: 9 }, origin });
+
+        expect(heard.map((one) => one.model)).toEqual(['subscription']);
+    });
+
+    it('hears the echo of a write that expected nothing, as its own', () => {
         const socket = connect();
         const heard = [];
 
@@ -121,7 +151,38 @@ describe('realtime socket', () => {
         socket.receive({ type: 'auth_success', data: {} });
         socket.receive({ type: 'company.updated', data: { id: 7 }, origin: originId });
 
-        expect(heard).toEqual([]);
+        expect(heard).toHaveLength(1);
+        expect(heard[0]).toMatchObject({ origin: originId, announced: true });
+    });
+
+    it('never lets an expectation swallow the frame of another request', () => {
+        const socket = connect();
+        const heard = [];
+
+        bus.addEventListener(RESOURCE_CHANGED, (event) => heard.push(event.detail));
+        socket.receive({ type: 'auth_success', data: {} });
+        realtime.expect(requestOrigin(), 'notification');
+        socket.receive({ type: 'notification.deleted', data: { id: 3 }, origin: requestOrigin() });
+
+        expect(heard).toHaveLength(1);
+    });
+
+    it('forgets an expectation no frame answered', () => {
+        vi.useFakeTimers();
+
+        const socket = connect();
+        const heard = [];
+        const origin = requestOrigin();
+
+        bus.addEventListener(RESOURCE_CHANGED, (event) => heard.push(event.detail));
+        socket.receive({ type: 'auth_success', data: {} });
+        realtime.expect(origin, 'company', 7);
+        vi.advanceTimersByTime(30001);
+        socket.receive({ type: 'company.updated', data: { id: 7 }, origin });
+
+        expect(heard).toHaveLength(1);
+
+        vi.useRealTimers();
     });
 
     it('never drops what the server announces for itself', () => {
@@ -213,7 +274,7 @@ describe('realtime socket', () => {
         ]);
     });
 
-    it('garde le canal tant qu’un écran l’écoute encore', () => {
+    it('keeps a channel while a view still listens to it', () => {
         const socket = connect();
 
         socket.receive({ type: 'auth_success', data: {} });
@@ -230,7 +291,7 @@ describe('realtime socket', () => {
         ]);
     });
 
-    it('redemande un canal relâché puis repris', () => {
+    it('asks again for a channel let go and taken back', () => {
         const socket = connect();
 
         socket.receive({ type: 'auth_success', data: {} });

@@ -10,6 +10,28 @@ import { RESOURCE_CHANGED, realtime } from '../network/realtime.js';
 import { useAuthStore } from '../stores/auth.js';
 
 /**
+ * The JSON column every custom field is stored in, and the prefix a custom field
+ * is read and written under: the server announces the first, a view reads the
+ * second.
+ */
+const EXTRA_COLUMN = 'extra';
+const EXTRA_FIELD_PREFIX = 'extra_';
+
+/**
+ * Whether the document is hidden, a tab in the background, followed once for
+ * every view.
+ *
+ * @type {import("vue").Ref<Boolean>}
+ */
+const documentHidden = ref(typeof document !== 'undefined' && document.visibilityState === 'hidden');
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+        documentHidden.value = document.visibilityState === 'hidden';
+    });
+}
+
+/**
  * Hand the socket the scope it reads, as something it can read again.
  *
  * The payload is `{source}`, a getter or a ref answering the name of what this
@@ -131,7 +153,11 @@ export function useRealtimeEvent(type, handler) {
  * It is also called with `action: 'reconnected'` and no id when the socket
  * comes back, because nothing is replayed: what happened while it was down was
  * said to nobody, and the view has to read again to stop showing a stale
- * screen. That one is never held back.
+ * screen. That one is never held back by the collapse.
+ *
+ * While the document is hidden, a tab in the background, it is not called: what
+ * came meanwhile is owed as one call with `action: 'stale'` when the document
+ * shows again.
  *
  * @param {String}                                                          model
  * @param {function({model: String, id: (String|Number|null), action: String,
@@ -162,9 +188,17 @@ export function useResourceChanged(model, handler, options = {}) {
     const { id = null, watchFields = null, refreshDelay = 250 } = options;
     const subscribed = { model, id: toValue(id) ?? null };
     let timer = null;
+    let owed = false;
 
     const fire = (change) => {
         clearTimeout(timer);
+
+        if (documentHidden.value) {
+            owed = true;
+
+            return;
+        }
+
         handler(change);
     };
 
@@ -191,14 +225,26 @@ export function useResourceChanged(model, handler, options = {}) {
         clearTimeout(timer);
 
         if (refreshDelay > 0) {
-            timer = setTimeout(() => handler(change), refreshDelay);
+            timer = setTimeout(() => fire(change), refreshDelay);
         } else {
-            handler(change);
+            fire(change);
         }
     });
 
     useBus(bus, 'realtime:reconnected', () =>
         fire({ model, id: null, action: 'reconnected', changed: null, origin: null, truncated: true, data: null })
+    );
+
+    // Sync: a tab hidden then shown again before a flush is still a tab that was hidden.
+    watch(
+        documentHidden,
+        (hidden) => {
+            if (!hidden && owed) {
+                owed = false;
+                fire({ model, id: null, action: 'stale', changed: null, origin: null, truncated: true, data: null });
+            }
+        },
+        { flush: 'sync' }
     );
 
     realtime.subscribe(subscribed.model, subscribed.id);
@@ -234,7 +280,8 @@ export function useResourceChanged(model, handler, options = {}) {
  * cannot be told it is not concerned.
  *
  * A dotted path counts either way round, `company` moving being news to a
- * holder reading `company.name`.
+ * holder reading `company.name`. So does a custom field and the column that
+ * stores it: the server announces `extra` where a view reads `extra_priority`.
  *
  * @param {{action: String, changed?: String[]|null}} event
  * @param {String[]}                                  read
@@ -248,8 +295,22 @@ export function touches(event, read) {
         return true;
     }
 
-    return moved.some((one) =>
-        read.some((other) => one === other || one.startsWith(`${other}.`) || other.startsWith(`${one}.`))
+    return moved.some((one) => read.some((other) => sameColumn(one, other)));
+}
+
+/**
+ * @param {String} one
+ * @param {String} other
+ *
+ * @returns {Boolean}
+ */
+function sameColumn(one, other) {
+    return (
+        one === other ||
+        one.startsWith(`${other}.`) ||
+        other.startsWith(`${one}.`) ||
+        (one === EXTRA_COLUMN && other.startsWith(EXTRA_FIELD_PREFIX)) ||
+        (other === EXTRA_COLUMN && one.startsWith(EXTRA_FIELD_PREFIX))
     );
 }
 
@@ -257,7 +318,8 @@ export function touches(event, read) {
  * Hold one record, and keep it in step with what happens to it.
  *
  * It re-reads itself silently when the record is updated anywhere, and flips
- * `isDeleted` when it goes, so a detail screen can close itself. `id` may be a
+ * `isDeleted` when it goes, so a detail screen can close itself, or when a
+ * silent re-read finds it gone. `id` may be a
  * getter or a ref, and the holder follows it.
  *
  * @param {String}                                                             model
@@ -309,6 +371,11 @@ export function useApiRecord(model, id, options = {}) {
             status.value = 'success';
         } catch (e) {
             if (quiet) {
+                if (e?.response?.status === 404) {
+                    isDeleted.value = true;
+                    data.value = null;
+                }
+
                 return;
             }
 
@@ -323,7 +390,8 @@ export function useApiRecord(model, id, options = {}) {
     useResourceChanged(
         model,
         (change) => {
-            if (change.action === 'deleted') {
+            // A delete naming no record is no verdict on this one: the server is.
+            if (change.action === 'deleted' && change.id !== null && change.id !== undefined) {
                 isDeleted.value = true;
                 data.value = null;
 

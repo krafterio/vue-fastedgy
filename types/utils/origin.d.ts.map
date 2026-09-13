@@ -1,1 +1,1 @@
-{"version":3,"file":"origin.d.ts","sourceRoot":"","sources":["../../utils/origin.js"],"names":[],"mappings":"AAKA;;;;GAIG;AACH,eAAO,MAAM,aAAa,QAAgB,CAAC;AAE3C;;;;;;;;;;;GAWG;AACH,eAAO,MAAM,QAAQ,QAE0D,CAAC"}
+{"version":3,"file":"origin.d.ts","sourceRoot":"","sources":["../../utils/origin.js"],"names":[],"mappings":"AAKA;;;;GAIG;AACH,eAAO,MAAM,aAAa,QAAgB,CAAC;AAE3C;;;;;;;;;;;GAWG;AACH,eAAO,MAAM,QAAQ,QAE0D,CAAC;AAIhF;;;;;;;GAOG;AACH,wBAAgB,aAAa,WAI5B"}

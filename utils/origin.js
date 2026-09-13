@@ -25,3 +25,19 @@ export const ORIGIN_HEADER = 'X-Origin-Id';
 export const originId = globalThis.crypto?.randomUUID
     ? globalThis.crypto.randomUUID()
     : `o-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+let sequence = 0;
+
+/**
+ * An origin of its own for one request: `<originId>.<n>`.
+ *
+ * A write the api layer announces carries one, so the socket drops the echo of
+ * that request, and of it alone.
+ *
+ * @returns {String}
+ */
+export function requestOrigin() {
+    sequence += 1;
+
+    return `${originId}.${sequence}`;
+}

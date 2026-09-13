@@ -35,6 +35,14 @@ const HEARTBEAT_INTERVAL = 30000;
 const RECONNECT_MAX = 30000;
 
 /**
+ * How long the echo of a write is waited for. Keyed by its own request, an
+ * expectation can match no other frame: this only bounds what is kept.
+ *
+ * @type {Number}
+ */
+const EXPECTATION_TTL = 30000;
+
+/**
  * The one event every holder listens to, whatever moved the record.
  *
  * A write made here fires it as soon as the request answers, and a write made
@@ -64,10 +72,12 @@ export const RESOURCE_ACTIONS = ['created', 'updated', 'deleted'];
  * `origin` the client instance behind it, and `data` what the server announced
  * with the id: the columns the model declared to carry, so a view can tell
  * whether the write is any of its business. A write of this tab carries none.
+ * `announced` says the socket heard it, rather than the API layer.
  *
  * @param {{model: String, id: (String|Number|null), action: String,
  *          changed?: String[]|null, origin?: String|null,
- *          truncated?: Boolean, data?: Object<String, *>|null}} event
+ *          truncated?: Boolean, data?: Object<String, *>|null,
+ *          announced?: Boolean}} event
  */
 export function notifyChanged(event) {
     bus.trigger(RESOURCE_CHANGED, {
@@ -75,6 +85,7 @@ export function notifyChanged(event) {
         changed: null,
         origin: null,
         truncated: false,
+        announced: false,
         ...event,
     });
 }
@@ -100,6 +111,7 @@ export class RealtimeSocket {
         this.wanted = false;
         this.announced = null;
         this.channels = new Map();
+        this.expected = new Map();
         this.everConnected = false;
         this.retryDelay = RECONNECT_START;
         this.retryTimer = null;
@@ -221,6 +233,54 @@ export class RealtimeSocket {
 
         this.channels.delete(channel);
         this.send('unsubscribe', { channels: [channel] });
+    }
+
+    /**
+     * Expect the echo of a write about to leave, under the origin its request carries.
+     *
+     * The frame answering it is dropped, once: the api layer announces that change
+     * when the request answers. What else the request made the server announce, a
+     * signal writing another record, is heard.
+     *
+     * @param {String}             origin - The request origin, from `requestOrigin()`
+     * @param {String}             model
+     * @param {String|Number|null} [id]   - None for a create, whose id is not known yet
+     */
+    expect(origin, model, id = null) {
+        const now = Date.now();
+
+        for (const [key, expected] of this.expected) {
+            if (now - expected.at > EXPECTATION_TTL) {
+                this.expected.delete(key);
+            }
+        }
+
+        this.expected.set(origin, { model, id: id ?? null, at: now });
+    }
+
+    /**
+     * Whether a record frame is an expected echo, spending the expectation if so.
+     *
+     * @param {String|null|undefined} origin
+     * @param {String}                model
+     * @param {String|Number|null}    id
+     *
+     * @returns {Boolean}
+     */
+    answered(origin, model, id) {
+        const expected = origin ? this.expected.get(origin) : undefined;
+
+        if (!expected || expected.model !== model || Date.now() - expected.at > EXPECTATION_TTL) {
+            return false;
+        }
+
+        if (expected.id !== null && (id === null || String(expected.id) !== String(id))) {
+            return false;
+        }
+
+        this.expected.delete(origin);
+
+        return true;
     }
 
     startHeartbeat() {
@@ -345,24 +405,26 @@ export class RealtimeSocket {
             return;
         }
 
-        // A write this instance made already said so, the moment the request
-        // answered. Its announcement coming back is the same fact twice, so it
-        // stops here. Only a record announcement carries an origin, so anything
-        // an application broadcasts for itself is never dropped.
-        if (message.origin && message.origin === originId) {
+        const data = message.data ?? null;
+        const [model, action] = String(message.type).split('.');
+        const isRecord = Boolean(model) && RESOURCE_ACTIONS.includes(action);
+        const id = data?.id ?? null;
+
+        // The echo of a write this tab announced when its request answered: the
+        // same fact twice. That frame alone stops here, not every frame of the
+        // request, whose signals may have written other records.
+        if (isRecord && this.answered(message.origin, model, id)) {
             return;
         }
 
-        const data = message.data ?? null;
         const meta = {
             changed: message.changed ?? null,
-            origin: message.origin ?? null,
+            origin: ownOrigin(message.origin),
             truncated: !!message.truncated,
         };
-        const [model, action] = String(message.type).split('.');
 
-        if (model && RESOURCE_ACTIONS.includes(action)) {
-            notifyChanged({ model, id: data?.id ?? null, action, data, ...meta });
+        if (isRecord) {
+            notifyChanged({ model, id, action, data, ...meta, announced: true });
 
             return;
         }
@@ -386,6 +448,21 @@ export class RealtimeSocket {
 
         this.retryDelay = Math.min(this.retryDelay * 2, RECONNECT_MAX);
     }
+}
+
+/**
+ * The origin a view compares with `originId`: every request of this tab is this tab.
+ *
+ * @param {String|null|undefined} origin
+ *
+ * @returns {String|null}
+ */
+function ownOrigin(origin) {
+    if (!origin) {
+        return null;
+    }
+
+    return origin === originId || origin.startsWith(`${originId}.`) ? originId : origin;
 }
 
 /**

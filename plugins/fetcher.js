@@ -154,6 +154,38 @@ export const useOriginFetch = () => {
     return () => fetchBus.removeEventListener('fetch:request', listener);
 };
 
+const TIMEZONE_HEADER = 'X-Timezone';
+
+/**
+ * Carry the timezone the application runs in on every request.
+ *
+ * The server anchors in it the dates a request sends without an offset, and
+ * dates in it what it creates for this user. It is read again for each request,
+ * so a device that travelled is followed. `resolve` replaces how it is read:
+ * one that answers nothing sends no header, and the server keeps its default.
+ *
+ * @param {function(): (String|null|undefined)} [resolve]
+ *
+ * @returns {function(): void} Stop stamping
+ */
+export const useTimezoneFetch = (resolve = () => Intl.DateTimeFormat().resolvedOptions().timeZone) => {
+    const listener = (e) => {
+        const timezone = resolve();
+
+        if (!timezone) {
+            return;
+        }
+
+        const { options } = e.detail;
+
+        options.headers = { [TIMEZONE_HEADER]: timezone, ...options.headers };
+    };
+
+    fetchBus.addEventListener('fetch:request', listener);
+
+    return () => fetchBus.removeEventListener('fetch:request', listener);
+};
+
 /**
  * Carry the token on every request, and get a new one when it is refused.
  *
@@ -344,12 +376,18 @@ export const useUrlContextFetch = (
  * `surface` names what this application is, for `/{app}/`: a segment, or an
  * empty string for an application served at the root of the api. `workspace`
  * says whether it serves one workspace at a time, and `workspaceless` names
- * what stands where a tenant would, for what no workspace owns.
+ * what stands where a tenant would, for what no workspace owns. `timezone`
+ * replaces how the timezone every request carries is read.
  */
 export const createFetcher = (options = {}) => {
     return {
         install(app) {
-            const stops = [useOriginFetch(), useAuthFetch(), useUrlContextFetch(options)];
+            const stops = [
+                useOriginFetch(),
+                useTimezoneFetch(options.timezone),
+                useAuthFetch(),
+                useUrlContextFetch(options),
+            ];
 
             app.directive('fetcher-src', fetcherSrc);
 

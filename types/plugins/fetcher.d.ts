@@ -31,6 +31,19 @@ export declare function getApiUrl(): string;
  */
 export declare const useOriginFetch: () => Function;
 /**
+ * Carry the timezone the application runs in on every request.
+ *
+ * The server anchors in it the dates a request sends without an offset, and
+ * dates in it what it creates for this user. It is read again for each request,
+ * so a device that travelled is followed. `resolve` replaces how it is read:
+ * one that answers nothing sends no header, and the server keeps its default.
+ *
+ * @param {function(): (String|null|undefined)} [resolve]
+ *
+ * @returns {function(): void} Stop stamping
+ */
+export declare const useTimezoneFetch: (resolve?: Function) => Function;
+/**
  * Carry the token on every request, and get a new one when it is refused.
  *
  * @returns {function(): void} Stop authorizing
@@ -61,7 +74,8 @@ export declare const useUrlContextFetch: (
  * `surface` names what this application is, for `/{app}/`: a segment, or an
  * empty string for an application served at the root of the api. `workspace`
  * says whether it serves one workspace at a time, and `workspaceless` names
- * what stands where a tenant would, for what no workspace owns.
+ * what stands where a tenant would, for what no workspace owns. `timezone`
+ * replaces how the timezone every request carries is read.
  */
 export declare const createFetcher: (options?: {}) => {
     install(app: any): void;

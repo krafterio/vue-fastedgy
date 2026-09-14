@@ -34,4 +34,32 @@ describe('createFetcher', () => {
 
         expect(sentHeaders(fetchSpy)[ORIGIN_HEADER]).toBeUndefined();
     });
+
+    it('sends the timezone the application runs in', async () => {
+        const app = createApp({ render: () => null }).use(createFetcher());
+
+        app.mount(document.createElement('div'));
+        await fetch('/notes');
+
+        expect(sentHeaders(fetchSpy)['X-Timezone']).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+        app.unmount();
+    });
+
+    it('reads the timezone from the resolver it is given, and sends none while it has none', async () => {
+        let timezone = 'America/Guadeloupe';
+        const app = createApp({ render: () => null }).use(createFetcher({ timezone: () => timezone }));
+
+        app.mount(document.createElement('div'));
+        await fetch('/notes');
+
+        expect(sentHeaders(fetchSpy)['X-Timezone']).toBe('America/Guadeloupe');
+
+        timezone = null;
+        await fetch('/notes');
+
+        expect(sentHeaders(fetchSpy)['X-Timezone']).toBeUndefined();
+
+        app.unmount();
+    });
 });

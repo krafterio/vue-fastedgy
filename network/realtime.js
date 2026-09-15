@@ -397,10 +397,11 @@ export class RealtimeSocket {
         }
 
         if (message.type === 'auth_error') {
-            // A refused token does not fix itself: stop here until something
-            // says to connect again, which `useRealtime` does when the account
-            // changes.
+            // A refusal does not fix itself: stop here until something says to
+            // connect again, which `useRealtime` does when the account or its
+            // token changes, and by refreshing a token the server refused.
             this.wanted = false;
+            bus.trigger('realtime:refused', { message: message.data?.message ?? null });
 
             return;
         }

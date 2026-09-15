@@ -381,6 +381,20 @@ describe('realtime socket', () => {
         vi.useRealTimers();
     });
 
+    it('tells the bus why the server refused it', () => {
+        const heard = vi.fn();
+
+        bus.addEventListener('realtime:refused', heard);
+
+        const socket = connect();
+
+        socket.receive({ type: 'auth_error', data: { message: 'Invalid authentication token' } });
+        bus.removeEventListener('realtime:refused', heard);
+
+        expect(heard).toHaveBeenCalledTimes(1);
+        expect(heard.mock.calls[0][0].detail).toEqual({ message: 'Invalid authentication token' });
+    });
+
     it('goes quiet when asked to disconnect', () => {
         vi.useFakeTimers();
 

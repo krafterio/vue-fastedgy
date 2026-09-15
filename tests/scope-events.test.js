@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick, ref, toValue } from 'vue';
 import { bus } from '../composables/bus.js';
 import { REALTIME_SOURCE, REALTIME_SOURCE_REQUEST, useRealtime } from '../composables/realtime.js';
+import { useAuthStore } from '../stores/auth.js';
 import { METADATA_INVALIDATED, useMetadataStore } from '../stores/metadata.js';
 import { realtime } from '../network/realtime.js';
 import { useWorkspaceStore } from '../stores/workspace.js';
@@ -75,6 +76,30 @@ describe('the scope a socket reads', () => {
         shell(() => useRealtime());
 
         expect(connect).toHaveBeenLastCalledWith(expect.any(String), null);
+    });
+
+    it('refreshes a token the server refused, once until the socket is let in again', () => {
+        const refresh = vi.spyOn(useAuthStore(), 'refreshAccessToken').mockResolvedValue(true);
+
+        shell(() => useRealtime());
+        bus.trigger('realtime:refused', { message: 'Invalid authentication token' });
+        bus.trigger('realtime:refused', { message: 'Invalid authentication token' });
+
+        expect(refresh).toHaveBeenCalledTimes(1);
+
+        bus.trigger('realtime:connected', { reconnected: true });
+        bus.trigger('realtime:refused', { message: 'Invalid authentication token' });
+
+        expect(refresh).toHaveBeenCalledTimes(2);
+    });
+
+    it('leaves alone a refusal that is not about the token', () => {
+        const refresh = vi.spyOn(useAuthStore(), 'refreshAccessToken').mockResolvedValue(true);
+
+        shell(() => useRealtime());
+        bus.trigger('realtime:refused', { message: 'Scope not found' });
+
+        expect(refresh).not.toHaveBeenCalled();
     });
 });
 

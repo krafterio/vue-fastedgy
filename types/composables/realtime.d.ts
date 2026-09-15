@@ -47,10 +47,13 @@ export declare function useRealtime(): void;
  *
  * Those are the announcements that belong to no model: a job that finished, a
  * message that arrived, whatever an application broadcasts under its own name.
- * The handler is called with the payload the server sent, and nothing else.
+ * The handler is called with the payload the server sent, and with what rides
+ * beside it: `truncated` says the server left the payload behind, to be read
+ * back rather than trusted.
  *
- * @param {String}                 type    - Name the server announces it under
- * @param {function(any): void}    handler
+ * @param {String}                                                          type    - Name the server announces it under
+ * @param {function(any, {changed: (String[]|null), origin: (String|null),
+ *                        truncated: Boolean}): void}                       handler
  *
  * @example
  * useRealtimeEvent('aliment_image_generated', ({ label }) => toast.success(label));

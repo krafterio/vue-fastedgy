@@ -18,6 +18,12 @@ const EXTRA_COLUMN = 'extra';
 const EXTRA_FIELD_PREFIX = 'extra_';
 
 /**
+ * The reason the server gives when it no longer honours the token a socket
+ * authenticated with: expired, revoked, or standing for nobody.
+ */
+const TOKEN_REFUSED = 'Invalid authentication token';
+
+/**
  * Whether the document is hidden, a tab in the background, followed once for
  * every view.
  *
@@ -95,6 +101,30 @@ export function useRealtime() {
         source.value ??= asked.source;
     });
 
+    // The server checks the token again while the socket is open, and refuses
+    // one that expired or was revoked. It is refreshed, and the new token comes
+    // back through the watch below, which opens the socket with it. Once until
+    // the socket is let in again: a refusal a refresh does not cure stays one.
+    let refreshed = false;
+    const refused = (event) => {
+        if (refreshed || event.detail?.message !== TOKEN_REFUSED || !authStore.canRefreshToken) {
+            return;
+        }
+
+        refreshed = true;
+        void authStore.refreshAccessToken();
+    };
+    const connected = () => {
+        refreshed = false;
+    };
+
+    bus.addEventListener('realtime:refused', refused);
+    bus.addEventListener('realtime:connected', connected);
+    onUnmounted(() => {
+        bus.removeEventListener('realtime:refused', refused);
+        bus.removeEventListener('realtime:connected', connected);
+    });
+
     watch(
         () => [authStore.isAuthenticated, authStore.token, toValue(source.value)],
         ([isAuthenticated, token, scope]) => {
@@ -128,16 +158,23 @@ export function useRealtime() {
  *
  * Those are the announcements that belong to no model: a job that finished, a
  * message that arrived, whatever an application broadcasts under its own name.
- * The handler is called with the payload the server sent, and nothing else.
+ * The handler is called with the payload the server sent, and with what rides
+ * beside it: `truncated` says the server left the payload behind, to be read
+ * back rather than trusted.
  *
- * @param {String}                 type    - Name the server announces it under
- * @param {function(any): void}    handler
+ * @param {String}                                                          type    - Name the server announces it under
+ * @param {function(any, {changed: (String[]|null), origin: (String|null),
+ *                        truncated: Boolean}): void}                       handler
  *
  * @example
  * useRealtimeEvent('aliment_image_generated', ({ label }) => toast.success(label));
  */
 export function useRealtimeEvent(type, handler) {
-    useBus(bus, type, (event) => handler(event.detail?.data ?? null));
+    useBus(bus, type, (event) => {
+        const { data = null, ...meta } = event.detail ?? {};
+
+        handler(data, meta);
+    });
 }
 
 /**

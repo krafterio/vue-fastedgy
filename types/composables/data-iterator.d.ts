@@ -17,6 +17,9 @@
  * @param {boolean} options.orderable - Enable column sorting (default: true)
  * @param {boolean} options.enableSelection - Enable row selection (default: false)
  * @param {boolean} options.append - Keep the loaded items and append the next pages (default: false)
+ * @param {string} options.searchField - Fulltext field the `search` text is matched on (default: 'search_value')
+ * @param {HTMLElement|Window|import('vue').Ref|Function} options.scrollTarget - Element that scrolls the list, whose
+ *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
  * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
@@ -38,6 +41,8 @@ export declare function useDataIterator(model: string | object, options?: {
     orderable: boolean;
     enableSelection: boolean;
     append: boolean;
+    searchField: string;
+    scrollTarget: HTMLElement | Window | import('vue').Ref | Function;
     datasetPrefix: string;
     pageSizeKey: string;
     enabled: boolean | Function | import('vue').Ref<boolean>;

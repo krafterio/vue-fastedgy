@@ -3,13 +3,15 @@
  * MIT License (see LICENSE file).
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 import { useDataIterator } from '../composables/data-iterator.js';
 
+const router = vi.hoisted(() => ({ route: { query: {} }, replace: null }));
+
 vi.mock('vue-router', () => ({
-    useRoute: () => ({ query: {} }),
-    useRouter: () => ({ replace: vi.fn() }),
+    useRoute: () => router.route,
+    useRouter: () => ({ replace: router.replace }),
 }));
 
 vi.mock('../stores/metadata.js', () => ({
@@ -24,6 +26,11 @@ const settle = async () => {
 };
 
 describe('useDataIterator', () => {
+    beforeEach(() => {
+        router.route = { query: {} };
+        router.replace = vi.fn();
+    });
+
     it('holds every read back until the caller enables it, then reads once', async () => {
         const enabled = ref(false);
         const service = { modelName: 'aisle', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
@@ -115,5 +122,69 @@ describe('useDataIterator', () => {
         await settle();
 
         expect(service.list).toHaveBeenCalledTimes(2);
+    });
+
+    it('matches the search of the url, and keeps the search typed in the url as q', async () => {
+        router.route = { query: { q: 'tomate' } };
+        const service = { modelName: 'aisle', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: false });
+
+        await settle();
+
+        expect(service.list.mock.calls[0][0].filter).toEqual([['search_value', 'search_fuzzy', 'tomate']]);
+
+        vi.useFakeTimers();
+        iterator.search.value = ' carotte ';
+        await vi.advanceTimersByTimeAsync(300);
+        vi.useRealTimers();
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(2);
+        expect(service.list.mock.calls[1][0].filter).toEqual([['search_value', 'search_fuzzy', 'carotte']]);
+        expect(router.replace).toHaveBeenLastCalledWith({ query: { q: 'carotte' } });
+    });
+
+    it('reads the pages of the url at once when it appends, and keeps the next one in the url', async () => {
+        router.route = { query: { p: '3' } };
+        const service = {
+            modelName: 'aisle',
+            list: vi.fn().mockResolvedValue({ data: { items: [{ id: 1 }], total: 500 } }),
+        };
+
+        const iterator = useDataIterator(service, { sortable: false, append: true, pageSize: 25 });
+
+        await settle();
+
+        expect(service.list.mock.calls[0][0]).toMatchObject({ page: 1, size: 75 });
+
+        await iterator.loadMore();
+        await settle();
+
+        expect(service.list.mock.calls[1][0]).toMatchObject({ page: 4, size: 25 });
+        expect(router.replace).toHaveBeenLastCalledWith({ query: { p: '4' } });
+    });
+
+    it('restores the scroll position of the url and keeps the new one in the url', async () => {
+        router.route = { query: { sl: '480' } };
+        const element = document.createElement('div');
+        const scrollTo = vi.fn();
+        element.scrollTo = scrollTo;
+        const service = { modelName: 'aisle', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        useDataIterator(service, { sortable: false, scrollTarget: ref(element) });
+
+        await settle();
+
+        expect(scrollTo).toHaveBeenCalledWith({ top: 480 });
+
+        vi.useFakeTimers();
+        element.scrollTop = 120;
+        element.dispatchEvent(new Event('scroll'));
+        await vi.advanceTimersByTimeAsync(350);
+        vi.useRealTimers();
+        await settle();
+
+        expect(router.replace).toHaveBeenLastCalledWith({ query: { sl: '120' } });
     });
 });

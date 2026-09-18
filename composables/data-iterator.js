@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { ref, computed, toValue, watch } from 'vue';
+import { ref, computed, toValue, watch, nextTick, getCurrentScope, onScopeDispose } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useApiModel } from './api.js';
 import { formatOrderBy, parseOrderBy } from '../utils/order-by.js';
@@ -24,6 +24,8 @@ const DEFAULT_OPTIONS = {
     enableSelection: false,
     orderable: true,
     append: false,
+    searchField: 'search_value',
+    scrollTarget: null,
 };
 
 /**
@@ -45,6 +47,9 @@ const DEFAULT_OPTIONS = {
  * @param {boolean} options.orderable - Enable column sorting (default: true)
  * @param {boolean} options.enableSelection - Enable row selection (default: false)
  * @param {boolean} options.append - Keep the loaded items and append the next pages (default: false)
+ * @param {string} options.searchField - Fulltext field the `search` text is matched on (default: 'search_value')
+ * @param {HTMLElement|Window|import('vue').Ref|Function} options.scrollTarget - Element that scrolls the list, whose
+ *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
  * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
@@ -72,18 +77,59 @@ export function useDataIterator(model, options = {}) {
     const loaded = ref(false);
     const error = ref(null);
 
-    const initialPage = !config.append && route.query.p ? parseInt(route.query.p, 10) : 1;
+    // Several watchers answer to the same change (a search resets the page),
+    // and each replace would start from a query the previous one has not
+    // landed yet: their keys are written together.
+    let pendingQuery = null;
+
+    const writeQuery = (patch) => {
+        if (!pendingQuery) {
+            pendingQuery = {};
+
+            queueMicrotask(() => {
+                const query = { ...route.query };
+
+                for (const [key, value] of Object.entries(pendingQuery)) {
+                    if (value == null || value === '') {
+                        delete query[key];
+                    } else {
+                        query[key] = String(value);
+                    }
+                }
+
+                pendingQuery = null;
+                void router.replace({ query });
+            });
+        }
+
+        Object.assign(pendingQuery, patch);
+    };
+
+    const initialPage = route.query.p ? parseInt(route.query.p, 10) : 1;
     const currentPage = ref(initialPage > 0 ? initialPage : 1);
+
+    // An appended list entered at page n reads pages 1 to n in one request,
+    // so the rows the scroll position points at are there.
+    let restorePages = config.append ? currentPage.value : 1;
+
+    const initialScroll = route.query.sl ? parseInt(route.query.sl, 10) : 0;
+    let restoreScroll = config.scrollTarget && initialScroll > 0 ? initialScroll : null;
 
     const pageSize = usePageSize(route.query.s, config.availablePageSizes, config.pageSize, config.pageSizeKey);
 
     const customFilter = ref(null);
 
+    const search = ref(typeof route.query.q === 'string' ? route.query.q : '');
+    const appliedSearch = ref(search.value.trim());
+
     const filter = computed(() => {
         const restrictiveFilters = typeof config.filter === 'function' ? config.filter() || [] : config.filter || [];
-        const custom = customFilter.value;
+        const extraRules = [
+            customFilter.value,
+            appliedSearch.value ? [config.searchField, 'search_fuzzy', appliedSearch.value] : null,
+        ].filter(Boolean);
 
-        if (!custom) {
+        if (extraRules.length === 0) {
             return restrictiveFilters.length > 0 ? restrictiveFilters : null;
         }
 
@@ -91,7 +137,7 @@ export function useDataIterator(model, options = {}) {
             ? restrictiveFilters
             : [restrictiveFilters];
 
-        return [...restrictiveRules, custom];
+        return [...restrictiveRules, ...extraRules];
     });
 
     const metadata = metadataStore.getMetadata(modelName);
@@ -144,7 +190,9 @@ export function useDataIterator(model, options = {}) {
         }
 
         const run = ++latest;
+        const pages = append ? 1 : restorePages;
 
+        restorePages = 1;
         readFields = fields.value.join(',');
 
         try {
@@ -152,8 +200,8 @@ export function useDataIterator(model, options = {}) {
             error.value = null;
 
             const result = await service.list({
-                page: currentPage.value,
-                size: pageSize.value,
+                page: pages > 1 ? 1 : currentPage.value,
+                size: pageSize.value * pages,
                 fields: fields.value,
                 filter: filter.value,
                 orderBy: orderBy.value,
@@ -165,6 +213,13 @@ export function useDataIterator(model, options = {}) {
 
             items.value = append ? [...items.value, ...result.data.items] : result.data.items;
             total.value = result.data.total;
+
+            if (restoreScroll !== null) {
+                const top = restoreScroll;
+
+                restoreScroll = null;
+                void nextTick(() => scrollElement()?.scrollTo({ top }));
+            }
         } catch (err) {
             if (run === latest) {
                 error.value = err;
@@ -222,6 +277,8 @@ export function useDataIterator(model, options = {}) {
      * Refresh data from server
      */
     const refresh = () => {
+        restorePages = 1;
+
         if (config.append) {
             currentPage.value = 1;
         }
@@ -256,6 +313,8 @@ export function useDataIterator(model, options = {}) {
      * Read again from the first page, whatever page is loaded
      */
     const reload = () => {
+        restorePages = 1;
+
         if (config.append || currentPage.value === 1) {
             currentPage.value = 1;
 
@@ -360,14 +419,7 @@ export function useDataIterator(model, options = {}) {
     watch(
         orderBy,
         (newOrderBy) => {
-            const query = { ...route.query };
-            const orderByString = formatOrderBy(newOrderBy);
-            if (orderByString) {
-                query.order_by = orderByString;
-            } else {
-                delete query.order_by;
-            }
-            void router.replace({ query });
+            writeQuery({ order_by: formatOrderBy(newOrderBy) });
 
             reload();
         },
@@ -378,27 +430,67 @@ export function useDataIterator(model, options = {}) {
     watch(pageSize, (newSize) => {
         resetPagination();
 
-        const query = { ...route.query };
-        query.s = newSize.toString();
-        void router.replace({ query });
+        writeQuery({ s: newSize });
     });
 
     // Watch page changes - update URL and fetch
     watch(currentPage, (newPage) => {
-        if (config.append) {
-            return;
-        }
+        writeQuery({ p: newPage > 1 ? newPage : null });
 
-        const query = { ...route.query };
-        if (newPage > 1) {
-            query.p = newPage.toString();
-        } else {
-            delete query.p;
+        if (!config.append) {
+            void fetchItems();
         }
-        void router.replace({ query });
-
-        void fetchItems();
     });
+
+    // Search - applied after a pause in the typing, kept in the URL as `q`
+    let searchTimer = null;
+
+    watch(search, (value) => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            appliedSearch.value = (value ?? '').trim();
+        }, 300);
+    });
+
+    watch(appliedSearch, (value) => writeQuery({ q: value }));
+
+    // Scroll position - kept in the URL as `sl`
+    function scrollElement() {
+        const target = toValue(config.scrollTarget);
+
+        return target?.$el ?? target ?? null;
+    }
+
+    let scrollTimer = null;
+
+    watch(
+        scrollElement,
+        (element, _previous, onCleanup) => {
+            if (!element) {
+                return;
+            }
+
+            const onScroll = () => {
+                clearTimeout(scrollTimer);
+                scrollTimer = setTimeout(() => {
+                    const top = Math.round('scrollY' in element ? element.scrollY : element.scrollTop);
+
+                    writeQuery({ sl: top > 0 ? top : null });
+                }, 350);
+            };
+
+            element.addEventListener('scroll', onScroll, { passive: true });
+            onCleanup(() => element.removeEventListener('scroll', onScroll));
+        },
+        { immediate: true }
+    );
+
+    if (getCurrentScope()) {
+        onScopeDispose(() => {
+            clearTimeout(searchTimer);
+            clearTimeout(scrollTimer);
+        });
+    }
 
     // Initial fetch, held back until the caller says the list is ready
     void sortableReady.then(() => fetchItems());
@@ -428,6 +520,7 @@ export function useDataIterator(model, options = {}) {
         // Filter
         filter: customFilter,
         combinedFilter: filter,
+        search,
 
         // Order by
         orderBy,

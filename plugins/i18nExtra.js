@@ -5,12 +5,15 @@
 
 import { createI18n } from 'vue-i18n';
 import { createI18nExtraTranslateContentDirective } from '../directives/i18nExtra.js';
+import { de } from '../locales/de.js';
+import { es } from '../locales/es.js';
 import { fr } from '../locales/fr.js';
+import { it } from '../locales/it.js';
 import { addLocaleMessages, setI18n } from '../utils/i18n.js';
 
 // The package's own words go through the same door as anybody else's, and wait
 // there until an application names its i18n.
-addLocaleMessages({ fr });
+addLocaleMessages({ de, es, fr, it });
 
 /**
  * @typedef {Object} I18nExtraOptions

@@ -5,6 +5,10 @@
 
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { de } from '../locales/de.js';
+import { es } from '../locales/es.js';
+import { fr } from '../locales/fr.js';
+import { it as italian } from '../locales/it.js';
 import { createI18nExtra } from '../plugins/i18nExtra.js';
 import { addLocaleMessages, setI18n, t } from '../utils/i18n.js';
 import { formatValidationErrors } from '../utils/validations.js';
@@ -127,6 +131,20 @@ describe('createI18nExtra', () => {
 
         expect(wrapper.get('p').text()).toBe('Erreur inconnue');
         expect(wrapper.get('span').text()).toBe("Échec de l'export");
+    });
+});
+
+describe('locales', () => {
+    it('say every word of the package in every language it ships', () => {
+        for (const words of [de, es, italian]) {
+            expect(Object.keys(words).sort()).toEqual(Object.keys(fr).sort());
+        }
+    });
+
+    it('say a word of the package in the language displayed', () => {
+        trilingual({ locale: 'es' });
+
+        expect(t('Unknown error')).toBe('Error desconocido');
     });
 });
 

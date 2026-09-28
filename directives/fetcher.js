@@ -6,134 +6,128 @@
 import { useFetcher } from '../composables/fetcher.js';
 import { absoluteUrl } from '../plugins/fetcher.js';
 
+/**
+ * Show an image the fetcher reads, token included: `<img :src="url" v-fetcher-src />`.
+ *
+ * The directive takes the `src` off the element before Vue writes it, so the browser never asks for
+ * the url on its own: the element stays invisible until the blob the fetcher read is loaded, and
+ * says `error` when the read fails. A `data:` or `blob:` url is left to the element as is. `.lazy`
+ * waits for the element to come into view, and `{ optimize: false }` reads the file as stored
+ * rather than at the size the element is displayed.
+ */
 export const fetcherSrc = {
-    mounted(el, binding, node) {
-        if (node.props.src && !node.props.src.startsWith('data:')) {
-            el.lastSrc = node.props.src;
-            const isLazy = binding.modifiers.lazy;
-
-            if (isLazy) {
-                setupLazyLoading(el, binding, node);
-            } else {
-                loadImage(el, binding, node);
-            }
-        }
+    created(el, binding, vnode) {
+        take(el, vnode);
     },
-    updated(el, binding, node) {
-        // Only a source the caller changed asks for another read. The element
-        // holds a blob and the vnode holds the url it was given: comparing the
-        // two would see a difference on every render and read the image again.
-        if (!node.props.src || node.props.src === el.lastSrc || node.props.src.startsWith('data:')) {
-            return;
-        }
-
-        el.srcLoaded = false;
-        el.style.display = 'none';
-
-        if (el.src && el.src.startsWith('blob:')) {
-            URL.revokeObjectURL(el.src);
-        }
-
-        if (el.fetcher) {
-            el.fetcher.abort();
-            delete el.fetcher;
-        }
-
-        el.lastSrc = node.props.src;
-
-        if (binding.modifiers.lazy) {
-            setupLazyLoading(el, binding, node);
-        } else {
-            loadImage(el, binding, node);
+    mounted(el, binding) {
+        show(el, binding);
+    },
+    beforeUpdate(el, binding, vnode) {
+        take(el, vnode);
+    },
+    updated(el, binding) {
+        // Only a url the caller changed asks for another read: the parent rendering again
+        // leaves the image it already shows.
+        if (el.takenSrc !== el.lastSrc) {
+            release(el);
+            show(el, binding);
         }
     },
     beforeUnmount(el) {
-        if (el.src?.startsWith('blob:')) {
-            URL.revokeObjectURL(el.src);
-        }
-
-        if (el.intersectionObserver) {
-            el.intersectionObserver.disconnect();
-            delete el.intersectionObserver;
-        }
-
+        release(el);
+        delete el.takenSrc;
         delete el.lastSrc;
-        delete el.srcLoaded;
-    },
-    unmounted(el) {
-        if (el.fetcher) {
-            el.fetcher.abort();
-            delete el.fetcher;
-        }
-
-        if (undefined !== el.initialOpacity) {
-            delete el.initialOpacity;
-        }
     },
 };
 
-function setupLazyLoading(el, binding, node) {
-    el.initialOpacity = el.style.opacity;
-    if (el.style.display === 'none') {
-        el.style.opacity = 0;
-        el.style.display = '';
+/** The props Vue is about to write lose their `src`, which the directive reads itself. */
+function take(el, vnode) {
+    const src = vnode.props?.src;
+    el.takenSrc = src;
+
+    if (src && !isLocal(src)) {
+        delete vnode.props.src;
     }
-
-    const observer = new IntersectionObserver(
-        (entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    loadImage(el, binding, node);
-                    observer.disconnect();
-                    delete el.intersectionObserver;
-                }
-            });
-        },
-        {
-            threshold: 0.1,
-        }
-    );
-
-    el.intersectionObserver = observer;
-    observer.observe(el);
 }
 
-function loadImage(el, binding, node) {
-    el.fetcher = useFetcher({ abortOnUnmounted: false });
-    const srcUrl = absoluteUrl(node.props.src);
-    const params = optimizationParams(el, binding);
+function isLocal(src) {
+    return src.startsWith('data:') || src.startsWith('blob:');
+}
 
-    // The blob goes on the element and nowhere else: writing it into the vnode
-    // props makes Vue's next diff see a change nobody made, patch the attribute
-    // back to the url, and the image reload on every render of its parent.
-    el.src = '';
+function show(el, binding) {
+    const src = el.takenSrc;
+    el.lastSrc = src;
+
+    if (!src || isLocal(src)) {
+        return;
+    }
+
+    el.initialOpacity ??= el.style.opacity;
+    el.style.opacity = '0';
+
+    if (binding.modifiers.lazy) {
+        observe(el, binding);
+    } else {
+        load(el, binding);
+    }
+}
+
+function observe(el, binding) {
+    el.intersectionObserver = new IntersectionObserver(
+        (entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+                el.intersectionObserver.disconnect();
+                delete el.intersectionObserver;
+                load(el, binding);
+            }
+        },
+        { threshold: 0.1 }
+    );
+
+    el.intersectionObserver.observe(el);
+}
+
+function load(el, binding) {
+    const params = optimizationParams(el, binding);
+    el.fetcher = useFetcher({ abortOnUnmounted: false });
 
     el.fetcher
-        .get(srcUrl, params ? { params } : undefined)
+        .get(absoluteUrl(el.lastSrc), params ? { params } : undefined)
         .then(async (response) => {
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            el.onload = () => {
-                el.srcLoaded = true;
+            const url = URL.createObjectURL(await response.blob());
 
-                return URL.revokeObjectURL(url);
+            el.blobUrl = url;
+            el.onload = () => {
+                el.style.opacity = el.initialOpacity ?? '';
+                delete el.initialOpacity;
+                URL.revokeObjectURL(url);
+                delete el.blobUrl;
             };
             el.src = url;
-
-            if (el.style.display === 'none') {
-                el.style.display = '';
-            }
-
-            if (undefined !== el.initialOpacity) {
-                el.style.opacity = el.initialOpacity;
-                delete el.initialOpacity;
-            }
         })
         .catch((e) => {
             if (!['AbortError', undefined].includes(e.name)) {
                 console.error('[v-fetcher-src] fetch error', e);
+                el.dispatchEvent(new Event('error'));
             }
         });
+}
+
+function release(el) {
+    el.intersectionObserver?.disconnect();
+    delete el.intersectionObserver;
+    el.fetcher?.abort();
+    delete el.fetcher;
+
+    if (el.blobUrl) {
+        URL.revokeObjectURL(el.blobUrl);
+        delete el.blobUrl;
+    }
+
+    if (el.initialOpacity !== undefined) {
+        el.style.opacity = el.initialOpacity;
+        delete el.initialOpacity;
+    }
 }
 
 function optimizationParams(el, binding) {

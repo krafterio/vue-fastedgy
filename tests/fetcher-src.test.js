@@ -14,6 +14,14 @@ const image = (payload = 'x') => ({
     blob: async () => new Blob([payload], { type: 'image/webp' }),
 });
 
+const missing = () => ({
+    ok: false,
+    status: 404,
+    statusText: 'Not Found',
+    headers: { get: () => 'application/json' },
+    json: async () => ({ detail: 'Not found' }),
+});
+
 const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('v-fetcher-src', () => {
@@ -26,11 +34,12 @@ describe('v-fetcher-src', () => {
         window.URL.revokeObjectURL = vi.fn();
     });
 
-    const screen = (source) =>
+    const screen = (source, template = '<img :src="src" v-fetcher-src @error="failed = true" />') =>
         mount(
             {
                 props: { src: String, tick: Number },
-                template: '<img :src="src" v-fetcher-src /><span>{{ tick }}</span>',
+                data: () => ({ failed: false }),
+                template: `${template}<span>{{ tick }}</span>`,
             },
             {
                 props: { src: source, tick: 0 },
@@ -53,9 +62,10 @@ describe('v-fetcher-src', () => {
         await settled();
 
         expect(fetchSpy).toHaveBeenCalledTimes(1);
+        expect(wrapper.get('img').attributes('src')).toBe('blob:one');
     });
 
-    it('reads it again when the source it was given changes', async () => {
+    it('reads it again when the url it was given changes', async () => {
         const wrapper = screen('/storage/download/plate.png');
 
         await settled();
@@ -63,5 +73,54 @@ describe('v-fetcher-src', () => {
         await settled();
 
         expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps the url off the element, and shows it once the blob is loaded', async () => {
+        const wrapper = screen('/storage/download/plate.png');
+        const img = wrapper.get('img').element;
+
+        expect(img.getAttribute('src')).toBeNull();
+        expect(img.style.opacity).toBe('0');
+
+        await settled();
+
+        expect(img.getAttribute('src')).toBe('blob:one');
+        expect(img.style.opacity).toBe('0');
+
+        img.onload();
+
+        expect(img.style.opacity).toBe('');
+    });
+
+    it('says error when the image cannot be read', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        fetchSpy.mockResolvedValue(missing());
+        const wrapper = screen('/storage/download/gone.png');
+
+        await settled();
+
+        expect(wrapper.vm.failed).toBe(true);
+        expect(wrapper.get('img').element.getAttribute('src')).toBeNull();
+    });
+
+    it('reads the size the element is displayed at, or the file as stored when not optimized', async () => {
+        screen('/storage/download/plate.png');
+        await settled();
+
+        expect(String(fetchSpy.mock.calls[0][0])).toContain('e=webp');
+
+        screen('/storage/download/plate.png', '<img :src="src" v-fetcher-src="{ optimize: false }" />');
+        await settled();
+
+        expect(String(fetchSpy.mock.calls[1][0])).not.toContain('e=webp');
+    });
+
+    it('shows a data url as is, without reading anything', async () => {
+        const wrapper = screen('data:image/png;base64,AAAA');
+
+        await settled();
+
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(wrapper.get('img').element.getAttribute('src')).toBe('data:image/png;base64,AAAA');
     });
 });

@@ -5,6 +5,11 @@
 
 let instance = null;
 
+let sourceLanguage = null;
+
+/** The keys the application writes, in any language: it has the last word on them. */
+let applicationKeys = new Set();
+
 /**
  * What packages have handed over, kept until an application names its i18n.
  *
@@ -20,50 +25,67 @@ const offered = [];
  *
  * `useI18n()` only answers inside a `setup()`, and a package says things from
  * places that have none: a store created by a route guard, a plain function.
- * The application names its i18n once here, and `createI18nExtra` already does
- * it for an application that installs it.
+ * `createI18nExtra` names here the i18n it creates, with its languages.
  *
  * @param {import("vue-i18n").I18n|null} i18n
+ * @param {{ sourceLocale?: string }} [locales]
  */
-export function setI18n(i18n) {
+export function setI18n(i18n, { sourceLocale = null } = {}) {
     instance = i18n || null;
+    sourceLanguage = sourceLocale;
+    applicationKeys = new Set(Object.values(instance?.global?.messages?.value ?? {}).flatMap(Object.keys));
+    instance?.global?.setMissingHandler?.(reportMissing);
 
-    for (const messages of offered) {
-        mergeInto(instance, messages);
+    for (const entry of offered) {
+        mergeInto(instance, entry);
     }
 }
 
 /**
- * Hand over the words a package says, by locale, English being the key.
+ * Hand over the words a package says, by locale.
  *
- * A key the application already translates is left alone: its wording wins over
- * the one a package ships, which is what makes a default overridable rather than
- * imposed. Called at import time by the package itself, so an application that
- * installs it gets its words and writes none of them.
+ * Its keys are written in its source language, English unless the package
+ * names another: there, they are the text already, and need no catalog. A key the application writes stays its own in
+ * every language, so its wording wins over the one a package ships, and a key of
+ * its own never takes the word of a package. Called at import time by the
+ * package itself, so an application that installs it gets its words and writes
+ * none of them.
  *
  * @param {Record<string, Record<string, string>>} messages - By locale
+ * @param {string} [sourceLocale] - The language the keys are written in, when not English
  *
  * @example
  * addLocaleMessages({ fr: { Bold: 'Gras' } });
  */
-export function addLocaleMessages(messages) {
+export function addLocaleMessages(messages, sourceLocale) {
     if (!messages) {
         return;
     }
 
-    offered.push(messages);
-    mergeInto(instance, messages);
+    const entry = { messages, sourceLocale };
+
+    offered.push(entry);
+    mergeInto(instance, entry);
 }
 
-/** Merges what is missing, and only what is missing. */
-function mergeInto(i18n, messages) {
+/** Merges the words of a package on the keys the application does not write, and only where they are missing. */
+function mergeInto(i18n, { messages, sourceLocale }) {
     if (typeof i18n?.global?.mergeLocaleMessage !== 'function') {
         return;
     }
 
-    for (const [locale, words] of Object.entries(messages)) {
+    const source = sourceLocale ?? 'en';
+    const keys = [...new Set(Object.values(messages).flatMap(Object.keys))];
+    const catalogs = {
+        ...messages,
+        [source]: { ...Object.fromEntries(keys.map((key) => [key, key])), ...messages[source] },
+    };
+
+    for (const [locale, words] of Object.entries(catalogs)) {
         const known = i18n.global.getLocaleMessage(locale) || {};
-        const missing = Object.fromEntries(Object.entries(words).filter(([key]) => !(key in known)));
+        const missing = Object.fromEntries(
+            Object.entries(words).filter(([key]) => !applicationKeys.has(key) && !(key in known))
+        );
 
         if (Object.keys(missing).length > 0) {
             i18n.global.mergeLocaleMessage(locale, missing);
@@ -71,17 +93,30 @@ function mergeInto(i18n, messages) {
     }
 }
 
-/**
- * The i18n the application handed over, for a package that needs more than `t`.
- *
- * @returns {import("vue-i18n").I18n|null}
- */
-export function getI18n() {
-    return instance;
+/** The source language of whoever owns a key: a package knowing it, unless the application writes it. */
+function sourceOf(key) {
+    if (!applicationKeys.has(key)) {
+        for (const { messages, sourceLocale } of offered) {
+            if (Object.values(messages).some((words) => key in words)) {
+                return sourceLocale ?? 'en';
+            }
+        }
+    }
+
+    return sourceLanguage;
+}
+
+/** In development, a key missing outside the source language of whoever owns it. */
+function reportMissing(target, key) {
+    const source = sourceOf(key);
+
+    if (import.meta.env?.DEV && source && target.split('-')[0] !== source.split('-')[0]) {
+        console.warn(`[intlify] Not found '${key}' key in '${target}' locale messages.`);
+    }
 }
 
 /**
- * Translate a message of a package, English being the key.
+ * Translate a message where `useI18n()` does not answer, with the same words as `$t`.
  *
  * The values a message carries are given here, where they are known: a sentence
  * already filled in cannot be translated afterwards.

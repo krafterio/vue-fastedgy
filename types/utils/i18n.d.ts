@@ -3,34 +3,33 @@
  *
  * `useI18n()` only answers inside a `setup()`, and a package says things from
  * places that have none: a store created by a route guard, a plain function.
- * The application names its i18n once here, and `createI18nExtra` already does
- * it for an application that installs it.
+ * `createI18nExtra` names here the i18n it creates, with its languages.
  *
  * @param {import("vue-i18n").I18n|null} i18n
+ * @param {{ sourceLocale?: string }} [locales]
  */
-export declare function setI18n(i18n: import("vue-i18n").I18n | null): void;
+export declare function setI18n(i18n: import("vue-i18n").I18n | null, { sourceLocale }?: {
+    sourceLocale?: string;
+}): void;
 /**
- * Hand over the words a package says, by locale, English being the key.
+ * Hand over the words a package says, by locale.
  *
- * A key the application already translates is left alone: its wording wins over
- * the one a package ships, which is what makes a default overridable rather than
- * imposed. Called at import time by the package itself, so an application that
- * installs it gets its words and writes none of them.
+ * Its keys are written in its source language, English unless the package
+ * names another: there, they are the text already, and need no catalog. A key the application writes stays its own in
+ * every language, so its wording wins over the one a package ships, and a key of
+ * its own never takes the word of a package. Called at import time by the
+ * package itself, so an application that installs it gets its words and writes
+ * none of them.
  *
  * @param {Record<string, Record<string, string>>} messages - By locale
+ * @param {string} [sourceLocale] - The language the keys are written in, when not English
  *
  * @example
  * addLocaleMessages({ fr: { Bold: 'Gras' } });
  */
-export declare function addLocaleMessages(messages: Record<string, Record<string, string>>): void;
+export declare function addLocaleMessages(messages: Record<string, Record<string, string>>, sourceLocale?: string): void;
 /**
- * The i18n the application handed over, for a package that needs more than `t`.
- *
- * @returns {import("vue-i18n").I18n|null}
- */
-export declare function getI18n(): import("vue-i18n").I18n | null;
-/**
- * Translate a message of a package, English being the key.
+ * Translate a message where `useI18n()` does not answer, with the same words as `$t`.
  *
  * The values a message carries are given here, where they are known: a sentence
  * already filled in cannot be translated afterwards.

@@ -1,11 +1,14 @@
 /**
- * Show an image the fetcher reads, token included: `<img :src="url" v-fetcher-src />`.
+ * Show an image or a video the fetcher reads, token included: `<img :src="url" v-fetcher-src />`.
  *
  * The directive takes the `src` off the element before Vue writes it, so the browser never asks for
  * the url on its own: the element stays invisible until the blob the fetcher read is loaded, and
  * says `error` when the read fails. A `data:` or `blob:` url is left to the element as is. `.lazy`
  * waits for the element to come into view, and `{ optimize: false }` reads the file as stored
  * rather than at the size the element is displayed.
+ *
+ * A `<video>` or an `<audio>` shows once its metadata is loaded, since it never fires `load`, keeps
+ * its blob for as long as it is displayed, to play and seek in it, and is always read as stored.
  */
 export declare const fetcherSrc: {
     created(el: any, binding: any, vnode: any): void;

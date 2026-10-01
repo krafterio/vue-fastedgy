@@ -7,13 +7,16 @@ import { useFetcher } from '../composables/fetcher.js';
 import { absoluteUrl } from '../plugins/fetcher.js';
 
 /**
- * Show an image the fetcher reads, token included: `<img :src="url" v-fetcher-src />`.
+ * Show an image or a video the fetcher reads, token included: `<img :src="url" v-fetcher-src />`.
  *
  * The directive takes the `src` off the element before Vue writes it, so the browser never asks for
  * the url on its own: the element stays invisible until the blob the fetcher read is loaded, and
  * says `error` when the read fails. A `data:` or `blob:` url is left to the element as is. `.lazy`
  * waits for the element to come into view, and `{ optimize: false }` reads the file as stored
  * rather than at the size the element is displayed.
+ *
+ * A `<video>` or an `<audio>` shows once its metadata is loaded, since it never fires `load`, keeps
+ * its blob for as long as it is displayed, to play and seek in it, and is always read as stored.
  */
 export const fetcherSrc = {
     created(el, binding, vnode) {
@@ -97,12 +100,17 @@ function load(el, binding) {
             const url = URL.createObjectURL(await response.blob());
 
             el.blobUrl = url;
-            el.onload = () => {
-                el.style.opacity = el.initialOpacity ?? '';
-                delete el.initialOpacity;
-                URL.revokeObjectURL(url);
-                delete el.blobUrl;
-            };
+
+            if (isMedia(el)) {
+                el.onloadedmetadata = () => reveal(el);
+            } else {
+                el.onload = () => {
+                    reveal(el);
+                    URL.revokeObjectURL(url);
+                    delete el.blobUrl;
+                };
+            }
+
             el.src = url;
         })
         .catch((e) => {
@@ -111,6 +119,15 @@ function load(el, binding) {
                 el.dispatchEvent(new Event('error'));
             }
         });
+}
+
+function isMedia(el) {
+    return el instanceof HTMLMediaElement;
+}
+
+function reveal(el) {
+    el.style.opacity = el.initialOpacity ?? '';
+    delete el.initialOpacity;
 }
 
 function release(el) {
@@ -131,7 +148,7 @@ function release(el) {
 }
 
 function optimizationParams(el, binding) {
-    if (false === binding.value?.optimize) {
+    if (false === binding.value?.optimize || isMedia(el)) {
         return null;
     }
 

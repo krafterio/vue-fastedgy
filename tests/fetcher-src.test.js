@@ -123,4 +123,32 @@ describe('v-fetcher-src', () => {
         expect(fetchSpy).not.toHaveBeenCalled();
         expect(wrapper.get('img').element.getAttribute('src')).toBe('data:image/png;base64,AAAA');
     });
+
+    it('shows a video once its metadata is loaded, and keeps its blob while it is displayed', async () => {
+        const revoke = vi.fn();
+        window.URL.revokeObjectURL = revoke;
+        const wrapper = screen('/storage/download/clip.mp4', '<video :src="src" v-fetcher-src />');
+        const video = wrapper.get('video').element;
+
+        await settled();
+
+        expect(video.getAttribute('src')).toBe('blob:one');
+        expect(video.style.opacity).toBe('0');
+
+        video.onloadedmetadata();
+
+        expect(video.style.opacity).toBe('');
+        expect(revoke).not.toHaveBeenCalled();
+
+        wrapper.unmount();
+
+        expect(revoke).toHaveBeenCalledWith('blob:one');
+    });
+
+    it('reads a video as stored, at no display size', async () => {
+        screen('/storage/download/clip.mp4', '<video :src="src" v-fetcher-src />');
+        await settled();
+
+        expect(String(fetchSpy.mock.calls[0][0])).not.toMatch(/[?&](e|w)=/);
+    });
 });

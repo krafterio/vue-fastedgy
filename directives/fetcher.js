@@ -6,6 +6,9 @@
 import { useFetcher } from '../composables/fetcher.js';
 import { absoluteUrl } from '../plugins/fetcher.js';
 
+const DOWNLOAD_ROUTE = '/storage/download/';
+const SIGNED_DOWNLOAD_ROUTE = '/storage/download-url/';
+
 /**
  * Show an image or a video the fetcher reads, token included: `<img :src="url" v-fetcher-src />`.
  *
@@ -15,8 +18,10 @@ import { absoluteUrl } from '../plugins/fetcher.js';
  * waits for the element to come into view, and `{ optimize: false }` reads the file as stored
  * rather than at the size the element is displayed.
  *
- * A `<video>` or an `<audio>` shows once its metadata is loaded, since it never fires `load`, keeps
- * its blob for as long as it is displayed, to play and seek in it, and is always read as stored.
+ * A `<video>` or an `<audio>` from a download route plays from a url the server signs, read by ranges
+ * as it plays, and shows once its metadata is loaded, since it never fires `load`. From a server that
+ * signs no url it is read whole, and keeps its blob for as long as it is displayed. Either way it is
+ * read as stored.
  */
 export const fetcherSrc = {
     created(el, binding, vnode) {
@@ -91,8 +96,31 @@ function observe(el, binding) {
 }
 
 function load(el, binding) {
-    const params = optimizationParams(el, binding);
     el.fetcher = useFetcher({ abortOnUnmounted: false });
+
+    if (isMedia(el) && el.lastSrc.includes(DOWNLOAD_ROUTE)) {
+        stream(el, binding);
+    } else {
+        read(el, binding);
+    }
+}
+
+/**
+ * A video or an audio plays from a url the server signs: the element reads it by ranges as it plays,
+ * never waiting for the whole file. A server that signs no url answers 404, and the file is read whole.
+ */
+function stream(el, binding) {
+    el.fetcher
+        .get(absoluteUrl(el.lastSrc.replace(DOWNLOAD_ROUTE, SIGNED_DOWNLOAD_ROUTE)))
+        .then((response) => {
+            el.onloadedmetadata = () => reveal(el);
+            el.src = response.data.url;
+        })
+        .catch((e) => (404 === e.response?.status ? read(el, binding) : fail(el, e)));
+}
+
+function read(el, binding) {
+    const params = optimizationParams(el, binding);
 
     el.fetcher
         .get(absoluteUrl(el.lastSrc), params ? { params } : undefined)
@@ -113,12 +141,14 @@ function load(el, binding) {
 
             el.src = url;
         })
-        .catch((e) => {
-            if (!['AbortError', undefined].includes(e.name)) {
-                console.error('[v-fetcher-src] fetch error', e);
-                el.dispatchEvent(new Event('error'));
-            }
-        });
+        .catch((e) => fail(el, e));
+}
+
+function fail(el, e) {
+    if (!['AbortError', undefined].includes(e.name)) {
+        console.error('[v-fetcher-src] fetch error', e);
+        el.dispatchEvent(new Event('error'));
+    }
 }
 
 function isMedia(el) {

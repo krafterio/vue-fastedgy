@@ -7,8 +7,10 @@
  * waits for the element to come into view, and `{ optimize: false }` reads the file as stored
  * rather than at the size the element is displayed.
  *
- * A `<video>` or an `<audio>` shows once its metadata is loaded, since it never fires `load`, keeps
- * its blob for as long as it is displayed, to play and seek in it, and is always read as stored.
+ * A `<video>` or an `<audio>` from a download route plays from a url the server signs, read by ranges
+ * as it plays, and shows once its metadata is loaded, since it never fires `load`. From a server that
+ * signs no url it is read whole, and keeps its blob for as long as it is displayed. Either way it is
+ * read as stored.
  */
 export declare const fetcherSrc: {
     created(el: any, binding: any, vnode: any): void;

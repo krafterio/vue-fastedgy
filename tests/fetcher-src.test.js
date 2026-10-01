@@ -14,6 +14,13 @@ const image = (payload = 'x') => ({
     blob: async () => new Blob([payload], { type: 'image/webp' }),
 });
 
+const signed = (url) => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => 'application/json' },
+    json: async () => ({ url }),
+});
+
 const missing = () => ({
     ok: false,
     status: 404,
@@ -124,16 +131,38 @@ describe('v-fetcher-src', () => {
         expect(wrapper.get('img').element.getAttribute('src')).toBe('data:image/png;base64,AAAA');
     });
 
-    it('shows a video once its metadata is loaded, and keeps its blob while it is displayed', async () => {
+    it('streams a video from the url the server signs, never reading the file itself', async () => {
+        const create = vi.fn();
+        window.URL.createObjectURL = create;
+        fetchSpy.mockResolvedValue(signed('https://api.example/storage/signed/token'));
+        const wrapper = screen('/acme/storage/download/clip.mp4', '<video :src="src" v-fetcher-src />');
+        const video = wrapper.get('video').element;
+
+        await settled();
+
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        expect(String(fetchSpy.mock.calls[0][0])).toContain('/acme/storage/download-url/clip.mp4');
+        expect(video.getAttribute('src')).toBe('https://api.example/storage/signed/token');
+        expect(create).not.toHaveBeenCalled();
+        expect(video.style.opacity).toBe('0');
+
+        video.onloadedmetadata();
+
+        expect(video.style.opacity).toBe('');
+    });
+
+    it('reads a video whole from a server that signs no url, and keeps its blob while it is displayed', async () => {
         const revoke = vi.fn();
         window.URL.revokeObjectURL = revoke;
+        fetchSpy.mockResolvedValueOnce(missing()).mockResolvedValueOnce(image());
         const wrapper = screen('/storage/download/clip.mp4', '<video :src="src" v-fetcher-src />');
         const video = wrapper.get('video').element;
 
         await settled();
 
+        expect(String(fetchSpy.mock.calls[1][0])).toContain('/storage/download/clip.mp4');
+        expect(String(fetchSpy.mock.calls[1][0])).not.toMatch(/[?&](e|w)=/);
         expect(video.getAttribute('src')).toBe('blob:one');
-        expect(video.style.opacity).toBe('0');
 
         video.onloadedmetadata();
 
@@ -143,12 +172,5 @@ describe('v-fetcher-src', () => {
         wrapper.unmount();
 
         expect(revoke).toHaveBeenCalledWith('blob:one');
-    });
-
-    it('reads a video as stored, at no display size', async () => {
-        screen('/storage/download/clip.mp4', '<video :src="src" v-fetcher-src />');
-        await settled();
-
-        expect(String(fetchSpy.mock.calls[0][0])).not.toMatch(/[?&](e|w)=/);
     });
 });

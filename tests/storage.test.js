@@ -48,6 +48,17 @@ describe('useStorage', () => {
         expect(path).toBe('aliments/7/image.png');
     });
 
+    it('asks the server to sign a stored file, and adds the params to the url it signs', async () => {
+        fetchSpy.mockResolvedValue(jsonResponse({ url: 'https://api.example/storage/signed/token' }));
+        const { signedFileUrl } = useStorage();
+
+        const url = await signedFileUrl('chat/clip.mp4', { prefix: '/acme', params: { force_download: true } });
+
+        expect(String(fetchSpy.mock.calls[0][0])).toBe('/acme/storage/download-url/chat/clip.mp4?force_download=true');
+        expect(url).toBe('https://api.example/storage/signed/token?force_download=true');
+        expect(await signedFileUrl(null)).toBeNull();
+    });
+
     it('empties a model field on the path the server keeps for it', async () => {
         const { deleteModelField } = useStorage();
 

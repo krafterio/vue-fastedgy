@@ -43,6 +43,8 @@ export function createStorage(config = {}) {
  * @returns {{
  *  fileUrl: (path: string|null) => string|null,
  *  attachmentUrl: (id: string|number) => string,
+ *  signedFileUrl: (path: string|null, options?: { prefix?: string, params?: object }) => Promise<string|null>,
+ *  signedAttachmentUrl: (id: string|number, options?: { prefix?: string, params?: object }) => Promise<string|null>,
  *  uploadModelField: (model: string, id: string|number, field: string, file: File) => Promise<string|null>,
  *  uploadAttachments: (files: File[], options?: { meta?: object, prefix?: string }) => Promise<Array<object>>,
  *  deleteModelField: (model: string, id: string|number, field: string) => Promise<void>
@@ -75,12 +77,7 @@ export function useStorage(defaultParams = {}) {
             return null;
         }
 
-        const url = `${base(options.prefix)}/storage/download/${path}`;
-        const query = new URLSearchParams(
-            Object.entries(options.params || {}).filter(([, value]) => value !== undefined && value !== null)
-        ).toString();
-
-        return query ? `${url}?${query}` : url;
+        return withQuery(`${base(options.prefix)}/storage/download/${path}`, options.params);
     }
 
     /**
@@ -92,6 +89,40 @@ export function useStorage(defaultParams = {}) {
      */
     function attachmentUrl(id, options = {}) {
         return fileUrl(`attachments/${id}`, options);
+    }
+
+    /**
+     * URL a stored file opens with no credentials, signed by the server, for what the browser reads on its own:
+     * a link that downloads, a video read by ranges. It lasts a few hours, and reads the same `params` as `fileUrl`.
+     *
+     * @param {string|null} path - Stored path, as the model field holds it
+     * @param {{ prefix?: string, params?: object }} [options]
+     * @returns {Promise<string|null>} - Null for an empty field
+     *
+     * @example
+     * window.location.assign(await signedFileUrl(ticket.file, { params: { force_download: true } }));
+     */
+    async function signedFileUrl(path, options = {}) {
+        if (!path) {
+            return null;
+        }
+
+        const response = await fetcher.get(
+            withQuery(`${base(options.prefix)}/storage/download-url/${path}`, options.params)
+        );
+
+        return withQuery(response.data.url, options.params);
+    }
+
+    /**
+     * URL an attachment opens with no credentials, signed by the server.
+     *
+     * @param {string|number} id
+     * @param {{ prefix?: string, params?: object }} [options]
+     * @returns {Promise<string|null>}
+     */
+    function signedAttachmentUrl(id, options = {}) {
+        return signedFileUrl(`attachments/${id}`, options);
     }
 
     /**
@@ -153,5 +184,22 @@ export function useStorage(defaultParams = {}) {
         await fetcher.delete(`${base(options.prefix)}/storage/file/${model}/${id}/${field}`);
     }
 
-    return { fileUrl, attachmentUrl, uploadModelField, uploadAttachments, deleteModelField };
+    return {
+        fileUrl,
+        attachmentUrl,
+        signedFileUrl,
+        signedAttachmentUrl,
+        uploadModelField,
+        uploadAttachments,
+        deleteModelField,
+    };
+}
+
+/** The url with the params that hold a value as its query. */
+function withQuery(url, params) {
+    const query = new URLSearchParams(
+        Object.entries(params || {}).filter(([, value]) => value !== undefined && value !== null)
+    ).toString();
+
+    return query ? `${url}${url.includes('?') ? '&' : '?'}${query}` : url;
 }

@@ -22,6 +22,8 @@ export declare function createStorage(config?: {
  * @returns {{
  *  fileUrl: (path: string|null) => string|null,
  *  attachmentUrl: (id: string|number) => string,
+ *  signedFileUrl: (path: string|null, options?: { prefix?: string, params?: object }) => Promise<string|null>,
+ *  signedAttachmentUrl: (id: string|number, options?: { prefix?: string, params?: object }) => Promise<string|null>,
  *  uploadModelField: (model: string, id: string|number, field: string, file: File) => Promise<string|null>,
  *  uploadAttachments: (files: File[], options?: { meta?: object, prefix?: string }) => Promise<Array<object>>,
  *  deleteModelField: (model: string, id: string|number, field: string) => Promise<void>
@@ -38,6 +40,14 @@ export declare function useStorage(defaultParams?: {
 }): {
     fileUrl: (path: string | null) => string | null;
     attachmentUrl: (id: string | number) => string;
+    signedFileUrl: (path: string | null, options?: {
+        prefix?: string;
+        params?: object;
+    }) => Promise<string | null>;
+    signedAttachmentUrl: (id: string | number, options?: {
+        prefix?: string;
+        params?: object;
+    }) => Promise<string | null>;
     uploadModelField: (model: string, id: string | number, field: string, file: File) => Promise<string | null>;
     uploadAttachments: (files: File[], options?: {
         meta?: object;

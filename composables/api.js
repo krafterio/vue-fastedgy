@@ -351,7 +351,7 @@ export async function importTemplateAction(modelName, query = {}, params = {}) {
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {File} file - File to import
- * @param {{ prefix?: string, headers?: object }} params - Optional parameters
+ * @param {{ prefix?: string, headers?: object, delimiter?: string }} params - Optional parameters, `delimiter` being the column delimiter of a CSV, detected by the server when absent
  * @returns {Promise<{data: {success: number, errors: number, created: number, updated: number, error_details?: Array<{row: number, error: string, data: object}>}}>}
  */
 export async function importAction(modelName, file, params = {}) {
@@ -362,6 +362,10 @@ export async function importAction(modelName, file, params = {}) {
     // Create FormData for file upload
     const formData = new FormData();
     formData.append('file', file);
+
+    if (params.delimiter) {
+        formData.append('delimiter', params.delimiter);
+    }
 
     // Headers for FormData (don't set Content-Type, browser will set it with boundary)
     const headers = { ...params.headers };
@@ -552,7 +556,7 @@ export function useApiModel(modelName, defaultParams = {}) {
         /**
          * Import items from file
          * @param {File} file - File to import (CSV, XLSX, ODS)
-         * @param {{ prefix?: string, headers?: object }} params
+         * @param {{ prefix?: string, headers?: object, delimiter?: string }} params
          */
         import: (file, params = {}) => importAction(modelName, file, { ...defaultParams, ...params }),
     };

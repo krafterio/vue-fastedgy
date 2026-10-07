@@ -190,12 +190,13 @@ export declare function importTemplateAction(modelName: string, query?: {
  *
  * @param {string} modelName - Model name: metadata 'name' or 'api_name'
  * @param {File} file - File to import
- * @param {{ prefix?: string, headers?: object }} params - Optional parameters
+ * @param {{ prefix?: string, headers?: object, delimiter?: string }} params - Optional parameters, `delimiter` being the column delimiter of a CSV, detected by the server when absent
  * @returns {Promise<{data: {success: number, errors: number, created: number, updated: number, error_details?: Array<{row: number, error: string, data: object}>}}>}
  */
 export declare function importAction(modelName: string, file: File, params?: {
     prefix?: string;
     headers?: object;
+    delimiter?: string;
 }): Promise<{
     data: {
         success: number;

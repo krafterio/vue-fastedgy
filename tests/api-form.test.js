@@ -164,3 +164,41 @@ describe('useApiModel writes', () => {
         expect(heard[0]).toMatchObject({ model: 'aliment', id: 12, action: 'created', announced: false });
     });
 });
+
+describe('useApiModel import', () => {
+    let fetchSpy;
+
+    beforeEach(() => {
+        setActivePinia(createPinia());
+        useMetadataStore().setMetadatas({ aliment: { name: 'aliment', api_name: 'aliments' } });
+
+        fetchSpy = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                headers: { get: () => 'application/json' },
+                json: async () => ({ success: 1, errors: 0, created: 1, updated: 0 }),
+            })
+        );
+
+        window.fetch = fetchSpy;
+    });
+
+    const file = new File(['Name;Kcal\nPomme;52\n'], 'aliments.csv', { type: 'text/csv' });
+
+    it('sends the file alone when no delimiter is given', async () => {
+        await useApiModel('aliment').import(file);
+
+        const [url, options] = fetchSpy.mock.calls[0];
+
+        expect(url).toBe('/aliments/import');
+        expect(options.body.get('file')).toBeInstanceOf(File);
+        expect(options.body.has('delimiter')).toBe(false);
+    });
+
+    it('sends the delimiter of a csv along with the file', async () => {
+        await useApiModel('aliment').import(file, { delimiter: ';' });
+
+        expect(fetchSpy.mock.calls[0][1].body.get('delimiter')).toBe(';');
+    });
+});

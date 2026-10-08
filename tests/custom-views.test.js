@@ -137,6 +137,35 @@ describe('useCustomViews', () => {
         expect(list.view.value).toBeNull();
     });
 
+    it('applies and saves what the list holds besides its filter and its order', async () => {
+        const groupBy = ref('status');
+        const list = {
+            ...iterator(),
+            viewState: { group_by: { get: () => groupBy.value, set: (value) => (groupBy.value = value) } },
+        };
+        apis.custom_view.list.mockResolvedValue(page([view(1, { group_by: 'owner' }), view(2)]));
+        apis.custom_view.create.mockImplementation((payload) => Promise.resolve({ data: view(3, payload) }));
+        const views = useCustomViews('household', { list });
+
+        await views.ensure();
+        views.apply(views.items.value[0]);
+
+        expect(groupBy.value).toBe('owner');
+        expect(views.modified.value).toBe(false);
+
+        groupBy.value = 'plan';
+
+        expect(views.modified.value).toBe(true);
+
+        await views.create({ name: 'By plan' });
+
+        expect(apis.custom_view.create.mock.calls[0][0]).toMatchObject({ group_by: 'plan' });
+
+        views.apply(views.items.value[1]);
+
+        expect(groupBy.value).toBeNull();
+    });
+
     it('lets an error of the server reach whoever saves', async () => {
         apis.custom_view.create.mockRejectedValue(new Error('A view of this list already has this name'));
         const views = useCustomViews('household', { list: iterator() });

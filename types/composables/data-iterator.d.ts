@@ -1,3 +1,17 @@
+export type ViewStateField = {
+    /**
+     * - What the list holds now
+     */
+    get: () => any;
+    /**
+     * - Hold what a view says, null when it says nothing
+     */
+    set: (value: any) => void;
+    /**
+     * - The URL key the application keeps it under
+     */
+    key?: string;
+};
 /**
  * Core composable for data iteration with server-side pagination, filters, and sorting
  * Used as base for DataTable and DataGrid
@@ -30,36 +44,53 @@
  * @param {Array<import('./quick-filter.js').QuickFilter|object>} options.quickFilters - Values shown by the controls of
  *   the screen (their definitions, or the components `defineQuickFilter` makes), held in `quick`, kept in the URL as
  *   `qf` when away from their default, their rules combined with the rest of the filter
- * @param {boolean|{ scope?: string, prefix?: string }} options.views - Open on the custom view the list starts from,
- *   applied before the first page: the one a link names (`cv`), else, for a URL saying nothing of the list, the
- *   favorite of the user, else the one of everyone. The filters of the view stay out of the URL, which says only
- *   those that moved away from it
+ * @param {boolean|{ scope?: string, prefix?: string, state?: Record<string, ViewStateField> }} options.views - Open on
+ *   the custom view the list starts from, applied before the first page: the one a link names (`cv`), else, for a URL
+ *   saying nothing of the list, the favorite of the user, else the one of everyone. The filters of the view stay out
+ *   of the URL, which says only those that moved away from it. `state` names what a view holds besides its filters
+ *   and its order, by field of the view (`group_by`): applied on opening unless the URL says it under its `key`,
+ *   applied and saved with the view by `useCustomViews`
  * @returns {Object} - DataIterator state and methods
  */
-export declare function useDataIterator(model: string | object, options?: {
-    fields: Array<string>;
-    fieldsResolver: Function | any[];
-    pageSize: number;
-    availablePageSizes: any[];
-    defaultOrderBy: Array<string>;
-    exportFields: Array<string>;
-    filter: any[] | Function;
-    prefix: string;
-    headers: any;
-    sortable: boolean;
-    orderable: boolean;
-    enableSelection: boolean;
-    append: boolean;
-    searchField: string;
-    searchFields: Array<string>;
-    scrollTarget: HTMLElement | Window | import('vue').Ref | Function;
-    datasetPrefix: string;
-    pageSizeKey: string;
-    enabled: boolean | Function | import('vue').Ref<boolean>;
-    quickFilters: Array<import('./quick-filter.js').QuickFilter | object>;
-    views: boolean | {
-        scope?: string;
-        prefix?: string;
-    };
-}): any;
+/**
+ * @typedef {Object} ViewStateField
+ * @property {() => any} get - What the list holds now
+ * @property {(value: any) => void} set - Hold what a view says, null when it says nothing
+ * @property {string} [key] - The URL key the application keeps it under
+ */
+export declare function useDataIterator(model: any, options?: {}): {
+    items: import("vue").Ref<never[], never[]>;
+    total: import("vue").Ref<number, number>;
+    loading: import("vue").Ref<boolean, boolean>;
+    loaded: import("vue").Ref<boolean, boolean>;
+    error: import("vue").Ref<null, null>;
+    currentPage: import("vue").Ref<number, number>;
+    pageSize: import("vue").Ref<number, number>;
+    availablePageSizes: number[];
+    totalPages: import("vue").ComputedRef<number>;
+    hasMore: import("vue").ComputedRef<boolean>;
+    loadMore: () => Promise<void>;
+    filter: import("vue").Ref<null, null>;
+    combinedFilter: import("vue").ComputedRef<any>;
+    expression: import("vue").Ref<any, any>;
+    search: import("vue").Ref<string, string>;
+    view: import("vue").Ref<number | null, number | null>;
+    viewExpression: import("vue").Ref<undefined, undefined>;
+    viewState: any;
+    opened: Readonly<import("vue").Ref<boolean, boolean>>;
+    quick: Record<string, any>;
+    quickFilters: any;
+    defaultOrderBy: any;
+    orderBy: any;
+    toggleSort: (field: string) => void;
+    getSortDirection: (field: string) => 'asc' | 'desc' | null;
+    isSortable: any;
+    resequence: (ids: Array<number>) => Promise<void>;
+    isSelectionEnabled: any;
+    selection: any;
+    refresh: () => Promise<void>;
+    resetPagination: () => void;
+    exportData: (format?: string) => Promise<Blob>;
+    importData: (file: File) => Promise<any>;
+};
 //# sourceMappingURL=data-iterator.d.ts.map

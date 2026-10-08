@@ -383,6 +383,44 @@ describe('useDataIterator', () => {
         expect(service.list).toHaveBeenCalledWith(expect.objectContaining({ filter: null }));
     });
 
+    it('opens on what its view holds besides its filters, waits for it, and leaves the url its own say', async () => {
+        apis.custom_view = {
+            list: vi.fn().mockResolvedValue(page([{ id: 4, filters: null, order_by: null, group_by: 'plan' }])),
+            get: vi.fn().mockResolvedValue({
+                data: { id: 4, model: 'household', scope: '', filters: null, order_by: null, group_by: 'plan' },
+            }),
+        };
+        apis.custom_view_favorite = { list: vi.fn().mockResolvedValue(page([])) };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+        const groupBy = ref(null);
+        const state = { group_by: { get: () => groupBy.value, set: (value) => (groupBy.value = value), key: 'group' } };
+
+        const iterator = useDataIterator(service, { sortable: false, views: { state } });
+
+        expect(iterator.opened.value).toBe(false);
+
+        await settle();
+
+        expect(iterator.opened.value).toBe(true);
+        expect(iterator.viewState).toBe(state);
+        expect(groupBy.value).toBe('plan');
+
+        router.route = { query: { group: 'owner' } };
+        groupBy.value = 'owner';
+        useDataIterator(service, { sortable: false, views: { state } });
+        await settle();
+
+        expect(apis.custom_view.list).toHaveBeenCalledTimes(1);
+        expect(groupBy.value).toBe('owner');
+
+        router.route = { query: { cv: '4', group: 'owner' } };
+        useDataIterator(service, { sortable: false, views: { state } });
+        await settle();
+
+        expect(apis.custom_view.get).toHaveBeenCalledTimes(1);
+        expect(groupBy.value).toBe('owner');
+    });
+
     it('keeps the default order out of the url, and any other in it', async () => {
         const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
         const written = () => router.replace.mock.calls.at(-1)?.[0].query ?? {};

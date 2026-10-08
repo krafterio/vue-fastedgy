@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { ref, reactive, computed, toValue, watch, nextTick, getCurrentScope, onScopeDispose } from 'vue';
+import { ref, reactive, readonly, computed, toValue, watch, nextTick, getCurrentScope, onScopeDispose } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useApiModel } from './api.js';
 import { formatOrderBy, parseOrderBy } from '../utils/order-by.js';
@@ -91,12 +91,21 @@ const DEFAULT_OPTIONS = {
  * @param {Array<import('./quick-filter.js').QuickFilter|object>} options.quickFilters - Values shown by the controls of
  *   the screen (their definitions, or the components `defineQuickFilter` makes), held in `quick`, kept in the URL as
  *   `qf` when away from their default, their rules combined with the rest of the filter
- * @param {boolean|{ scope?: string, prefix?: string }} options.views - Open on the custom view the list starts from,
- *   applied before the first page: the one a link names (`cv`), else, for a URL saying nothing of the list, the
- *   favorite of the user, else the one of everyone. The filters of the view stay out of the URL, which says only
- *   those that moved away from it
+ * @param {boolean|{ scope?: string, prefix?: string, state?: Record<string, ViewStateField> }} options.views - Open on
+ *   the custom view the list starts from, applied before the first page: the one a link names (`cv`), else, for a URL
+ *   saying nothing of the list, the favorite of the user, else the one of everyone. The filters of the view stay out
+ *   of the URL, which says only those that moved away from it. `state` names what a view holds besides its filters
+ *   and its order, by field of the view (`group_by`): applied on opening unless the URL says it under its `key`,
+ *   applied and saved with the view by `useCustomViews`
  * @returns {Object} - DataIterator state and methods
  */
+/**
+ * @typedef {Object} ViewStateField
+ * @property {() => any} get - What the list holds now
+ * @property {(value: any) => void} set - Hold what a view says, null when it says nothing
+ * @property {string} [key] - The URL key the application keeps it under
+ */
+
 export function useDataIterator(model, options = {}) {
     const config = { ...DEFAULT_OPTIONS, ...options };
     const modelName = typeof model === 'string' ? model : model.modelName;
@@ -240,8 +249,12 @@ export function useDataIterator(model, options = {}) {
     // view it starts from: the one its link names when the link carries no
     // filter of its own, else the favorite when the URL says nothing of the
     // list. The watchers answering to the view run while the list is held back.
+    const viewState = (typeof config.views === 'object' && config.views?.state) || {};
+    const stateKeys = Object.values(viewState)
+        .map((one) => one.key)
+        .filter(Boolean);
     const linkedView = 'f' in route.query ? null : view.value;
-    const entered = ['p', 's', 'order_by', 'q', 'sl', 'f', 'cv', 'qf'].some((key) => key in route.query);
+    const entered = ['p', 's', 'order_by', 'q', 'sl', 'f', 'cv', 'qf', ...stateKeys].some((key) => key in route.query);
     const opening =
         config.views && (linkedView !== null || !entered)
             ? useOpeningView(modelName, {
@@ -262,6 +275,12 @@ export function useDataIterator(model, options = {}) {
 
             if (!('order_by' in route.query)) {
                 orderBy.value = start.order_by ?? config.defaultOrderBy ?? null;
+            }
+
+            for (const [name, one] of Object.entries(viewState)) {
+                if (!(one.key && one.key in route.query)) {
+                    one.set(start[name] ?? null);
+                }
             }
 
             await nextTick();
@@ -660,6 +679,8 @@ export function useDataIterator(model, options = {}) {
         search,
         view,
         viewExpression,
+        viewState,
+        opened: readonly(opened),
         quick,
         quickFilters: config.quickFilters ?? [],
         defaultOrderBy: config.defaultOrderBy ?? null,

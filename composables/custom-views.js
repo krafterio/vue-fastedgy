@@ -115,9 +115,12 @@ export function useCustomViews(model, options = {}) {
 
         return (
             !sameExpression(view.filters, list.expression.value) ||
-            !sameOrder(view.order_by ?? list.defaultOrderBy ?? null, list.orderBy.value)
+            !sameOrder(view.order_by ?? list.defaultOrderBy ?? null, list.orderBy.value) ||
+            held().some(([name, one]) => !sameOrder(view[name], one.get()))
         );
     });
+
+    const held = () => Object.entries(list?.viewState ?? {});
 
     const replaceItem = (view) => {
         items.value = items.value.map((item) => (item.id === view.id ? view : item));
@@ -134,6 +137,7 @@ export function useCustomViews(model, options = {}) {
     const state = () => ({
         filters: list?.expression?.value ?? null,
         order_by: list?.orderBy?.value ?? null,
+        ...Object.fromEntries(held().map(([name, one]) => [name, one.get() ?? null])),
     });
 
     return {
@@ -262,6 +266,10 @@ export function useCustomViews(model, options = {}) {
             list.orderBy.value = view.order_by ?? list.defaultOrderBy ?? null;
             list.view.value = view.id;
             follow(view);
+
+            for (const [name, one] of held()) {
+                one.set(view[name] ?? null);
+            }
         },
     };
 }

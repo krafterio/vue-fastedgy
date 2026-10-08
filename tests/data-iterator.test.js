@@ -382,4 +382,19 @@ describe('useDataIterator', () => {
         expect(iterator.view.value).toBeNull();
         expect(service.list).toHaveBeenCalledWith(expect.objectContaining({ filter: null }));
     });
+
+    it('keeps the default order out of the url, and any other in it', async () => {
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+        const written = () => router.replace.mock.calls.at(-1)?.[0].query ?? {};
+
+        const iterator = useDataIterator(service, { sortable: false, defaultOrderBy: ['created_at:desc'] });
+
+        iterator.orderBy.value = ['name:asc'];
+        await settle();
+        expect(written().order_by).toBe('name:asc');
+
+        iterator.orderBy.value = ['created_at:desc'];
+        await settle();
+        expect(written()).not.toHaveProperty('order_by');
+    });
 });

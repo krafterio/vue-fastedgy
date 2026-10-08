@@ -512,7 +512,9 @@ export function useDataIterator(model, options = {}) {
     watch(
         orderBy,
         (newOrderBy) => {
-            writeQuery({ order_by: formatOrderBy(newOrderBy) });
+            const byDefault = JSON.stringify(newOrderBy ?? null) === JSON.stringify(config.defaultOrderBy ?? null);
+
+            writeQuery({ order_by: byDefault ? null : formatOrderBy(newOrderBy) });
 
             reload();
         },

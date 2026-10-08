@@ -27,6 +27,9 @@
  * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
  *   page waits for it, so a screen still resolving its fields or filter does not read the list more than once
  *   (default: true)
+ * @param {boolean|{ scope?: string, prefix?: string }} options.views - Open on the custom view the list starts from,
+ *   the favorite of the user, else the one of everyone, applied before the first page; a URL saying what the list
+ *   shows (a link, a reload) wins over it
  * @returns {Object} - DataIterator state and methods
  */
 export declare function useDataIterator(model: string | object, options?: {
@@ -49,5 +52,9 @@ export declare function useDataIterator(model: string | object, options?: {
     datasetPrefix: string;
     pageSizeKey: string;
     enabled: boolean | Function | import('vue').Ref<boolean>;
+    views: boolean | {
+        scope?: string;
+        prefix?: string;
+    };
 }): any;
 //# sourceMappingURL=data-iterator.d.ts.map

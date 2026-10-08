@@ -14,6 +14,16 @@ vi.mock('vue-router', () => ({
     useRouter: () => ({ replace: router.replace }),
 }));
 
+const apis = vi.hoisted(() => ({}));
+
+vi.mock('../composables/api.js', () => ({
+    useApiModel: (name) => apis[name],
+}));
+
+vi.mock('../stores/auth.js', () => ({
+    useAuthStore: () => ({ user: { id: 5 } }),
+}));
+
 vi.mock('../stores/metadata.js', () => ({
     useMetadataStore: () => ({ getMetadata: () => Promise.resolve({}) }),
 }));
@@ -258,5 +268,37 @@ describe('useDataIterator', () => {
             ],
         ]);
         expect(service.list.mock.calls[1][0].filter).toEqual([['name', 'icontains', 'dupont']]);
+    });
+
+    it('reads its first page once, already on the view it starts from', async () => {
+        apis.custom_view = {
+            list: vi.fn().mockResolvedValue(page([{ id: 4, filters: ['plan', '=', 'plus'], order_by: ['name:asc'] }])),
+        };
+        apis.custom_view_favorite = { list: vi.fn().mockResolvedValue(page([])) };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: false, views: { scope: '' } });
+
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(1);
+        expect(service.list).toHaveBeenCalledWith(
+            expect.objectContaining({ filter: [['plan', '=', 'plus']], orderBy: ['name:asc'] })
+        );
+        expect(iterator.view.value).toBe(4);
+    });
+
+    it('opens as the url says when it says what the list shows', async () => {
+        router.route = { query: { q: 'du' } };
+        apis.custom_view = { list: vi.fn() };
+        apis.custom_view_favorite = { list: vi.fn() };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        useDataIterator(service, { sortable: false, views: true });
+
+        await settle();
+
+        expect(apis.custom_view.list).not.toHaveBeenCalled();
+        expect(service.list).toHaveBeenCalledTimes(1);
     });
 });

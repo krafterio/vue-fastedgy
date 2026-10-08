@@ -11,6 +11,7 @@ import { usePageSize } from './page-size.js';
 import { useSelection } from './selection.js';
 import { useSortable } from './sortable.js';
 import { useMetadataStore } from '../stores/metadata.js';
+import { useOpeningView } from './custom-views.js';
 
 /**
  * Read the expression a URL carries, `null` when it carries none or one that does not read.
@@ -85,6 +86,9 @@ const DEFAULT_OPTIONS = {
  * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
  *   page waits for it, so a screen still resolving its fields or filter does not read the list more than once
  *   (default: true)
+ * @param {boolean|{ scope?: string, prefix?: string }} options.views - Open on the custom view the list starts from,
+ *   the favorite of the user, else the one of everyone, applied before the first page; a URL saying what the list
+ *   shows (a link, a reload) wins over it
  * @returns {Object} - DataIterator state and methods
  */
 export function useDataIterator(model, options = {}) {
@@ -219,10 +223,37 @@ export function useDataIterator(model, options = {}) {
     const initialOrderBy = parseOrderBy(route.query.order_by) ?? config.defaultOrderBy ?? null;
     const orderBy = ref(initialOrderBy);
 
+    // A list keeping custom views reads its first page once, already on the
+    // view it starts from: the watchers answering to the view run while the
+    // list is still held back.
+    const entered = ['p', 's', 'order_by', 'q', 'sl', 'f', 'cv'].some((key) => key in route.query);
+    const opening =
+        config.views && !entered
+            ? useOpeningView(modelName, {
+                  scope: config.views.scope,
+                  prefix: config.views.prefix ?? config.prefix,
+              })
+            : null;
+    const opened = ref(opening === null);
+
+    void opening?.promise.then(async () => {
+        const start = opening.view.value;
+
+        if (start) {
+            expression.value = start.filters ?? null;
+            orderBy.value = start.order_by ?? config.defaultOrderBy ?? null;
+            view.value = start.id;
+
+            await nextTick();
+        }
+
+        opened.value = true;
+    });
+
     /**
      * Fetch items from API with current filters, pagination, and sorting
      */
-    const enabled = () => toValue(config.enabled) !== false;
+    const enabled = () => toValue(config.enabled) !== false && opened.value;
 
     // Only the latest read lands: an earlier one answering last would put back
     // the rows of a filter or a field list the screen has already left.

@@ -18,6 +18,8 @@
  * @param {boolean} options.enableSelection - Enable row selection (default: false)
  * @param {boolean} options.append - Keep the loaded items and append the next pages (default: false)
  * @param {string} options.searchField - Fulltext field the `search` text is matched on (default: 'search_value')
+ * @param {Array<string>} options.searchFields - Fields the `search` text is looked for in instead, a record matching
+ *   on any of them (`icontains`)
  * @param {HTMLElement|Window|import('vue').Ref|Function} options.scrollTarget - Element that scrolls the list, whose
  *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
@@ -42,6 +44,7 @@ export declare function useDataIterator(model: string | object, options?: {
     enableSelection: boolean;
     append: boolean;
     searchField: string;
+    searchFields: Array<string>;
     scrollTarget: HTMLElement | Window | import('vue').Ref | Function;
     datasetPrefix: string;
     pageSizeKey: string;

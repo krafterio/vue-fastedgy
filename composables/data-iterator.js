@@ -13,6 +13,34 @@ import { useSortable } from './sortable.js';
 import { useMetadataStore } from '../stores/metadata.js';
 
 /**
+ * Read the expression a URL carries, `null` when it carries none or one that does not read.
+ *
+ * @param {unknown} value
+ * @returns {any}
+ */
+function readExpression(value) {
+    if (typeof value !== 'string' || value === '') {
+        return null;
+    }
+
+    try {
+        return JSON.parse(value);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * @param {unknown} value
+ * @returns {number|null}
+ */
+function readId(value) {
+    const id = typeof value === 'string' ? Number.parseInt(value, 10) : Number.NaN;
+
+    return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+/**
  * Default configuration values for data iteration
  */
 const DEFAULT_OPTIONS = {
@@ -48,6 +76,8 @@ const DEFAULT_OPTIONS = {
  * @param {boolean} options.enableSelection - Enable row selection (default: false)
  * @param {boolean} options.append - Keep the loaded items and append the next pages (default: false)
  * @param {string} options.searchField - Fulltext field the `search` text is matched on (default: 'search_value')
+ * @param {Array<string>} options.searchFields - Fields the `search` text is looked for in instead, a record matching
+ *   on any of them (`icontains`)
  * @param {HTMLElement|Window|import('vue').Ref|Function} options.scrollTarget - Element that scrolls the list, whose
  *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
@@ -119,14 +149,32 @@ export function useDataIterator(model, options = {}) {
 
     const customFilter = ref(null);
 
+    // What a query builder sets, kept in the URL as `f`, and the custom view the
+    // list started from, as `cv`: a link opens the list it was copied from.
+    const expression = ref(readExpression(route.query.f));
+    const view = ref(readId(route.query.cv));
+
     const search = ref(typeof route.query.q === 'string' ? route.query.q : '');
     const appliedSearch = ref(search.value.trim());
+
+    const searchRule = (text) => {
+        const fields = config.searchFields;
+
+        if (!Array.isArray(fields) || fields.length === 0) {
+            return [config.searchField, 'search_fuzzy', text];
+        }
+
+        const rules = fields.map((field) => [field, 'icontains', text]);
+
+        return rules.length > 1 ? ['|', rules] : rules[0];
+    };
 
     const filter = computed(() => {
         const restrictiveFilters = typeof config.filter === 'function' ? config.filter() || [] : config.filter || [];
         const extraRules = [
             customFilter.value,
-            appliedSearch.value ? [config.searchField, 'search_fuzzy', appliedSearch.value] : null,
+            expression.value,
+            appliedSearch.value ? searchRule(appliedSearch.value) : null,
         ].filter(Boolean);
 
         if (extraRules.length === 0) {
@@ -454,6 +502,13 @@ export function useDataIterator(model, options = {}) {
 
     watch(appliedSearch, (value) => writeQuery({ q: value }));
 
+    watch(
+        () => JSON.stringify(expression.value ?? null),
+        (value) => writeQuery({ f: expression.value ? value : null })
+    );
+
+    watch(view, (id) => writeQuery({ cv: id }));
+
     // Scroll position - kept in the URL as `sl`
     function scrollElement() {
         const target = toValue(config.scrollTarget);
@@ -520,7 +575,10 @@ export function useDataIterator(model, options = {}) {
         // Filter
         filter: customFilter,
         combinedFilter: filter,
+        expression,
         search,
+        view,
+        defaultOrderBy: config.defaultOrderBy ?? null,
 
         // Order by
         orderBy,

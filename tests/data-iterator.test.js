@@ -187,4 +187,76 @@ describe('useDataIterator', () => {
 
         expect(router.replace).toHaveBeenLastCalledWith({ query: { sl: '120' } });
     });
+
+    it('sends the expression of the url, and keeps a new one and the current view in the url', async () => {
+        router.route = { query: { f: JSON.stringify(['name', 'icontains', 'pom']), cv: '7' } };
+        const service = { modelName: 'aliment', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: false, filter: ['is_active', 'is true'] });
+
+        await settle();
+
+        expect(iterator.view.value).toBe(7);
+        expect(service.list.mock.calls[0][0].filter).toEqual([
+            ['is_active', 'is true'],
+            ['name', 'icontains', 'pom'],
+        ]);
+
+        iterator.expression.value = [
+            '|',
+            [
+                ['name', '=', 'Pomme'],
+                ['name', '=', 'Poire'],
+            ],
+        ];
+        iterator.view.value = null;
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(2);
+        expect(router.replace).toHaveBeenLastCalledWith({
+            query: {
+                f: JSON.stringify([
+                    '|',
+                    [
+                        ['name', '=', 'Pomme'],
+                        ['name', '=', 'Poire'],
+                    ],
+                ]),
+            },
+        });
+    });
+
+    it('ignores an expression of the url that does not read', async () => {
+        router.route = { query: { f: '[name', cv: 'nope' } };
+        const service = { modelName: 'aliment', list: vi.fn().mockResolvedValue(page([])) };
+
+        const iterator = useDataIterator(service, { sortable: false });
+
+        await settle();
+
+        expect(iterator.expression.value).toBeNull();
+        expect(iterator.view.value).toBeNull();
+        expect(service.list.mock.calls[0][0].filter).toBeNull();
+    });
+
+    it('looks for the search in the fields it is given, any of them matching', async () => {
+        router.route = { query: { q: 'dupont' } };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([])) };
+
+        useDataIterator(service, { sortable: false, searchFields: ['name', 'workspace_users.user.email'] });
+        useDataIterator(service, { sortable: false, searchFields: ['name'] });
+
+        await settle();
+
+        expect(service.list.mock.calls[0][0].filter).toEqual([
+            [
+                '|',
+                [
+                    ['name', 'icontains', 'dupont'],
+                    ['workspace_users.user.email', 'icontains', 'dupont'],
+                ],
+            ],
+        ]);
+        expect(service.list.mock.calls[1][0].filter).toEqual([['name', 'icontains', 'dupont']]);
+    });
 });

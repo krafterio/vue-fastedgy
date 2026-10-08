@@ -139,11 +139,13 @@ export function useCustomViews(model, options = {}) {
          * @returns {Promise<CustomView>}
          */
         create: async ({ name, shared = true }) => {
+            // The default list is the scope the server writes: an empty one
+            // would leave as null, which the field refuses.
             const response = await api.create(
                 {
                     name,
                     model,
-                    scope,
+                    ...(scope ? { scope } : {}),
                     user: shared ? null : (authStore.user?.id ?? null),
                     ...state(),
                 },

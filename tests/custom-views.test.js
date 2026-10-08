@@ -94,11 +94,20 @@ describe('useCustomViews', () => {
         expect(apis.custom_view.create.mock.calls[0][0]).toMatchObject({
             name: 'Mine',
             model: 'household',
-            scope: '',
             filters: ['name', 'icontains', 'du'],
             order_by: ['created_at:desc'],
         });
         expect(list.view.value).toBe(3);
+    });
+
+    it('leaves the scope of the default list to the server, and names any other', async () => {
+        apis.custom_view.create.mockImplementation((payload) => Promise.resolve({ data: view(4, payload) }));
+
+        await useCustomViews('household', { list: iterator() }).create({ name: 'All' });
+        await useCustomViews('support_ticket', { scope: 'survey', list: iterator() }).create({ name: 'Surveys' });
+
+        expect(apis.custom_view.create.mock.calls[0][0]).not.toHaveProperty('scope');
+        expect(apis.custom_view.create.mock.calls[1][0]).toMatchObject({ scope: 'survey' });
     });
 
     it('keeps one default for everyone, one favorite for the user, and lets the deleted view go', async () => {

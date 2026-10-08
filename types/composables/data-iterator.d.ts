@@ -27,6 +27,9 @@
  * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
  *   page waits for it, so a screen still resolving its fields or filter does not read the list more than once
  *   (default: true)
+ * @param {Array<import('./quick-filter.js').QuickFilter|object>} options.quickFilters - Values shown by the controls of
+ *   the screen (their definitions, or the components `defineQuickFilter` makes), held in `quick`, kept in the URL as
+ *   `qf` when away from their default, their rules combined with the rest of the filter
  * @param {boolean|{ scope?: string, prefix?: string }} options.views - Open on the custom view the list starts from,
  *   applied before the first page: the one a link names (`cv`), else, for a URL saying nothing of the list, the
  *   favorite of the user, else the one of everyone. The filters of the view stay out of the URL, which says only
@@ -53,6 +56,7 @@ export declare function useDataIterator(model: string | object, options?: {
     datasetPrefix: string;
     pageSizeKey: string;
     enabled: boolean | Function | import('vue').Ref<boolean>;
+    quickFilters: Array<import('./quick-filter.js').QuickFilter | object>;
     views: boolean | {
         scope?: string;
         prefix?: string;

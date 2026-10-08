@@ -397,4 +397,41 @@ describe('useDataIterator', () => {
         await settle();
         expect(written()).not.toHaveProperty('order_by');
     });
+
+    it('sends the rules of its quick filters, read from the url, and keeps there those away from their default', async () => {
+        router.route = { query: { qf: '{"closed":true}' } };
+        const closed = {
+            name: 'closed',
+            default: false,
+            filter: (shown) => (shown ? null : ['status', '=', 'opened']),
+        };
+        const kind = {
+            name: 'kind',
+            default: 'all',
+            filter: (value) => (value === 'all' ? null : ['type', '=', value]),
+        };
+        const service = { modelName: 'support_ticket', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+        const written = () => router.replace.mock.calls.at(-1)?.[0].query ?? {};
+
+        const iterator = useDataIterator(service, { sortable: false, quickFilters: [closed, { quickFilter: kind }] });
+
+        await settle();
+
+        expect(iterator.quick).toEqual({ closed: true, kind: 'all' });
+        expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ filter: null }));
+
+        iterator.quick.closed = false;
+        iterator.quick.kind = 'idea';
+        await settle();
+
+        expect(service.list).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+                filter: [
+                    ['status', '=', 'opened'],
+                    ['type', '=', 'idea'],
+                ],
+            })
+        );
+        expect(written().qf).toBe('{"kind":"idea"}');
+    });
 });

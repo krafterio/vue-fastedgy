@@ -11,6 +11,7 @@ export * from './composables/file-drop.js';
 export * from './composables/navigator.js';
 export * from './composables/page-size.js';
 export * from './composables/query-expression.js';
+export * from './composables/quick-filter.js';
 export * from './composables/realtime.js';
 export * from './composables/record-context.js';
 export * from './composables/api-model-form.js';

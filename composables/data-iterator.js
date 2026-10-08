@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { ref, computed, toValue, watch, nextTick, getCurrentScope, onScopeDispose } from 'vue';
+import { ref, reactive, computed, toValue, watch, nextTick, getCurrentScope, onScopeDispose } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useApiModel } from './api.js';
 import { formatOrderBy, parseOrderBy } from '../utils/order-by.js';
@@ -12,6 +12,7 @@ import { useSelection } from './selection.js';
 import { useSortable } from './sortable.js';
 import { useMetadataStore } from '../stores/metadata.js';
 import { useOpeningView } from './custom-views.js';
+import { quickFilterOf, readQuickFilters, writeQuickFilters } from './quick-filter.js';
 import { sameExpression } from '../utils/query-expression.js';
 
 /**
@@ -87,6 +88,9 @@ const DEFAULT_OPTIONS = {
  * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
  *   page waits for it, so a screen still resolving its fields or filter does not read the list more than once
  *   (default: true)
+ * @param {Array<import('./quick-filter.js').QuickFilter|object>} options.quickFilters - Values shown by the controls of
+ *   the screen (their definitions, or the components `defineQuickFilter` makes), held in `quick`, kept in the URL as
+ *   `qf` when away from their default, their rules combined with the rest of the filter
  * @param {boolean|{ scope?: string, prefix?: string }} options.views - Open on the custom view the list starts from,
  *   applied before the first page: the one a link names (`cv`), else, for a URL saying nothing of the list, the
  *   favorite of the user, else the one of everyone. The filters of the view stay out of the URL, which says only
@@ -163,6 +167,9 @@ export function useDataIterator(model, options = {}) {
     const view = ref(readId(route.query.cv));
     const viewExpression = ref(undefined);
 
+    const quickFilters = (config.quickFilters ?? []).map(quickFilterOf);
+    const quick = reactive(readQuickFilters(route.query.qf, quickFilters));
+
     const search = ref(typeof route.query.q === 'string' ? route.query.q : '');
     const appliedSearch = ref(search.value.trim());
 
@@ -183,6 +190,7 @@ export function useDataIterator(model, options = {}) {
         const extraRules = [
             customFilter.value,
             expression.value,
+            ...quickFilters.map((one) => one.filter(quick[one.name])),
             appliedSearch.value ? searchRule(appliedSearch.value) : null,
         ].filter(Boolean);
 
@@ -233,7 +241,7 @@ export function useDataIterator(model, options = {}) {
     // filter of its own, else the favorite when the URL says nothing of the
     // list. The watchers answering to the view run while the list is held back.
     const linkedView = 'f' in route.query ? null : view.value;
-    const entered = ['p', 's', 'order_by', 'q', 'sl', 'f', 'cv'].some((key) => key in route.query);
+    const entered = ['p', 's', 'order_by', 'q', 'sl', 'f', 'cv', 'qf'].some((key) => key in route.query);
     const opening =
         config.views && (linkedView !== null || !entered)
             ? useOpeningView(modelName, {
@@ -577,6 +585,11 @@ export function useDataIterator(model, options = {}) {
 
     watch(view, (id) => writeQuery({ cv: id }));
 
+    watch(
+        () => JSON.stringify(quickFilters.map((one) => quick[one.name] ?? null)),
+        () => writeQuery({ qf: writeQuickFilters(quick, quickFilters) })
+    );
+
     // Scroll position - kept in the URL as `sl`
     function scrollElement() {
         const target = toValue(config.scrollTarget);
@@ -647,6 +660,7 @@ export function useDataIterator(model, options = {}) {
         search,
         view,
         viewExpression,
+        quick,
         defaultOrderBy: config.defaultOrderBy ?? null,
 
         // Order by

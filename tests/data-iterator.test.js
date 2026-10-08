@@ -301,4 +301,85 @@ describe('useDataIterator', () => {
         expect(apis.custom_view.list).not.toHaveBeenCalled();
         expect(service.list).toHaveBeenCalledTimes(1);
     });
+
+    it('keeps out of the url the filters of the view the list is on, and writes those moving away from them', async () => {
+        apis.custom_view = {
+            list: vi.fn().mockResolvedValue(page([{ id: 4, filters: ['plan', '=', 'plus'], order_by: null }])),
+        };
+        apis.custom_view_favorite = { list: vi.fn().mockResolvedValue(page([])) };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+        const written = () => router.replace.mock.calls.at(-1)?.[0].query ?? {};
+
+        const iterator = useDataIterator(service, { sortable: false, views: {} });
+
+        await settle();
+
+        expect(written().cv).toBe('4');
+        expect(written()).not.toHaveProperty('f');
+
+        iterator.expression.value = ['plan', '=', 'free'];
+        await settle();
+        expect(written().f).toBe('["plan","=","free"]');
+
+        iterator.expression.value = ['plan', '=', 'plus'];
+        await settle();
+        expect(written()).not.toHaveProperty('f');
+
+        iterator.expression.value = null;
+        await settle();
+        expect(written().f).toBe('null');
+    });
+
+    it('opens a link to a view on the filters of that view, read again', async () => {
+        router.route = { query: { cv: '4' } };
+        apis.custom_view = {
+            get: vi.fn().mockResolvedValue({
+                data: { id: 4, model: 'household', scope: '', filters: ['plan', '=', 'plus'], order_by: null },
+            }),
+            list: vi.fn(),
+        };
+        apis.custom_view_favorite = { list: vi.fn() };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: false, views: {} });
+
+        await settle();
+
+        expect(apis.custom_view_favorite.list).not.toHaveBeenCalled();
+        expect(service.list).toHaveBeenCalledTimes(1);
+        expect(service.list).toHaveBeenCalledWith(expect.objectContaining({ filter: [['plan', '=', 'plus']] }));
+        expect(iterator.view.value).toBe(4);
+    });
+
+    it('opens a link carrying its own filters on them, its view staying the current one', async () => {
+        router.route = { query: { cv: '4', f: '["plan","=","free"]' } };
+        apis.custom_view = { get: vi.fn(), list: vi.fn() };
+        apis.custom_view_favorite = { list: vi.fn() };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: false, views: {} });
+
+        await settle();
+
+        expect(apis.custom_view.get).not.toHaveBeenCalled();
+        expect(iterator.view.value).toBe(4);
+        expect(service.list).toHaveBeenCalledWith(expect.objectContaining({ filter: [['plan', '=', 'free']] }));
+    });
+
+    it('drops the view of a link that is not one of this list', async () => {
+        router.route = { query: { cv: '4' } };
+        apis.custom_view = {
+            get: vi.fn().mockResolvedValue({ data: { id: 4, model: 'task', scope: '', filters: ['done', 'is true'] } }),
+            list: vi.fn(),
+        };
+        apis.custom_view_favorite = { list: vi.fn() };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: false, views: {} });
+
+        await settle();
+
+        expect(iterator.view.value).toBeNull();
+        expect(service.list).toHaveBeenCalledWith(expect.objectContaining({ filter: null }));
+    });
 });

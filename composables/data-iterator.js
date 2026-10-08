@@ -12,6 +12,7 @@ import { useSelection } from './selection.js';
 import { useSortable } from './sortable.js';
 import { useMetadataStore } from '../stores/metadata.js';
 import { useOpeningView } from './custom-views.js';
+import { sameExpression } from '../utils/query-expression.js';
 
 /**
  * Read the expression a URL carries, `null` when it carries none or one that does not read.
@@ -87,8 +88,9 @@ const DEFAULT_OPTIONS = {
  *   page waits for it, so a screen still resolving its fields or filter does not read the list more than once
  *   (default: true)
  * @param {boolean|{ scope?: string, prefix?: string }} options.views - Open on the custom view the list starts from,
- *   the favorite of the user, else the one of everyone, applied before the first page; a URL saying what the list
- *   shows (a link, a reload) wins over it
+ *   applied before the first page: the one a link names (`cv`), else, for a URL saying nothing of the list, the
+ *   favorite of the user, else the one of everyone. The filters of the view stay out of the URL, which says only
+ *   those that moved away from it
  * @returns {Object} - DataIterator state and methods
  */
 export function useDataIterator(model, options = {}) {
@@ -154,9 +156,12 @@ export function useDataIterator(model, options = {}) {
     const customFilter = ref(null);
 
     // What a query builder sets, kept in the URL as `f`, and the custom view the
-    // list started from, as `cv`: a link opens the list it was copied from.
+    // list is on, as `cv`: a link opens the list it was copied from. The filters
+    // of the view are its own to say (`undefined` while they are not read), so
+    // `f` says only those that moved away from them.
     const expression = ref(readExpression(route.query.f));
     const view = ref(readId(route.query.cv));
+    const viewExpression = ref(undefined);
 
     const search = ref(typeof route.query.q === 'string' ? route.query.q : '');
     const appliedSearch = ref(search.value.trim());
@@ -224,14 +229,17 @@ export function useDataIterator(model, options = {}) {
     const orderBy = ref(initialOrderBy);
 
     // A list keeping custom views reads its first page once, already on the
-    // view it starts from: the watchers answering to the view run while the
-    // list is still held back.
+    // view it starts from: the one its link names when the link carries no
+    // filter of its own, else the favorite when the URL says nothing of the
+    // list. The watchers answering to the view run while the list is held back.
+    const linkedView = 'f' in route.query ? null : view.value;
     const entered = ['p', 's', 'order_by', 'q', 'sl', 'f', 'cv'].some((key) => key in route.query);
     const opening =
-        config.views && !entered
+        config.views && (linkedView !== null || !entered)
             ? useOpeningView(modelName, {
                   scope: config.views.scope,
                   prefix: config.views.prefix ?? config.prefix,
+                  id: linkedView,
               })
             : null;
     const opened = ref(opening === null);
@@ -241,10 +249,16 @@ export function useDataIterator(model, options = {}) {
 
         if (start) {
             expression.value = start.filters ?? null;
-            orderBy.value = start.order_by ?? config.defaultOrderBy ?? null;
+            viewExpression.value = start.filters ?? null;
             view.value = start.id;
 
+            if (!('order_by' in route.query)) {
+                orderBy.value = start.order_by ?? config.defaultOrderBy ?? null;
+            }
+
             await nextTick();
+        } else {
+            view.value = null;
         }
 
         opened.value = true;
@@ -533,9 +547,30 @@ export function useDataIterator(model, options = {}) {
 
     watch(appliedSearch, (value) => writeQuery({ q: value }));
 
+    // Nothing for a list on its view as the view says it, the expression once
+    // it moves away from it, `null` written out for filters cleared off a view.
+    const writtenExpression = () => {
+        const current = expression.value ?? null;
+
+        if (view.value === null) {
+            return current ? JSON.stringify(current) : null;
+        }
+
+        if (viewExpression.value !== undefined && sameExpression(current, viewExpression.value)) {
+            return null;
+        }
+
+        return JSON.stringify(current);
+    };
+
     watch(
-        () => JSON.stringify(expression.value ?? null),
-        (value) => writeQuery({ f: expression.value ? value : null })
+        () =>
+            JSON.stringify([
+                expression.value ?? null,
+                view.value,
+                viewExpression.value === undefined ? '?' : viewExpression.value,
+            ]),
+        () => writeQuery({ f: writtenExpression() })
     );
 
     watch(view, (id) => writeQuery({ cv: id }));
@@ -609,6 +644,7 @@ export function useDataIterator(model, options = {}) {
         expression,
         search,
         view,
+        viewExpression,
         defaultOrderBy: config.defaultOrderBy ?? null,
 
         // Order by

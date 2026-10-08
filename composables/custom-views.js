@@ -77,6 +77,12 @@ export function useCustomViews(model, options = {}) {
 
             items.value = views.data.items;
             favorite.value = first ? { id: first.id, view: first.view?.id ?? first.view } : null;
+
+            const on = views.data.items.find((view) => view.id === list?.view?.value);
+
+            if (on) {
+                follow(on);
+            }
             error.value = null;
             loaded.value = true;
         } catch (failure) {
@@ -115,6 +121,14 @@ export function useCustomViews(model, options = {}) {
 
     const replaceItem = (view) => {
         items.value = items.value.map((item) => (item.id === view.id ? view : item));
+    };
+
+    // What the list knows of the filters of the view it is on, which it then
+    // keeps out of its URL.
+    const follow = (view) => {
+        if (list?.viewExpression) {
+            list.viewExpression.value = view ? (view.filters ?? null) : undefined;
+        }
     };
 
     const state = () => ({
@@ -156,6 +170,7 @@ export function useCustomViews(model, options = {}) {
 
             if (list?.view) {
                 list.view.value = response.data.id;
+                follow(response.data);
             }
 
             return response.data;
@@ -166,7 +181,13 @@ export function useCustomViews(model, options = {}) {
          * @param {CustomView} view
          */
         save: async (view) => {
-            replaceItem((await api.update(view.id, state(), { fields: VIEW_FIELDS })).data);
+            const saved = (await api.update(view.id, state(), { fields: VIEW_FIELDS })).data;
+
+            replaceItem(saved);
+
+            if (list?.view?.value === saved.id) {
+                follow(saved);
+            }
         },
 
         /**
@@ -189,6 +210,7 @@ export function useCustomViews(model, options = {}) {
 
             if (list?.view && list.view.value === view.id) {
                 list.view.value = null;
+                follow(null);
             }
         },
 
@@ -239,21 +261,23 @@ export function useCustomViews(model, options = {}) {
             list.expression.value = view.filters ?? null;
             list.orderBy.value = view.order_by ?? list.defaultOrderBy ?? null;
             list.view.value = view.id;
+            follow(view);
         },
     };
 }
 
 /**
- * The view a list opens on, read before its first page: the favorite of the
- * current user, else the one of everyone, else none. Skipped when the list
- * already says what it shows (a link, a reload).
+ * The view a list opens on, read before its first page: the one a link names
+ * (`id`), else the favorite of the current user, else the one of everyone,
+ * else none. A view named by a link is kept only if it is one of this list.
+ * Skipped when the list already says what it shows (a reload).
  *
  * @param {string} model - The metadata name of the listed model
- * @param {{ scope?: string, prefix?: string, skip?: boolean|(() => boolean) }} [options]
+ * @param {{ scope?: string, prefix?: string, skip?: boolean|(() => boolean), id?: number|null }} [options]
  * @returns {{ ready: import('vue').Ref<boolean>, view: import('vue').Ref<CustomView|null>, promise: Promise<void> }}
  */
 export function useOpeningView(model, options = {}) {
-    const { scope = '', prefix = '', skip = false } = options;
+    const { scope = '', prefix = '', skip = false, id = null } = options;
     const api = useApiModel('custom_view', { prefix });
     const favorites = useApiModel('custom_view_favorite', { prefix });
     const ready = ref(false);
@@ -262,6 +286,14 @@ export function useOpeningView(model, options = {}) {
     const promise = (async () => {
         try {
             if (typeof skip === 'function' ? skip() : skip) {
+                return;
+            }
+
+            if (id !== null) {
+                const named = (await api.get(id, { fields: VIEW_FIELDS })).data;
+
+                view.value = named?.model === model && (named?.scope ?? '') === scope ? named : null;
+
                 return;
             }
 

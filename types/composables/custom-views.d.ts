@@ -32,18 +32,20 @@ export declare function useCustomViews(model: string, options?: {
     list?: any;
 }): any;
 /**
- * The view a list opens on, read before its first page: the favorite of the
- * current user, else the one of everyone, else none. Skipped when the list
- * already says what it shows (a link, a reload).
+ * The view a list opens on, read before its first page: the one a link names
+ * (`id`), else the favorite of the current user, else the one of everyone,
+ * else none. A view named by a link is kept only if it is one of this list.
+ * Skipped when the list already says what it shows (a reload).
  *
  * @param {string} model - The metadata name of the listed model
- * @param {{ scope?: string, prefix?: string, skip?: boolean|(() => boolean) }} [options]
+ * @param {{ scope?: string, prefix?: string, skip?: boolean|(() => boolean), id?: number|null }} [options]
  * @returns {{ ready: import('vue').Ref<boolean>, view: import('vue').Ref<CustomView|null>, promise: Promise<void> }}
  */
 export declare function useOpeningView(model: string, options?: {
     scope?: string;
     prefix?: string;
     skip?: boolean | (() => boolean);
+    id?: number | null;
 }): {
     ready: import('vue').Ref<boolean>;
     view: import('vue').Ref<CustomView | null>;

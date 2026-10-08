@@ -36,6 +36,7 @@ const iterator = () => ({
     expression: ref(null),
     orderBy: ref(['created_at:desc']),
     view: ref(null),
+    viewExpression: ref(undefined),
     defaultOrderBy: ['created_at:desc'],
 });
 
@@ -141,6 +142,24 @@ describe('useCustomViews', () => {
         const views = useCustomViews('household', { list: iterator() });
 
         await expect(views.create({ name: 'Taken' })).rejects.toThrow('already has this name');
+    });
+
+    it('tells the list the filters of the view it is on, as they are applied, saved and dropped', async () => {
+        const list = iterator();
+        apis.custom_view.list.mockResolvedValue(page([view(1, { filters: ['plan', '=', 'plus'] })]));
+        apis.custom_view.update.mockImplementation((id, payload) => Promise.resolve({ data: view(id, payload) }));
+        const views = useCustomViews('household', { list });
+
+        await views.ensure();
+        views.apply(views.items.value[0]);
+        expect(list.viewExpression.value).toEqual(['plan', '=', 'plus']);
+
+        list.expression.value = ['plan', '=', 'free'];
+        await views.save(views.items.value[0]);
+        expect(list.viewExpression.value).toEqual(['plan', '=', 'free']);
+
+        await views.remove(views.items.value[0]);
+        expect(list.viewExpression.value).toBeUndefined();
     });
 });
 

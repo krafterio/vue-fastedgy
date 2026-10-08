@@ -661,6 +661,7 @@ export function useDataIterator(model, options = {}) {
         view,
         viewExpression,
         quick,
+        quickFilters: config.quickFilters ?? [],
         defaultOrderBy: config.defaultOrderBy ?? null,
 
         // Order by

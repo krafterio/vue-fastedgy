@@ -418,6 +418,7 @@ describe('useDataIterator', () => {
         await settle();
 
         expect(iterator.quick).toEqual({ closed: true, kind: 'all' });
+        expect(iterator.quickFilters).toEqual([closed, { quickFilter: kind }]);
         expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ filter: null }));
 
         iterator.quick.closed = false;

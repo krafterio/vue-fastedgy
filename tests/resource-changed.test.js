@@ -7,7 +7,7 @@ import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 import { bus } from '../composables/bus.js';
-import { useResourceChanged } from '../composables/realtime.js';
+import { RESOURCES_STALE, useResourceChanged } from '../composables/realtime.js';
 import { notifyChanged, realtime } from '../network/realtime.js';
 
 const mounted = [];
@@ -122,6 +122,14 @@ describe('useResourceChanged', () => {
 
         expect(heard).toHaveLength(1);
         expect(heard[0].action).toBe('reconnected');
+    });
+
+    it('asks the view to read again when another workspace became current, without waiting', () => {
+        listening(() => useResourceChanged('company', (one) => heard.push(one), { refreshDelay: 5000 }));
+        bus.trigger(RESOURCES_STALE);
+
+        expect(heard).toHaveLength(1);
+        expect(heard[0]).toMatchObject({ model: 'company', id: null, action: 'stale' });
     });
 
     it('subscribes the socket to what it watches, and lets go when the view does', () => {

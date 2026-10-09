@@ -65,6 +65,19 @@ export const REALTIME_SOURCE = 'realtime:source';
 export const REALTIME_SOURCE_REQUEST = 'realtime:source-request';
 
 /**
+ * Say that whatever is on screen belongs to a context that is gone: another
+ * workspace became the current one. Every [useResourceChanged] hears it as a
+ * `stale` change of its model, the way flutter_fastedgy's `ResourcesStaleEvent`
+ * reaches its holders.
+ *
+ * @type {String}
+ *
+ * @example
+ * bus.trigger(RESOURCES_STALE);
+ */
+export const RESOURCES_STALE = 'resources:stale';
+
+/**
  * Keep the live socket in step with who is signed in and what they are reading.
  *
  * Called once, from the application shell, and takes nothing: what the socket
@@ -270,6 +283,10 @@ export function useResourceChanged(model, handler, options = {}) {
 
     useBus(bus, 'realtime:reconnected', () =>
         fire({ model, id: null, action: 'reconnected', changed: null, origin: null, truncated: true, data: null })
+    );
+
+    useBus(bus, RESOURCES_STALE, () =>
+        fire({ model, id: null, action: 'stale', changed: null, origin: null, truncated: true, data: null })
     );
 
     // Sync: a tab hidden then shown again before a flush is still a tab that was hidden.

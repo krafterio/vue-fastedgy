@@ -38,6 +38,8 @@ export type ViewStateField = {
  *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
+ * @param {boolean} options.url - Keep the state of the list in the URL (default: true); false holds it in memory, for
+ *   a list drawn inside a screen whose URL says something else (a tab of a record shown over another list)
  * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
  *   page waits for it, so a screen still resolving its fields or filter does not read the list more than once
  *   (default: true)

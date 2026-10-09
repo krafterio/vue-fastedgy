@@ -236,6 +236,36 @@ describe('useDataIterator', () => {
         });
     });
 
+    it('leaves the url to the screen it is drawn in when it holds its state itself', async () => {
+        router.route = {
+            query: { f: JSON.stringify(['name', 'icontains', 'pom']), q: 'pom', p: '2', order_by: 'name:asc' },
+        };
+        const service = { modelName: 'booking', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, {
+            sortable: false,
+            url: false,
+            filter: ['status', '=', 'confirmed'],
+            defaultOrderBy: ['start_at:desc'],
+        });
+
+        await settle();
+
+        expect(service.list.mock.calls[0][0]).toMatchObject({
+            page: 1,
+            filter: ['status', '=', 'confirmed'],
+            orderBy: ['start_at:desc'],
+        });
+
+        iterator.expression.value = ['status', '=', 'cancelled'];
+        await settle();
+        iterator.currentPage.value = 2;
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(3);
+        expect(router.replace).not.toHaveBeenCalled();
+    });
+
     it('ignores an expression of the url that does not read', async () => {
         router.route = { query: { f: '[name', cv: 'nope' } };
         const service = { modelName: 'aliment', list: vi.fn().mockResolvedValue(page([])) };

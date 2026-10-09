@@ -57,6 +57,7 @@ const DEFAULT_OPTIONS = {
     append: false,
     searchField: 'search_value',
     scrollTarget: null,
+    url: true,
 };
 
 /**
@@ -85,6 +86,8 @@ const DEFAULT_OPTIONS = {
  *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
+ * @param {boolean} options.url - Keep the state of the list in the URL (default: true); false holds it in memory, for
+ *   a list drawn inside a screen whose URL says something else (a tab of a record shown over another list)
  * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
  *   page waits for it, so a screen still resolving its fields or filter does not read the list more than once
  *   (default: true)
@@ -120,6 +123,10 @@ export function useDataIterator(model, options = {}) {
     const route = useRoute();
     const router = useRouter();
 
+    // A list drawn inside another screen leaves the URL to that screen.
+    const urlQuery = () => (config.url === false ? {} : route.query);
+    const entry = urlQuery();
+
     const items = ref([]);
     const total = ref(0);
     const loading = ref(false);
@@ -132,6 +139,10 @@ export function useDataIterator(model, options = {}) {
     let pendingQuery = null;
 
     const writeQuery = (patch) => {
+        if (config.url === false) {
+            return;
+        }
+
         if (!pendingQuery) {
             pendingQuery = {};
 
@@ -154,17 +165,17 @@ export function useDataIterator(model, options = {}) {
         Object.assign(pendingQuery, patch);
     };
 
-    const initialPage = route.query.p ? parseInt(route.query.p, 10) : 1;
+    const initialPage = entry.p ? parseInt(entry.p, 10) : 1;
     const currentPage = ref(initialPage > 0 ? initialPage : 1);
 
     // An appended list entered at page n reads pages 1 to n in one request,
     // so the rows the scroll position points at are there.
     let restorePages = config.append ? currentPage.value : 1;
 
-    const initialScroll = route.query.sl ? parseInt(route.query.sl, 10) : 0;
+    const initialScroll = entry.sl ? parseInt(entry.sl, 10) : 0;
     let restoreScroll = config.scrollTarget && initialScroll > 0 ? initialScroll : null;
 
-    const pageSize = usePageSize(route.query.s, config.availablePageSizes, config.pageSize, config.pageSizeKey);
+    const pageSize = usePageSize(entry.s, config.availablePageSizes, config.pageSize, config.pageSizeKey);
 
     const customFilter = ref(null);
 
@@ -172,14 +183,14 @@ export function useDataIterator(model, options = {}) {
     // list is on, as `cv`: a link opens the list it was copied from. The filters
     // of the view are its own to say (`undefined` while they are not read), so
     // `f` says only those that moved away from them.
-    const expression = ref(readExpression(route.query.f));
-    const view = ref(readId(route.query.cv));
+    const expression = ref(readExpression(entry.f));
+    const view = ref(readId(entry.cv));
     const viewExpression = ref(undefined);
 
     const quickFilters = (config.quickFilters ?? []).map(quickFilterOf);
-    const quick = reactive(readQuickFilters(route.query.qf, quickFilters));
+    const quick = reactive(readQuickFilters(entry.qf, quickFilters));
 
-    const search = ref(typeof route.query.q === 'string' ? route.query.q : '');
+    const search = ref(typeof entry.q === 'string' ? entry.q : '');
     const appliedSearch = ref(search.value.trim());
 
     const searchRule = (text) => {
@@ -242,7 +253,7 @@ export function useDataIterator(model, options = {}) {
         return [...new Set(allFields)];
     });
 
-    const initialOrderBy = parseOrderBy(route.query.order_by) ?? config.defaultOrderBy ?? null;
+    const initialOrderBy = parseOrderBy(entry.order_by) ?? config.defaultOrderBy ?? null;
     const orderBy = ref(initialOrderBy);
 
     // A list keeping custom views reads its first page once, already on the
@@ -253,8 +264,8 @@ export function useDataIterator(model, options = {}) {
     const stateKeys = Object.values(viewState)
         .map((one) => one.key)
         .filter(Boolean);
-    const linkedView = 'f' in route.query ? null : view.value;
-    const entered = ['p', 's', 'order_by', 'q', 'sl', 'f', 'cv', 'qf', ...stateKeys].some((key) => key in route.query);
+    const linkedView = 'f' in entry ? null : view.value;
+    const entered = ['p', 's', 'order_by', 'q', 'sl', 'f', 'cv', 'qf', ...stateKeys].some((key) => key in entry);
     const opening =
         config.views && (linkedView !== null || !entered)
             ? useOpeningView(modelName, {
@@ -273,12 +284,12 @@ export function useDataIterator(model, options = {}) {
             viewExpression.value = start.filters ?? null;
             view.value = start.id;
 
-            if (!('order_by' in route.query)) {
+            if (!('order_by' in urlQuery())) {
                 orderBy.value = start.order_by ?? config.defaultOrderBy ?? null;
             }
 
             for (const [name, one] of Object.entries(viewState)) {
-                if (!(one.key && one.key in route.query)) {
+                if (!(one.key && one.key in urlQuery())) {
                     one.set(start[name] ?? null);
                 }
             }

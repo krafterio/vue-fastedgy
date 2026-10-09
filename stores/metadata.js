@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { onScopeDispose, ref } from 'vue';
 import { useAuthStore } from './auth.js';
 import { bus } from '../composables/bus.js';
 import { useFetcher } from '../composables/fetcher.js';
@@ -52,29 +52,58 @@ export const METADATA_INVALIDATED = 'metadata:invalidated';
  * @property {Record<string, MetadataField>} fields
  */
 
+/**
+ * @typedef {Object} MetadataScope
+ * @property {string} scope What the metadatas read are kept under
+ * @property {string} prefix The prefix they are read under
+ */
+
+/** @type {((prefix: string) => MetadataScope|Promise<MetadataScope>)|null} */
+let scopeResolver = null;
+
+/**
+ * Keep the metadatas by scope rather than as one set: [resolver] says, from
+ * the prefix the application set, which scope it reads in and the prefix to
+ * read it under. Coming back to a scope reads nothing. Whatever knows the
+ * scope injects it (the workspaces do, see `createWorkspaces`); `null` goes
+ * back to one set.
+ *
+ * @param {((prefix: string) => MetadataScope|Promise<MetadataScope>)|null} resolver
+ */
+export function setMetadataScope(resolver) {
+    scopeResolver = resolver;
+}
+
 export const useMetadataStore = defineStore('metadata', () => {
-    const metadatas = ref(null);
     const loading = ref(false);
     const error = ref(null);
     const prefix = ref(null);
     const authStore = useAuthStore();
     const fetcher = useFetcher({ abortOnUnmounted: false });
-    /** @type {Promise<void>|null} */
-    let fetchPromise = null;
-    // Which set of metadatas is the one being asked for: a read started before
-    // an invalidation answers for what nobody reads any more.
+    /** @type {Map<String, Object>} */
+    const read = new Map();
+    /** @type {Map<String, {asked: Number, pending: Promise<*>}>} */
+    const reading = new Map();
+    // The scope last read in, for what is set by hand.
+    let lastScope = '';
+    // Which reads are still wanted: one asked before an invalidation answers for
+    // what nobody reads any more.
     let generation = 0;
 
     const forget = () => {
         generation += 1;
-        metadatas.value = null;
-        fetchPromise = null;
+        read.clear();
+        reading.clear();
     };
 
     bus.addEventListener(METADATA_INVALIDATED, forget);
     // What was read belongs to the account that signed out: the next one may
     // see other fields.
     bus.addEventListener('auth:logout', forget);
+    onScopeDispose(() => {
+        bus.removeEventListener(METADATA_INVALIDATED, forget);
+        bus.removeEventListener('auth:logout', forget);
+    });
 
     function setPrefix(newPrefix) {
         prefix.value = newPrefix;
@@ -84,47 +113,85 @@ export const useMetadataStore = defineStore('metadata', () => {
         return prefix.value;
     }
 
-    async function fetchMetadatas() {
-        if (!authStore.isAuthenticated) {
-            return;
+    /** @returns {Promise<MetadataScope>} */
+    async function currentScope() {
+        const base = prefix.value || '';
+        const resolved = scopeResolver ? await scopeResolver(base) : null;
+
+        lastScope = resolved?.scope ?? '';
+
+        return resolved ?? { scope: '', prefix: base };
+    }
+
+    /**
+     * Read the metadatas of [scope] under [scopePrefix], once for every caller
+     * asking meanwhile.
+     *
+     * @param {String} scope
+     * @param {String} scopePrefix
+     * @param {{again?: Boolean, asked?: Number}} [options] `again` reads even
+     *   what is held; `asked` is the generation the caller asked in
+     * @returns {Promise<*>} What the read ran into, null when it went well
+     */
+    function readScope(scope, scopePrefix, { again = false, asked = generation } = {}) {
+        if (!authStore.isAuthenticated || (!again && read.has(scope))) {
+            return Promise.resolve(null);
         }
 
-        const asked = generation;
+        const running = reading.get(scope);
 
-        fetchPromise ??= (async () => {
+        if (running?.asked === asked) {
+            return running.pending;
+        }
+
+        const pending = (async () => {
             loading.value = true;
             error.value = null;
 
             try {
-                const response = await fetcher.get((prefix.value || '') + '/dataset/metadatas');
+                const response = await fetcher.get(scopePrefix + '/dataset/metadatas');
 
                 if (asked === generation) {
-                    setMetadatas(response.data);
+                    read.set(scope, response.data);
                 }
+
+                return null;
             } catch (err) {
                 error.value = err;
+
+                return err;
             } finally {
                 loading.value = false;
 
-                if (asked === generation) {
-                    fetchPromise = null;
+                if (reading.get(scope)?.pending === pending) {
+                    reading.delete(scope);
                 }
             }
         })();
 
-        await fetchPromise;
+        reading.set(scope, { asked, pending });
+
+        return pending;
+    }
+
+    async function fetchMetadatas() {
+        const asked = generation;
+        const current = await currentScope();
+
+        return readScope(current.scope, current.prefix, { again: true, asked });
     }
 
     function setMetadatas(newMetadatas) {
-        metadatas.value = newMetadatas;
+        read.set(lastScope, newMetadatas);
     }
 
     async function getMetadatas() {
-        if (!metadatas.value) {
-            await fetchMetadatas();
-        }
+        const asked = generation;
+        const current = await currentScope();
 
-        return metadatas.value;
+        await readScope(current.scope, current.prefix, { asked });
+
+        return read.get(current.scope) ?? null;
     }
 
     /**
@@ -134,7 +201,7 @@ export const useMetadataStore = defineStore('metadata', () => {
     async function getMetadata(modelName) {
         const metadatas = await getMetadatas();
 
-        return metadatas[modelName] || null;
+        return metadatas?.[modelName] || null;
     }
 
     return {
@@ -143,6 +210,7 @@ export const useMetadataStore = defineStore('metadata', () => {
         prefix,
         setPrefix,
         getPrefix,
+        readScope,
         fetchMetadatas,
         setMetadatas,
         getMetadatas,

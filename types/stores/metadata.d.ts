@@ -42,41 +42,39 @@ export type MetadataModel = {
     has_extra_fields: boolean;
     fields: Record<string, MetadataField>;
 };
+export type MetadataScope = {
+    /**
+     * What the metadatas read are kept under
+     */
+    scope: string;
+    /**
+     * The prefix they are read under
+     */
+    prefix: string;
+};
 /**
- * @typedef {Object} MetadataField
- * @property {string} name
- * @property {string} label
- * @property {string} type
- * @property {boolean} readonly
- * @property {boolean} required
- * @property {boolean} searchable
- * @property {boolean} extra A field a workspace added to the model
- * @property {Array<string>} filter_operators
- * @property {string|null} [target]
- * @property {Array<string>|null} [targets]
- * @property {Record<string, string>|null} [choices]
- * @property {any} [default] The static value a new record starts with; null when
- *   the server computes it on save
- * @property {string|null} [local_placeholder]
+ * Keep the metadatas by scope rather than as one set: [resolver] says, from
+ * the prefix the application set, which scope it reads in and the prefix to
+ * read it under. Coming back to a scope reads nothing. Whatever knows the
+ * scope injects it (the workspaces do, see `createWorkspaces`); `null` goes
+ * back to one set.
+ *
+ * @param {((prefix: string) => MetadataScope|Promise<MetadataScope>)|null} resolver
  */
-/**
- * @typedef {Object} MetadataModel
- * @property {string} name
- * @property {string} api_name
- * @property {string} label
- * @property {string} label_plural
- * @property {boolean} has_extra_fields
- * @property {Record<string, MetadataField>} fields
- */
+export declare function setMetadataScope(resolver: ((prefix: string) => MetadataScope | Promise<MetadataScope>) | null): void;
 export declare const useMetadataStore: import("pinia").SetupStoreDefinition<"metadata", {
     loading: import("vue").Ref<boolean, boolean>;
     error: import("vue").Ref<null, null>;
     prefix: import("vue").Ref<null, null>;
     setPrefix: (newPrefix: any) => void;
     getPrefix: () => null;
-    fetchMetadatas: () => Promise<void>;
+    readScope: (scope: string, scopePrefix: string, { again, asked }?: {
+        again?: boolean;
+        asked?: number;
+    }) => Promise<any>;
+    fetchMetadatas: () => Promise<any>;
     setMetadatas: (newMetadatas: any) => void;
-    getMetadatas: () => Promise<null>;
+    getMetadatas: () => Promise<any>;
     getMetadata: (modelName: string) => Promise<MetadataModel | null>;
 }>;
 //# sourceMappingURL=metadata.d.ts.map

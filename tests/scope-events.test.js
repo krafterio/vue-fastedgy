@@ -244,6 +244,34 @@ describe('the workspace store, saying what it knows', () => {
         expect((await store.load()).slug).toBe('atelier-est');
     });
 
+    it('reads no list for an account that signed out while its own was read', async () => {
+        const store = useWorkspaceStore();
+        let answerMe;
+
+        window.fetch = (url) =>
+            new URL(url, 'http://test').pathname.endsWith('/me')
+                ? new Promise((resolve) => {
+                      answerMe = () =>
+                          resolve({
+                              ok: true,
+                              status: 200,
+                              headers: { get: () => 'application/json' },
+                              json: async () => ({ id: 1 }),
+                          });
+                  })
+                : list('studio-nord');
+
+        const loading = store.load();
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        bus.trigger('auth:logout');
+        answerMe();
+        await loading;
+
+        expect(store.workspaces).toEqual([]);
+        expect(store.slug).toBe(null);
+    });
+
     it('drops a list read that answered for the account that left', async () => {
         const store = useWorkspaceStore();
         let read = 0;

@@ -378,6 +378,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
             try {
                 await readAccount();
+
+                // Signed out meanwhile: nothing to read for the account that left.
+                if (asked !== generation) {
+                    return null;
+                }
+
                 await read();
 
                 if (asked === generation && !opened && !slug.value) {

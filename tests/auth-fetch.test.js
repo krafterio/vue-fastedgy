@@ -10,6 +10,7 @@ import { h } from 'vue';
 import { fetch } from '../network/fetch.js';
 import { useFetcher } from '../composables/fetcher.js';
 import { absoluteUrl, setDefaultBaseUrl, useAuthFetch, useUrlContextFetch } from '../plugins/fetcher.js';
+import { useAuthStore } from '../stores/auth.js';
 
 const jsonResponse = (payload) => ({
     ok: true,
@@ -60,6 +61,14 @@ describe('useAuthFetch', () => {
         const call = fetchSpy.mock.calls.find(([url]) => url.endsWith('/me'));
 
         expect(call[1].headers['Authorization']).toBe(`Bearer ${localStorage.getItem('access_token')}`);
+    });
+
+    it('joins a refresh the realtime socket already started', async () => {
+        useAuthFetch();
+
+        await Promise.all([useAuthStore().refreshAccessToken(), fetch('/me')]);
+
+        expect(urlsOf(fetchSpy).filter((url) => url.endsWith('/auth/refresh'))).toHaveLength(1);
     });
 });
 

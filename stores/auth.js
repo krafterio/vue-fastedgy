@@ -19,6 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
     const loading = ref(false);
     /** @type {Promise<void>|null} */
     let checkUserPromise = null;
+    /** @type {Promise<boolean>|null} */
+    let refreshPromise = null;
 
     const isAuthenticated = computed(() => !!token.value && !!refreshToken.value);
 
@@ -127,7 +129,15 @@ export const useAuthStore = defineStore('auth', () => {
         }
     };
 
-    const refreshAccessToken = async () => {
+    // The fetcher and the realtime socket both refresh an expired token, often
+    // at the same moment on load: they share one request rather than spending
+    // the same refresh token twice.
+    const refreshAccessToken = () =>
+        (refreshPromise ??= refreshTokens().finally(() => {
+            refreshPromise = null;
+        }));
+
+    const refreshTokens = async () => {
         if (!refreshToken.value) {
             await logout();
             return false;

@@ -102,6 +102,33 @@ describe('useWorkspaceRouterGuard', () => {
         expect(router.currentRoute.value.fullPath).toBe('/w/beta/notes');
     });
 
+    it('settles when the app navigates while the guard leads away from a workspace left', async () => {
+        await router.push('/w/alpha/notes');
+        await settle();
+
+        // Counted rather than left to loop: a loop of replaced navigations never
+        // yields, and would hang the suite instead of failing it.
+        const replace = router.replace.bind(router);
+        let replaced = 0;
+
+        router.replace = (to) => {
+            replaced += 1;
+
+            if (replaced > 10) {
+                throw new Error('The guard keeps rerouting');
+            }
+
+            return replace(to);
+        };
+
+        await useWorkspaceStore().leave(async () => {});
+        await router.push('/');
+        await settle();
+
+        expect(replaced).toBeLessThanOrEqual(10);
+        expect(router.currentRoute.value.fullPath).toBe('/w/beta/home');
+    });
+
     it('sends an account without a workspace to the empty route', async () => {
         routes['GET /workspaces'] = { status: 200, body: { items: [] } };
 

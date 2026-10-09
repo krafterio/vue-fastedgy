@@ -864,7 +864,9 @@ export function useWorkspaceRouterGuard(router, { param = 'workspace', home, emp
 
     // The URL names a workspace that cannot be opened, or that was renamed: the
     // guard reads it again. After each navigation as well, the refusal having
-    // possibly come while it was under way.
+    // possibly come while it was under way; not after one that failed, which a
+    // later one replaced: rerouting there would cancel that one in turn, and so
+    // on, without end.
     const reroute = () => {
         const route = router.currentRoute.value;
         const named = route.params?.[param];
@@ -876,5 +878,9 @@ export function useWorkspaceRouterGuard(router, { param = 'workspace', home, emp
     };
 
     bus.addEventListener(WORKSPACE_REROUTE, reroute);
-    router.afterEach(() => reroute());
+    router.afterEach((to, from, failure) => {
+        if (!failure) {
+            reroute();
+        }
+    });
 }

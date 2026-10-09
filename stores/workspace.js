@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { computed, onScopeDispose, ref } from 'vue';
+import { computed, nextTick, onScopeDispose, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { bus } from '../composables/bus.js';
 import { useFetcherService } from '../composables/fetcher.js';
@@ -71,6 +71,38 @@ export function storedWorkspaceSlug() {
     } catch {
         return null;
     }
+}
+
+/** The location a navigation the router guard follows is heading to. */
+let navigatingTo = null;
+
+/** When the switch a navigation under way holds back began. */
+let owedSince = null;
+
+/**
+ * Every holder reads again after a switch. During a navigation the router
+ * guard follows, once it is rendered: the view it leaves is gone by then, and
+ * the one it opens, born after the switch, read in the new workspace already.
+ */
+function announceSwitch(since = performance.now()) {
+    if (navigatingTo) {
+        owedSince ??= since;
+
+        return;
+    }
+
+    bus.trigger(RESOURCES_STALE, { since });
+}
+
+function announceOwedSwitch() {
+    if (owedSince === null) {
+        return;
+    }
+
+    const since = owedSince;
+
+    owedSince = null;
+    void nextTick(() => bus.trigger(RESOURCES_STALE, { since }));
 }
 
 function remember(slug) {
@@ -283,7 +315,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
                 bus.trigger(METADATA_INVALIDATED);
             }
 
-            bus.trigger(RESOURCES_STALE);
+            announceSwitch();
         }
     }
 
@@ -806,6 +838,8 @@ export function useWorkspaces(options = {}) {
         fetchBus.removeEventListener('fetch:error', failed);
         setMetadataScope(null);
         Object.assign(settings, defaults);
+        navigatingTo = null;
+        owedSince = null;
     };
 }
 
@@ -846,6 +880,8 @@ export function createWorkspaces(options = {}) {
  */
 export function useWorkspaceRouterGuard(router, { param = 'workspace', home, empty = '/', failed = empty } = {}) {
     router.beforeEach(async (to) => {
+        navigatingTo = to;
+
         const named = to.params?.[param];
 
         if ((named === undefined && to.meta?.workspace !== true) || !useAuthStore().isAuthenticated) {
@@ -895,8 +931,17 @@ export function useWorkspaceRouterGuard(router, { param = 'workspace', home, emp
 
     bus.addEventListener(WORKSPACE_REROUTE, reroute);
     router.afterEach((to, from, failure) => {
+        if (navigatingTo === to) {
+            navigatingTo = null;
+            announceOwedSwitch();
+        }
+
         if (!failure) {
             reroute();
         }
+    });
+    router.onError(() => {
+        navigatingTo = null;
+        announceOwedSwitch();
     });
 }

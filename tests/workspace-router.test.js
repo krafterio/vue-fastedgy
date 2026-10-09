@@ -3,10 +3,13 @@
  * MIT License (see LICENSE file).
  */
 
+import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createMemoryHistory, createRouter } from 'vue-router';
+import { h } from 'vue';
+import { RouterView, createMemoryHistory, createRouter, useRoute } from 'vue-router';
 import { useFetcherService } from '../composables/fetcher.js';
+import { useResourceChanged } from '../composables/realtime.js';
 import { setDefaultBaseUrl, useUrlContextFetch } from '../plugins/fetcher.js';
 import { useMetadataStore } from '../stores/metadata.js';
 import { useWorkspaceRouterGuard, useWorkspaceStore, useWorkspaces } from '../stores/workspace.js';
@@ -127,6 +130,47 @@ describe('useWorkspaceRouterGuard', () => {
 
         expect(replaced).toBeLessThanOrEqual(10);
         expect(router.currentRoute.value.fullPath).toBe('/w/beta/home');
+    });
+
+    it('has a view the switch remounts read once, and a view it keeps read again', async () => {
+        const reads = [];
+        const Notes = {
+            setup() {
+                reads.push(`notes of ${String(useRoute().params.workspace)}`);
+                useResourceChanged('note', () => reads.push('notes again'), { refreshDelay: 0 });
+
+                return () => null;
+            },
+        };
+        const Navbar = {
+            setup() {
+                useResourceChanged('note', () => reads.push('navbar again'), { refreshDelay: 0 });
+
+                return () => null;
+            },
+        };
+        const App = {
+            setup() {
+                const route = useRoute();
+
+                return () => [h(Navbar), h(RouterView, { key: String(route.params.workspace) })];
+            },
+        };
+
+        router.addRoute({ path: '/w/:workspace/list', name: 'List', component: Notes });
+        await router.push('/w/alpha/list');
+
+        const app = mount(App, { global: { plugins: [router] } });
+
+        await settle();
+        reads.length = 0;
+
+        await router.push('/w/beta/list');
+        await settle();
+
+        expect(reads).toEqual(['notes of beta', 'navbar again']);
+
+        app.unmount();
     });
 
     it('sends an account without a workspace to the empty route', async () => {

@@ -70,10 +70,13 @@ export const REALTIME_SOURCE_REQUEST = 'realtime:source-request';
  * `stale` change of its model, the way flutter_fastedgy's `ResourcesStaleEvent`
  * reaches its holders.
  *
+ * `since` (a `performance.now()`) is when the context changed: a holder born
+ * after it read in the new one already, and does not read again.
+ *
  * @type {String}
  *
  * @example
- * bus.trigger(RESOURCES_STALE);
+ * bus.trigger(RESOURCES_STALE, { since: performance.now() });
  */
 export const RESOURCES_STALE = 'resources:stale';
 
@@ -237,6 +240,7 @@ export function useRealtimeEvent(type, handler) {
 export function useResourceChanged(model, handler, options = {}) {
     const { id = null, watchFields = null, refreshDelay = 250 } = options;
     const subscribed = { model, id: toValue(id) ?? null };
+    const born = performance.now();
     let timer = null;
     let owed = false;
 
@@ -285,9 +289,13 @@ export function useResourceChanged(model, handler, options = {}) {
         fire({ model, id: null, action: 'reconnected', changed: null, origin: null, truncated: true, data: null })
     );
 
-    useBus(bus, RESOURCES_STALE, () =>
-        fire({ model, id: null, action: 'stale', changed: null, origin: null, truncated: true, data: null })
-    );
+    useBus(bus, RESOURCES_STALE, (event) => {
+        if ((event?.detail?.since ?? Infinity) < born) {
+            return;
+        }
+
+        fire({ model, id: null, action: 'stale', changed: null, origin: null, truncated: true, data: null });
+    });
 
     // Sync: a tab hidden then shown again before a flush is still a tab that was hidden.
     watch(

@@ -132,6 +132,22 @@ describe('useResourceChanged', () => {
         expect(heard[0]).toMatchObject({ model: 'company', id: null, action: 'stale' });
     });
 
+    it('reads nothing again for a switch that began before it was born', () => {
+        const since = performance.now();
+
+        listening(() => useResourceChanged('company', (one) => heard.push(one), { refreshDelay: 0 }));
+        bus.trigger(RESOURCES_STALE, { since });
+
+        expect(heard).toEqual([]);
+    });
+
+    it('reads again for a switch that began after it was born', () => {
+        listening(() => useResourceChanged('company', (one) => heard.push(one), { refreshDelay: 0 }));
+        bus.trigger(RESOURCES_STALE, { since: performance.now() });
+
+        expect(heard.map((one) => one.action)).toEqual(['stale']);
+    });
+
     it('subscribes the socket to what it watches, and lets go when the view does', () => {
         const subscribe = vi.spyOn(realtime, 'subscribe');
         const unsubscribe = vi.spyOn(realtime, 'unsubscribe');

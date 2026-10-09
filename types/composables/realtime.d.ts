@@ -29,10 +29,13 @@ export declare const REALTIME_SOURCE_REQUEST: string;
  * `stale` change of its model, the way flutter_fastedgy's `ResourcesStaleEvent`
  * reaches its holders.
  *
+ * `since` (a `performance.now()`) is when the context changed: a holder born
+ * after it read in the new one already, and does not read again.
+ *
  * @type {String}
  *
  * @example
- * bus.trigger(RESOURCES_STALE);
+ * bus.trigger(RESOURCES_STALE, { since: performance.now() });
  */
 export declare const RESOURCES_STALE: string;
 /**

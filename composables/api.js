@@ -444,6 +444,7 @@ export function useApiForm(model, options = {}) {
  * @param {{ prefix?: string, headers?: object }} defaultParams - Default parameters
  * @returns {
  *  modelName: string,
+ *  prefix: string,
  *  action: (method, path, body = undefined, query = {}, params = {}) => Promise<{data: any}>,
  *  list: (query = {}, params = {}) => Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>,
  *  get: (id, options = {}, params = {}) => Promise<{data: any}>,
@@ -462,6 +463,11 @@ export function useApiModel(modelName, defaultParams = {}) {
          * Model name
          */
         modelName,
+
+        /**
+         * Prefix its routes answer under, for what reaches the server beside them (its custom views, its relations)
+         */
+        prefix: defaultParams.prefix ?? '',
 
         /**
          * Reach an action of the model outside its generated routes

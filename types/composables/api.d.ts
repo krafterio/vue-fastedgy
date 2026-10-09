@@ -243,6 +243,7 @@ export declare function useApiForm(model: string | object, options?: {
  * @param {{ prefix?: string, headers?: object }} defaultParams - Default parameters
  * @returns {
  *  modelName: string,
+ *  prefix: string,
  *  action: (method, path, body = undefined, query = {}, params = {}) => Promise<{data: any}>,
  *  list: (query = {}, params = {}) => Promise<{data: {items: any[], total: number, limit: number, offset: number, total_pages: number}}>,
  *  get: (id, options = {}, params = {}) => Promise<{data: any}>,

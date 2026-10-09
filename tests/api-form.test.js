@@ -94,6 +94,13 @@ describe('useApiModel action', () => {
     });
 });
 
+describe('useApiModel prefix', () => {
+    it('says the prefix its routes answer under, an empty one when it was given none', () => {
+        expect(useApiModel('aliment', { prefix: '/console' }).prefix).toBe('/console');
+        expect(useApiModel('aliment').prefix).toBe('');
+    });
+});
+
 describe('useApiModel list', () => {
     it('sends no filter for a list of no rule', async () => {
         setActivePinia(createPinia());

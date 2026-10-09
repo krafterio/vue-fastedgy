@@ -75,8 +75,6 @@ export declare const useWorkspaceStore: import("pinia").SetupStoreDefinition<"wo
  *   list read again: the workspace may be gone.
  * - The metadatas are held by workspace ([setMetadataScope]).
  *
- * Installed after `createFetcher`, whose requests it finishes: their URL is
- * settled once every listener of `fetch:request` has run.
  *
  * @param {{rememberLast?: Boolean, workspaceless?: String|null, fields?: String}} [options]
  *   `rememberLast`: the last workspace opened on this device is the one opened
@@ -89,7 +87,7 @@ export declare function useWorkspaces(options?: {
     fields?: string;
 }): Function;
 /**
- * [useWorkspaces] as a plugin, used after `createFetcher`.
+ * [useWorkspaces] as a plugin.
  *
  * @param {{rememberLast?: Boolean, workspaceless?: String|null, fields?: String}} [options]
  *

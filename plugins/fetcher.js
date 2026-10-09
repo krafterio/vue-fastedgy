@@ -6,7 +6,6 @@
 import { fetchBus, fetch } from '../network/fetch.js';
 import { fetcherSrc } from '../directives/fetcher.js';
 import { useAuthStore } from '../stores/auth.js';
-import { useWorkspaceStore } from '../stores/workspace.js';
 import { ORIGIN_HEADER, originId } from '../utils/origin.js';
 
 const defaultHeaders = {};
@@ -297,73 +296,38 @@ export const useAuthFetch = () => {
 };
 
 const APP_PLACEHOLDER = '/{app}/';
-const WORKSPACE_PLACEHOLDER = '/{workspace}/';
-
-/**
- * Wait for a session that is still being restored.
- *
- * A request fired while the token is being refreshed would otherwise decide
- * on an anonymous user and address the wrong surface for the rest of its life.
- */
-const untilAuthSettled = async (authStore) => {
-    if (!authStore.loading) {
-        return;
-    }
-
-    await new Promise((resolve) => {
-        const unwatch = authStore.$subscribe((mutation, state) => {
-            if (!state.loading) {
-                unwatch();
-                resolve();
-            }
-        });
-    });
-};
 
 /**
  * Resolve the context placeholders a request URL carries.
  *
- * Two of them, answering to different things. `{app}` is the surface being
- * served, which the application names for itself. `{workspace}` is the tenant
- * being read, which the workspace the user picked decides. Neither is a
- * question of role: deciding the tenant from a role is what leaves a console
- * user who is also a member of a workspace unable to read it.
+ * `/{app}/` is the surface being served, which the application names for
+ * itself (`surface`): a segment, or an empty string for an application served
+ * at the root of the api, the placeholder then erased. Any other `/{name}/`
+ * takes what `params` names for it, a segment or an empty string the same way.
  *
- * A surface named as an empty string is a surface with no segment of its own:
- * the placeholder is erased rather than filled, which is what an application
- * served at the root of the api needs. Naming none at all leaves the
- * placeholder where it is, for an application that does not use it.
+ * A placeholder nobody names stays where it is: for an application that does
+ * not use it, or for whatever augments the fetcher to fill it on its own bus
+ * (`fetch:request`).
  */
 export const useUrlContextFetch = (
-    /** @type {{surface?: String|null, workspace?: Boolean, workspaceless?: String}} */
-    { surface = null, workspace = false, workspaceless = 'global' } = {}
+    /** @type {{surface?: String|null, params?: Record<String, String>}} */
+    { surface = null, params = {} } = {}
 ) => {
-    const listener = async (e) => {
+    const fill = (url, placeholder, value) => url.replace(placeholder, value ? `/${value}/` : '/');
+
+    const listener = (e) => {
         e.detail.url = absoluteUrl(e.detail.url);
 
         if (surface !== null && e.detail.url.includes(APP_PLACEHOLDER)) {
-            e.detail.url = e.detail.url.replace(APP_PLACEHOLDER, surface ? `/${surface}/` : '/');
+            e.detail.url = fill(e.detail.url, APP_PLACEHOLDER, surface);
         }
 
-        if (e.detail.url.includes(WORKSPACE_PLACEHOLDER)) {
-            const authStore = useAuthStore();
+        for (const [name, value] of Object.entries(params)) {
+            const placeholder = `/{${name}}/`;
 
-            await untilAuthSettled(authStore);
-
-            let slug = null;
-
-            // An application that serves no workspace never asks for the list:
-            // a console user having one of their own must not turn the console
-            // into a tenant.
-            if (workspace) {
-                const workspaceStore = useWorkspaceStore();
-
-                await workspaceStore.load();
-
-                slug = workspaceStore.slug;
+            if (e.detail.url.includes(placeholder)) {
+                e.detail.url = fill(e.detail.url, placeholder, value);
             }
-
-            e.detail.url = e.detail.url.replace(WORKSPACE_PLACEHOLDER, `/${slug ?? workspaceless}/`);
         }
     };
 
@@ -374,9 +338,8 @@ export const useUrlContextFetch = (
 
 /**
  * `surface` names what this application is, for `/{app}/`: a segment, or an
- * empty string for an application served at the root of the api. `workspace`
- * says whether it serves one workspace at a time, and `workspaceless` names
- * what stands where a tenant would, for what no workspace owns. `timezone`
+ * empty string for an application served at the root of the api. `params`
+ * names what fills the other placeholders of a URL (`/{name}/`). `timezone`
  * replaces how the timezone every request carries is read.
  */
 export const createFetcher = (options = {}) => {

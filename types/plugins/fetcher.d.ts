@@ -52,29 +52,25 @@ export declare const useAuthFetch: () => Function;
 /**
  * Resolve the context placeholders a request URL carries.
  *
- * Two of them, answering to different things. `{app}` is the surface being
- * served, which the application names for itself. `{workspace}` is the tenant
- * being read, which the workspace the user picked decides. Neither is a
- * question of role: deciding the tenant from a role is what leaves a console
- * user who is also a member of a workspace unable to read it.
+ * `/{app}/` is the surface being served, which the application names for
+ * itself (`surface`): a segment, or an empty string for an application served
+ * at the root of the api, the placeholder then erased. Any other `/{name}/`
+ * takes what `params` names for it, a segment or an empty string the same way.
  *
- * A surface named as an empty string is a surface with no segment of its own:
- * the placeholder is erased rather than filled, which is what an application
- * served at the root of the api needs. Naming none at all leaves the
- * placeholder where it is, for an application that does not use it.
+ * A placeholder nobody names stays where it is: for an application that does
+ * not use it, or for whatever augments the fetcher to fill it on its own bus
+ * (`fetch:request`).
  */
 export declare const useUrlContextFetch: (
-/** @type {{surface?: String|null, workspace?: Boolean, workspaceless?: String}} */
-{ surface, workspace, workspaceless }?: {
+/** @type {{surface?: String|null, params?: Record<String, String>}} */
+{ surface, params }?: {
     surface?: string | null;
-    workspace?: boolean;
-    workspaceless?: string;
+    params?: Record<string, string>;
 }) => () => void;
 /**
  * `surface` names what this application is, for `/{app}/`: a segment, or an
- * empty string for an application served at the root of the api. `workspace`
- * says whether it serves one workspace at a time, and `workspaceless` names
- * what stands where a tenant would, for what no workspace owns. `timezone`
+ * empty string for an application served at the root of the api. `params`
+ * names what fills the other placeholders of a URL (`/{name}/`). `timezone`
  * replaces how the timezone every request carries is read.
  */
 export declare const createFetcher: (options?: {}) => {

@@ -687,6 +687,26 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 });
 
 /**
+ * Wait for a session that is still being restored: a request fired while the
+ * token is being refreshed would otherwise choose a workspace for an anonymous
+ * user.
+ */
+async function untilAuthSettled(authStore) {
+    if (!authStore.loading) {
+        return;
+    }
+
+    await new Promise((resolve) => {
+        const unwatch = authStore.$subscribe((mutation, state) => {
+            if (!state.loading) {
+                unwatch();
+                resolve();
+            }
+        });
+    });
+}
+
+/**
  * The metadatas of the current workspace, under its slug: what a model declares
  * is what that workspace added to it, and coming back to one reads nothing.
  *
@@ -713,8 +733,6 @@ async function workspaceMetadataScope(prefix) {
  *   list read again: the workspace may be gone.
  * - The metadatas are held by workspace ([setMetadataScope]).
  *
- * Installed after `createFetcher`, whose requests it finishes: their URL is
- * settled once every listener of `fetch:request` has run.
  *
  * @param {{rememberLast?: Boolean, workspaceless?: String|null, fields?: String}} [options]
  *   `rememberLast`: the last workspace opened on this device is the one opened
@@ -729,33 +747,27 @@ export function useWorkspaces(options = {}) {
     // errors say something about it.
     const tenant = new WeakMap();
 
-    const request = (e) => {
-        const original = e.detail.url;
-
-        if (typeof original !== 'string' || !original.includes(`${PLACEHOLDER}/`)) {
+    const request = async (e) => {
+        if (typeof e.detail.url !== 'string' || !e.detail.url.includes(`${PLACEHOLDER}/`)) {
             return;
         }
 
-        const before = e.detail.next;
+        await untilAuthSettled(useAuthStore());
 
-        e.detail.next = (async () => {
-            await before;
+        const slug = await useWorkspaceStore().ensureCurrent();
+        const target = slug ?? settings.workspaceless;
 
-            const slug = await useWorkspaceStore().ensureCurrent();
-            const target = slug ?? settings.workspaceless;
+        // A path that keeps the placeholder would reach a route that does not
+        // exist, and its 404 would hide the real fault: no workspace to read.
+        if (!target) {
+            throw new Error(`No workspace to send ${e.detail.url} under`);
+        }
 
-            // A path that keeps the placeholder would reach a route that does not
-            // exist, and its 404 would hide the real fault: no workspace to read.
-            if (!target) {
-                throw new Error(`No workspace to send ${original} under`);
-            }
+        e.detail.url = e.detail.url.replace(`${PLACEHOLDER}/`, `/${target}/`);
 
-            e.detail.url = original.replace(`${PLACEHOLDER}/`, `/${target}/`);
-
-            if (slug) {
-                tenant.set(e.detail.options, slug);
-            }
-        })();
+        if (slug) {
+            tenant.set(e.detail.options, slug);
+        }
     };
 
     const failed = (e) => {
@@ -776,7 +788,7 @@ export function useWorkspaces(options = {}) {
 }
 
 /**
- * [useWorkspaces] as a plugin, used after `createFetcher`.
+ * [useWorkspaces] as a plugin.
  *
  * @param {{rememberLast?: Boolean, workspaceless?: String|null, fields?: String}} [options]
  *

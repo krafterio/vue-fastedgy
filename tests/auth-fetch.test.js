@@ -133,6 +133,13 @@ describe('useUrlContextFetch', () => {
     it('leaves the placeholder where it is when no surface is named', async () => {
         expect(await asking({}, '/{app}/users')).toBe('/api/{app}/users');
     });
+
+    it('fills a placeholder the application names, and leaves those nobody names', async () => {
+        expect(await asking({ params: { workspace: 'global' } }, '/{workspace}/dataset/metadatas')).toBe(
+            '/api/global/dataset/metadatas'
+        );
+        expect(await asking({}, '/{workspace}/dataset/metadatas')).toBe('/api/{workspace}/dataset/metadatas');
+    });
 });
 
 describe('useFetcher, outside a component', () => {

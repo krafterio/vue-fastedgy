@@ -253,6 +253,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
      * Make [workspace] (a slug, or a record of the list) the current one,
      * remember it on this device and read its metadatas. Every screen reads
      * again when another one was current.
+     *
+     * A slug the list does not hold is remembered once the server accepts it
+     * ([probe]): refused, it would take what the device remembered with it.
      */
     function open(workspace) {
         const value = typeof workspace === 'string' ? workspace : workspace?.slug;
@@ -266,7 +269,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         slug.value = value;
         currentId.value = (typeof workspace === 'string' ? bySlug(value) : workspace)?.id ?? null;
         opened = true;
-        remember(value);
+
+        if (currentId.value !== null) {
+            remember(value);
+        }
+
         void probe(value);
 
         if (previous) {
@@ -290,20 +297,29 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
     /**
      * Read the metadatas of [value], the first request under its slug: the
-     * server refusing it (404) is the account not being a member.
+     * server refusing it (404) is the account not being a member, accepting it
+     * is what lets the device remember it.
      */
     async function probe(value) {
         const metadataStore = useMetadataStore();
         const base = metadataStore.getPrefix() || '';
 
         if (!settings.enabled || !base.includes(PLACEHOLDER)) {
+            remember(value);
+
             return;
         }
 
         const failure = await metadataStore.readScope(value, base.replace(PLACEHOLDER, `/${value}`));
 
-        if (failure?.response?.status === 404 && slug.value === value) {
+        if (slug.value !== value) {
+            return;
+        }
+
+        if (failure?.response?.status === 404) {
             refuse(value);
+        } else {
+            remember(value);
         }
     }
 

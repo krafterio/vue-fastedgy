@@ -40,8 +40,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const loading = ref(false);
     /** @type {Promise<void>|null} */
     let loadPromise = null;
+    // Bumped by a sign-out: a list read for the account that left answers for
+    // nobody.
+    let generation = 0;
 
     const slug = computed(() => current.value?.slug || null);
+
+    // What the store holds belongs to the account that signed out: the next
+    // one reads its own list, rather than opening the workspace of the last.
+    bus.addEventListener('auth:logout', () => {
+        generation += 1;
+        workspaces.value = [];
+        current.value = null;
+        loading.value = false;
+        loadPromise = null;
+    });
 
     // What the socket scopes itself to, said on the bus rather than read from
     // here: it holds a workspace without knowing what one is, and an
@@ -78,18 +91,28 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             return current.value;
         }
 
+        const asked = generation;
+
         loadPromise ??= (async () => {
             loading.value = true;
 
             try {
-                workspaces.value = await list();
+                const items = await list();
+
+                if (asked !== generation) {
+                    return;
+                }
+
+                workspaces.value = items;
 
                 const selected = storedWorkspaceSlug();
 
                 current.value = workspaces.value.find((item) => item.slug === selected) ?? workspaces.value[0] ?? null;
             } finally {
-                loading.value = false;
-                loadPromise = null;
+                if (asked === generation) {
+                    loading.value = false;
+                    loadPromise = null;
+                }
             }
         })();
 
@@ -108,7 +131,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
 
     async function refresh() {
+        const asked = generation;
         const items = await list();
+
+        if (asked !== generation) {
+            return current.value;
+        }
 
         workspaces.value = items;
         current.value = items.find((item) => item.slug === current.value?.slug) ?? current.value;

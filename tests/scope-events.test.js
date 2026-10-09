@@ -197,4 +197,44 @@ describe('the workspace store, saying what it knows', () => {
 
         expect(stale).toHaveBeenCalledTimes(1);
     });
+
+    const list = (slug, delay = 0) =>
+        new Promise((resolve) =>
+            setTimeout(
+                () =>
+                    resolve({
+                        ok: true,
+                        status: 200,
+                        headers: { get: () => 'application/json' },
+                        json: async () => ({ items: [{ slug }] }),
+                    }),
+                delay
+            )
+        );
+
+    it('forgets them at a sign-out: the next account opens its own', async () => {
+        const store = useWorkspaceStore();
+
+        window.fetch = () => list('studio-nord');
+        expect((await store.load()).slug).toBe('studio-nord');
+
+        bus.trigger('auth:logout');
+        window.fetch = () => list('atelier-est');
+
+        expect((await store.load()).slug).toBe('atelier-est');
+    });
+
+    it('drops a list read that answered for the account that left', async () => {
+        const store = useWorkspaceStore();
+        let read = 0;
+
+        window.fetch = () => (read++ === 0 ? list('studio-nord', 5) : list('atelier-est'));
+        const leaving = store.load();
+
+        bus.trigger('auth:logout');
+        await store.load();
+        await leaving;
+
+        expect(store.slug).toBe('atelier-est');
+    });
 });

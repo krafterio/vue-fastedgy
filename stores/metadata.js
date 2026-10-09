@@ -65,11 +65,16 @@ export const useMetadataStore = defineStore('metadata', () => {
     // an invalidation answers for what nobody reads any more.
     let generation = 0;
 
-    bus.addEventListener(METADATA_INVALIDATED, () => {
+    const forget = () => {
         generation += 1;
         metadatas.value = null;
         fetchPromise = null;
-    });
+    };
+
+    bus.addEventListener(METADATA_INVALIDATED, forget);
+    // What was read belongs to the account that signed out: the next one may
+    // see other fields.
+    bus.addEventListener('auth:logout', forget);
 
     function setPrefix(newPrefix) {
         prefix.value = newPrefix;

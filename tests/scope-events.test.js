@@ -162,6 +162,26 @@ describe('the metadatas a tenant declares', () => {
 
         expect(await store.getMetadata('company')).toEqual({ label: 'joined' });
     });
+
+    it('forgets them at a sign-out: the next account reads its own', async () => {
+        const store = useMetadataStore();
+        const reads = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                headers: { get: () => 'application/json' },
+                json: async () => ({ company: { fields: {} } }),
+            })
+        );
+
+        window.fetch = reads;
+
+        await store.getMetadatas();
+        bus.trigger('auth:logout');
+        await store.getMetadatas();
+
+        expect(reads).toHaveBeenCalledTimes(2);
+    });
 });
 
 describe('the workspace store, saying what it knows', () => {

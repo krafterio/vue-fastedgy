@@ -6,7 +6,7 @@
 import { ref, reactive, readonly, computed, toValue, watch, nextTick, getCurrentScope, onScopeDispose } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useApiModel } from './api.js';
-import { formatOrderBy, parseOrderBy } from '../utils/order-by.js';
+import { formatOrderBy, orderByTerm, parseOrderBy } from '../utils/order-by.js';
 import { usePageSize } from './page-size.js';
 import { useSelection } from './selection.js';
 import { useSortable } from './sortable.js';
@@ -364,7 +364,7 @@ export function useDataIterator(model, options = {}) {
     };
 
     /**
-     * Toggle sort direction for a field
+     * Toggle sort direction for a field: ascending, descending, then back to the default order
      * @param {string} field - Field to sort by
      */
     const toggleSort = (field) => {
@@ -372,22 +372,17 @@ export function useDataIterator(model, options = {}) {
 
         if (config.orderable === false) return;
 
-        const currentSort = orderBy.value?.[0];
+        const current = orderByTerm(orderBy.value?.[0] ?? '');
 
-        if (currentSort) {
-            const [currentField, currentDirection = 'asc'] = currentSort.split(':');
-
-            if (currentField === field) {
-                if (currentDirection === 'asc') {
-                    orderBy.value = [`${field}:desc`];
-                } else {
-                    orderBy.value = null;
-                }
-            } else {
-                orderBy.value = [`${field}:asc`];
-            }
-        } else {
+        if (current.field !== field) {
             orderBy.value = [`${field}:asc`];
+        } else if (current.direction !== 'desc') {
+            orderBy.value = [`${field}:desc`];
+        } else {
+            const byDefault = config.defaultOrderBy ?? null;
+
+            // A default order on this very column would leave the click without effect: it turns around instead.
+            orderBy.value = orderByTerm(byDefault?.[0] ?? '').field === field ? [`${field}:asc`] : byDefault;
         }
     };
 

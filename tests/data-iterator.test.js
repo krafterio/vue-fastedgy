@@ -503,4 +503,38 @@ describe('useDataIterator', () => {
         );
         expect(written().qf).toBe('{"kind":"idea"}');
     });
+
+    it('goes back to its default order on the third click on a column, not to no order', async () => {
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+        const written = () => router.replace.mock.calls.at(-1)?.[0].query ?? {};
+
+        const iterator = useDataIterator(service, { sortable: false, defaultOrderBy: ['created_at:desc'] });
+
+        await settle();
+
+        iterator.toggleSort('name');
+        iterator.toggleSort('name');
+        await settle();
+
+        expect(iterator.orderBy.value).toEqual(['name:desc']);
+
+        iterator.toggleSort('name');
+        await settle();
+
+        expect(iterator.orderBy.value).toEqual(['created_at:desc']);
+        expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ orderBy: ['created_at:desc'] }));
+        expect(written()).not.toHaveProperty('order_by');
+    });
+
+    it('turns its default order around rather than staying on it when that order is the clicked column', async () => {
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: false, defaultOrderBy: ['name:desc'] });
+
+        iterator.toggleSort('name');
+        expect(iterator.orderBy.value).toEqual(['name:asc']);
+
+        iterator.toggleSort('name');
+        expect(iterator.orderBy.value).toEqual(['name:desc']);
+    });
 });

@@ -125,6 +125,30 @@ describe('useDataIterator', () => {
         expect(service.list).toHaveBeenCalledTimes(2);
     });
 
+    it('leaves the rows it holds when a column goes, and reads again when it comes back unread', async () => {
+        const fields = ref(['id', 'name', 'status.name']);
+        const service = { modelName: 'aisle', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        useDataIterator(service, { sortable: false, fieldsResolver: () => fields.value });
+
+        await settle();
+
+        fields.value = ['id', 'name'];
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(1);
+
+        fields.value = ['id', 'name', 'status.name'];
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(1);
+
+        fields.value = ['id', 'name', 'owner.name'];
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(2);
+    });
+
     it('reads its first page once when its view opens before its metadata are read', async () => {
         let readMetadata = null;
 

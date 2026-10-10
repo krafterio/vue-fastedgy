@@ -426,7 +426,7 @@ export function useDataIterator(model, options = {}) {
 
         const from = mode === 'more' ? currentPage.value : firstHeld;
 
-        readFields = fields.value.join(',');
+        readFields = new Set(fields.value);
 
         try {
             loading.value = true;
@@ -661,12 +661,12 @@ export function useDataIterator(model, options = {}) {
         }
     );
 
-    // A column added or removed is another read; the fields the read already
-    // carried are not.
+    // A column added is another read; a column removed, or the fields the read
+    // already carried, are not.
     watch(
         () => fields.value.join(','),
-        (next) => {
-            if (!settling && latest > 0 && next !== readFields) {
+        () => {
+            if (!settling && latest > 0 && fields.value.some((one) => !readFields?.has(one))) {
                 void queueRead('held');
             }
         }

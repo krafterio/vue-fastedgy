@@ -816,11 +816,19 @@ export function useDataIterator(model, options = {}) {
             }
 
             const previous = new Map(groups.value.map((group) => [group.key, group]));
+            const changed = new Set();
             const next = read.buckets.map((bucket) => {
                 const kept = previous.get(bucket.key);
 
                 if (kept) {
+                    const before = JSON.stringify(filterOf(kept));
+
                     Object.assign(kept, bucket);
+
+                    // The rule groupFilter adds may follow the record of the group.
+                    if (JSON.stringify(filterOf(kept)) !== before) {
+                        changed.add(kept);
+                    }
 
                     return kept;
                 }
@@ -835,7 +843,7 @@ export function useDataIterator(model, options = {}) {
 
             await Promise.all(
                 next.map((group) => {
-                    if (mode === 'first' || !previous.has(group.key)) {
+                    if (mode === 'first' || !previous.has(group.key) || changed.has(group)) {
                         return readRows(group, 'page', 1);
                     }
 

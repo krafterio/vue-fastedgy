@@ -330,6 +330,38 @@ describe('a list grouped by a field', () => {
             expect(groupOf(list, 'id:2').filter).toEqual(filters()[1]);
         });
 
+        it('reads the rows of a group again when its rule follows its record', async () => {
+            const list = useDataIterator(service, {
+                groupBy: 'stage',
+                groupFilter: (group) => (group.record?.is_done ? ['name', 'icontains', 'e'] : null),
+            });
+
+            await settle();
+
+            const reads = service.list.mock.calls.length;
+
+            stages[0].is_done = true;
+            vi.useFakeTimers();
+            bus.trigger(RESOURCE_CHANGED, { model: 'stage', id: 1, action: 'updated' });
+            await vi.advanceTimersByTimeAsync(250);
+            vi.useRealTimers();
+            await settle();
+
+            expect(service.list).toHaveBeenCalledTimes(reads + 1);
+            expect(service.list).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    filter: [
+                        '&',
+                        [
+                            ['stage', '=', 1],
+                            ['name', 'icontains', 'e'],
+                        ],
+                    ],
+                })
+            );
+            expect(groupOf(list, 'id:1').filter).toEqual(service.list.mock.lastCall[0].filter);
+        });
+
         it('reads the records of the axis again when they change, the groups that stay keeping their rows', async () => {
             const list = useDataIterator(service, { groupBy: 'stage' });
 

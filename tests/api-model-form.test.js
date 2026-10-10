@@ -4,7 +4,7 @@
  */
 
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveWidget, useApiModelForm } from '../composables/api-model-form.js';
 import { useMetadataStore } from '../stores/metadata.js';
 
@@ -53,6 +53,26 @@ describe('useApiModelForm', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         useMetadataStore().setMetadatas({ article: METADATA });
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('puts each field the server refuses next to its input', async () => {
+        vi.spyOn(window, 'fetch').mockResolvedValue(
+            new Response(JSON.stringify({ detail: [{ loc: ['body', 'name'], msg: 'Field required' }] }), {
+                status: 422,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+        const form = useApiModelForm('article');
+
+        await form.start();
+        await expect(form.save()).rejects.toBeTruthy();
+
+        expect(form.errors.value).toEqual({ name: 'Field required' });
+        expect(form.status.value).toBe('error');
     });
 
     it('builds the editable fields from the metadata, leaving the read-only columns out', async () => {

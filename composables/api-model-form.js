@@ -219,8 +219,9 @@ export function useApiModelForm(modelName, options = {}) {
             return saved;
         } catch (caught) {
             // FastAPI reports field errors as `detail: [{loc, msg}]`; surface them
-            // next to their input rather than as one opaque banner.
-            const details = caught?.details?.detail ?? caught?.response?.data?.detail;
+            // next to their input rather than as one opaque banner. The fetcher's
+            // HttpError carries the body it was answered as `data`.
+            const details = caught?.data?.detail ?? caught?.details?.detail ?? caught?.response?.data?.detail;
 
             if (Array.isArray(details)) {
                 errors.value = Object.fromEntries(

@@ -643,4 +643,24 @@ describe('useDataIterator', () => {
         expect(service.list).toHaveBeenCalledTimes(4);
         expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, size: 25 }));
     });
+
+    it('reads once when the screen sets its own filter', async () => {
+        const service = { modelName: 'aisle', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: false, filter: [['closed', 'is false']] });
+
+        await settle();
+        iterator.filter.value = ['status', '=', 'opened'];
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(2);
+        expect(service.list).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+                filter: [
+                    ['closed', 'is false'],
+                    ['status', '=', 'opened'],
+                ],
+            })
+        );
+    });
 });

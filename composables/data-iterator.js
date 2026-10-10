@@ -531,14 +531,9 @@ export function useDataIterator(model, options = {}) {
     // On what the rules say, not on the array that says it: the filter is built
     // again whenever anything it reads is recomputed, and a deep watcher takes
     // each of those for a change, so the screen read its whole list again for
-    // rules it was already showing.
+    // rules it was already showing. The filter the screen sets is among them.
     watch(
         () => JSON.stringify(filter.value ?? null),
-        () => reload()
-    );
-
-    watch(
-        () => JSON.stringify(customFilter.value ?? null),
         () => reload()
     );
 

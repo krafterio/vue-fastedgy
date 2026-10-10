@@ -37,10 +37,14 @@ vi.mock('../stores/metadata.js', () => ({
     useMetadataStore: () => ({ getMetadata: () => Promise.resolve(metadata.model) }),
 }));
 
-const dataset = vi.hoisted(() => ({ resequence: null }));
+const dataset = vi.hoisted(() => ({ resequence: null, params: null }));
 
 vi.mock('../composables/dataset.js', () => ({
-    useDataset: () => ({ resequence: (...args) => dataset.resequence(...args) }),
+    useDataset: (params) => {
+        dataset.params = params;
+
+        return { resequence: (...args) => dataset.resequence(...args) };
+    },
 }));
 
 const page = (items) => ({ data: { items, total: items.length } });
@@ -995,5 +999,24 @@ describe('useDataIterator', () => {
         expect(service.list).toHaveBeenCalledTimes(2);
 
         scope.stop();
+    });
+
+    it('sends the order where its api model answers, unless it is told where the dataset routes are', async () => {
+        const service = {
+            modelName: 'task',
+            prefix: '/{workspace}',
+            list: vi.fn().mockResolvedValue(page([{ id: 1 }])),
+        };
+
+        useDataIterator(service, { sortable: true });
+        expect(dataset.params).toEqual({ prefix: '/{workspace}' });
+
+        useDataIterator(service, { sortable: true, datasetPrefix: '' });
+        expect(dataset.params).toEqual({ prefix: '' });
+
+        useDataIterator({ ...service, prefix: undefined }, { sortable: true, prefix: '/console' });
+        expect(dataset.params).toEqual({ prefix: '/console' });
+
+        await settle();
     });
 });

@@ -125,7 +125,8 @@ const DEFAULT_OPTIONS = {
  *   on any of them (`icontains`)
  * @param {HTMLElement|Window|import('vue').Ref|Function} options.scrollTarget - Element that scrolls the list, whose
  *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
- * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
+ * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer: by default where the api model does
+ *   (its prefix, else `options.prefix`), `''` for the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
  * @param {boolean|{ prefix?: string }} options.url - Keep the state of the list in the URL (default: true), its keys
  *   after `prefix` when one is given (`done_p`, `done_q`…, the keys of `views.state` included), so that two lists of
@@ -304,7 +305,10 @@ export function useDataIterator(model, options = {}) {
         resequence,
         readMetadata,
         ready: sortableReady,
-    } = useSortable(modelName, metadata, config.sortable, { prefix: config.datasetPrefix });
+    } = useSortable(modelName, metadata, config.sortable, {
+        // The dataset routes answer where the model does, unless the screen says otherwise ('' for the root).
+        prefix: config.datasetPrefix ?? service.prefix ?? config.prefix,
+    });
 
     // A manual order only means something over the whole list: numbering the
     // rows a search or a filter leaves would mix their ranks with the others'.

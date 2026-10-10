@@ -36,7 +36,8 @@ export type ViewStateField = {
  *   on any of them (`icontains`)
  * @param {HTMLElement|Window|import('vue').Ref|Function} options.scrollTarget - Element that scrolls the list, whose
  *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
- * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
+ * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer: by default where the api model does
+ *   (its prefix, else `options.prefix`), `''` for the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
  * @param {boolean|{ prefix?: string }} options.url - Keep the state of the list in the URL (default: true), its keys
  *   after `prefix` when one is given (`done_p`, `done_q`…, the keys of `views.state` included), so that two lists of

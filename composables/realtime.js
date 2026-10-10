@@ -409,7 +409,12 @@ export function useApiRecord(model, id, options = {}) {
 
     const currentId = () => toValue(id) ?? null;
 
+    // Only the latest read lands: the record of an id the holder has already
+    // left must not replace the one it now points at.
+    let latest = 0;
+
     async function read(quiet) {
+        const run = ++latest;
         const wanted = currentId();
 
         if (wanted === null || wanted === undefined) {
@@ -428,10 +433,18 @@ export function useApiRecord(model, id, options = {}) {
             // re-read must not blank the screen it is refreshing.
             const response = await reader.get(wanted, fields ? { fields } : {});
 
+            if (run !== latest) {
+                return;
+            }
+
             data.value = response?.data ?? null;
             error.value = null;
             status.value = 'success';
         } catch (e) {
+            if (run !== latest) {
+                return;
+            }
+
             if (quiet) {
                 if (e?.response?.status === 404) {
                     isDeleted.value = true;
@@ -520,13 +533,24 @@ export function useApiCollection(model, query = {}, options = {}) {
         );
     };
 
+    // Only the latest read lands: the rows of a query the holder has already
+    // left must not replace those of the one it now holds.
+    let latest = 0;
+
     async function load(quiet) {
+        const run = ++latest;
+
         if (!quiet) {
             status.value = 'loading';
         }
 
         try {
             const response = await reader.list(currentQuery());
+
+            if (run !== latest) {
+                return;
+            }
+
             const page = response?.data ?? {};
 
             items.value = page.items ?? [];
@@ -534,6 +558,10 @@ export function useApiCollection(model, query = {}, options = {}) {
             error.value = null;
             status.value = 'success';
         } catch (e) {
+            if (run !== latest) {
+                return;
+            }
+
             if (quiet) {
                 return;
             }

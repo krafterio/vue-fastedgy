@@ -96,6 +96,24 @@ describe('useApiRecord', () => {
         expect(held().data.value).toBeNull();
     });
 
+    it('keeps the record of the last id asked when an earlier one lands after it', async () => {
+        const id = ref(7);
+        let answerFirst;
+
+        get.mockReturnValueOnce(new Promise((resolve) => (answerFirst = resolve)));
+        get.mockResolvedValueOnce({ data: { id: 9, name: 'Bendr' } });
+
+        const { held } = harness(() => useApiRecord('company', () => id.value, { api: { get } }));
+
+        id.value = 9;
+        await flushPromises();
+        answerFirst({ data: { id: 7, name: 'Krafter' } });
+        await flushPromises();
+
+        expect(held().data.value).toEqual({ id: 9, name: 'Bendr' });
+        expect(held().status.value).toBe('success');
+    });
+
     it('follows the id it was given as a getter', async () => {
         const id = ref(7);
         const { held } = harness(() => useApiRecord('company', () => id.value, { api: { get } }));
@@ -146,6 +164,25 @@ describe('useApiCollection', () => {
 
         expect(list).toHaveBeenCalledTimes(2);
         expect(held().total.value).toBe(39);
+    });
+
+    it('keeps the answer of the last query when an earlier one lands after it', async () => {
+        const query = ref({ fields: 'id,name' });
+        let answerFirst;
+
+        list.mockReturnValueOnce(new Promise((resolve) => (answerFirst = resolve)));
+        list.mockResolvedValueOnce({ data: { items: [{ id: 11 }], total: 1 } });
+
+        const { held } = harness(() => useApiCollection('company', () => query.value, { api: { list } }));
+
+        query.value = { fields: 'id,name', filter: '["name","=","Krafter"]' };
+        await flushPromises();
+        answerFirst({ data: { items: [{ id: 7 }, { id: 9 }], total: 2 } });
+        await flushPromises();
+
+        expect(held().items.value).toEqual([{ id: 11 }]);
+        expect(held().total.value).toBe(1);
+        expect(held().status.value).toBe('success');
     });
 
     it('drops a deleted row without going back to the server', async () => {

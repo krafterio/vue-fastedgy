@@ -575,4 +575,48 @@ describe('useDataIterator', () => {
         expect(iterator.currentPage.value).toBe(3);
         expect(router.replace).toHaveBeenLastCalledWith({ query: { p: '3' } });
     });
+
+    it('adds the next page to the rows on loadMore, even on a list that pages, and reads them again together', async () => {
+        const service = {
+            modelName: 'aisle',
+            list: vi.fn(async ({ page: at, size }) => ({
+                data: {
+                    items: Array.from({ length: size }, (_, index) => ({ id: (at - 1) * 2 + index + 1 })),
+                    total: 500,
+                },
+            })),
+        };
+
+        const iterator = useDataIterator(service, { sortable: false, pageSize: 2, availablePageSizes: [2] });
+
+        await settle();
+        await iterator.loadMore();
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(2);
+        expect(service.list.mock.calls[1][0]).toMatchObject({ page: 2, size: 2 });
+        expect(iterator.items.value.map((item) => item.id)).toEqual([1, 2, 3, 4]);
+        expect(iterator.currentPage.value).toBe(2);
+
+        await iterator.refresh();
+        await settle();
+
+        expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, size: 4 }));
+        expect(iterator.items.value.map((item) => item.id)).toEqual([1, 2, 3, 4]);
+    });
+
+    it('says there is nothing more once the page shown is the last one, on a list that pages', async () => {
+        router.route = { query: { p: '3' } };
+        const service = {
+            modelName: 'aisle',
+            list: vi.fn().mockResolvedValue({ data: { items: [{ id: 5 }], total: 5 } }),
+        };
+
+        const iterator = useDataIterator(service, { sortable: false, pageSize: 2, availablePageSizes: [2] });
+
+        await settle();
+
+        expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 3, size: 2 }));
+        expect(iterator.hasMore.value).toBe(false);
+    });
 });

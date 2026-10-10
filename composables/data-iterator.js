@@ -168,9 +168,11 @@ export function useDataIterator(model, options = {}) {
     const initialPage = entry.p ? parseInt(entry.p, 10) : 1;
     const currentPage = ref(initialPage > 0 ? initialPage : 1);
 
-    // An appended list entered at page n reads pages 1 to n in one request,
-    // so the rows the scroll position points at are there.
-    let restorePages = config.append ? currentPage.value : 1;
+    // The first page the rows hold, the last one being the current page: in a
+    // list that pages, the current one, until loadMore adds the next ones; in an
+    // appended list, the first, so that a list entered at page n reads its pages
+    // 1 to n in one request and the rows the scroll position points at are there.
+    let firstHeld = config.append ? 1 : currentPage.value;
 
     const initialScroll = entry.sl ? parseInt(entry.sl, 10) : 0;
     let restoreScroll = config.scrollTarget && initialScroll > 0 ? initialScroll : null;
@@ -315,15 +317,33 @@ export function useDataIterator(model, options = {}) {
     // arrives, and the read that goes out then already carries them.
     let readFields = null;
 
-    const fetchItems = async (append = false) => {
+    // Several pages read at once start from the first one, or say their offset
+    // when a list that pages added some to the page it was on.
+    const readWindow = (from, pages) =>
+        from === 1 || pages === 1
+            ? { page: pages > 1 ? 1 : from, size: pageSize.value * pages }
+            : { offset: (from - 1) * pageSize.value, limit: pageSize.value * pages };
+
+    /**
+     * Read the rows: the current page (with the pages before it in an appended
+     * list), the next page added to the rows (`more`), or again every page the
+     * rows hold (`held`)
+     *
+     * @param {'page'|'more'|'held'} [mode]
+     */
+    const fetchItems = async (mode = 'page') => {
         if (!enabled()) {
             return;
         }
 
         const run = ++latest;
-        const pages = append ? 1 : restorePages;
 
-        restorePages = 1;
+        if (mode === 'page' && !config.append) {
+            firstHeld = currentPage.value;
+        }
+
+        const from = mode === 'more' ? currentPage.value : firstHeld;
+
         readFields = fields.value.join(',');
 
         try {
@@ -331,8 +351,7 @@ export function useDataIterator(model, options = {}) {
             error.value = null;
 
             const result = await service.list({
-                page: pages > 1 ? 1 : currentPage.value,
-                size: pageSize.value * pages,
+                ...readWindow(from, currentPage.value - from + 1),
                 fields: fields.value,
                 filter: filter.value,
                 orderBy: orderBy.value,
@@ -342,7 +361,7 @@ export function useDataIterator(model, options = {}) {
                 return;
             }
 
-            items.value = append ? [...items.value, ...result.data.items] : result.data.items;
+            items.value = mode === 'more' ? [...items.value, ...result.data.items] : result.data.items;
             total.value = result.data.total;
 
             if (restoreScroll !== null) {
@@ -400,11 +419,7 @@ export function useDataIterator(model, options = {}) {
     /**
      * Refresh data from server: the rows shown, every page an appended list holds read again at once
      */
-    const refresh = () => {
-        restorePages = config.append ? currentPage.value : 1;
-
-        return fetchItems();
-    };
+    const refresh = () => fetchItems('held');
 
     /**
      * Reset pagination to first page
@@ -413,10 +428,14 @@ export function useDataIterator(model, options = {}) {
         currentPage.value = 1;
     };
 
-    const hasMore = computed(() => items.value.length < total.value);
+    const hasMore = computed(() => (firstHeld - 1) * pageSize.value + items.value.length < total.value);
+
+    // The page loadMore moves to is its own to read, added to the rows: the
+    // watcher of the page does not read it again in their place.
+    let pageOfMore = null;
 
     /**
-     * Load the next page and keep the items already loaded
+     * Load the next page and keep the items already loaded, whether the list appends or pages
      * @returns {Promise<void>}
      */
     const loadMore = async () => {
@@ -425,16 +444,15 @@ export function useDataIterator(model, options = {}) {
         }
 
         currentPage.value += 1;
+        pageOfMore = currentPage.value;
 
-        await fetchItems(true);
+        await fetchItems('more');
     };
 
     /**
      * Read again from the first page, whatever page is loaded
      */
     const reload = () => {
-        restorePages = 1;
-
         if (config.append || currentPage.value === 1) {
             currentPage.value = 1;
 
@@ -559,7 +577,11 @@ export function useDataIterator(model, options = {}) {
     watch(currentPage, (newPage) => {
         writeQuery({ p: newPage > 1 ? newPage : null });
 
-        if (!config.append) {
+        const byMore = newPage === pageOfMore;
+
+        pageOfMore = null;
+
+        if (!config.append && !byMore) {
             void fetchItems();
         }
     });

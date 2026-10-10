@@ -3,8 +3,10 @@
  * MIT License (see LICENSE file).
  */
 
-import { computed, ref } from 'vue';
+import { computed, getCurrentScope, onScopeDispose, ref } from 'vue';
+import { bus } from './bus.js';
 import { useDataIterator } from './data-iterator.js';
+import { RESOURCES_STALE } from './realtime.js';
 import { useMetadataStore } from '../stores/metadata.js';
 
 /**
@@ -29,16 +31,35 @@ export function useDataTable(model, options = {}) {
     const metadataStore = useMetadataStore();
     const metadatas = ref(null);
 
-    // The store answers with a promise: read the map once, and let the columns
+    // The store answers with a promise: read the map, and let the columns
     // enrich themselves when it lands rather than never.
-    void Promise.resolve(metadataStore.getMetadatas()).then(
-        (all) => {
-            metadatas.value = all || {};
-        },
-        () => {
-            metadatas.value = {};
+    const readMetadatas = () =>
+        Promise.resolve(metadataStore.getMetadatas()).then(
+            (all) => {
+                metadatas.value = all || {};
+            },
+            () => {
+                metadatas.value = {};
+            }
+        );
+
+    void readMetadatas();
+
+    // Another workspace has metadata of its own: the columns are resolved again
+    // from it, before the list, which waits for the same read, reads its rows.
+    const born = performance.now();
+
+    const onSwitch = (event) => {
+        if ((event?.detail?.since ?? Infinity) >= born) {
+            void readMetadatas();
         }
-    );
+    };
+
+    bus.addEventListener(RESOURCES_STALE, onSwitch);
+
+    if (getCurrentScope()) {
+        onScopeDispose(() => bus.removeEventListener(RESOURCES_STALE, onSwitch));
+    }
 
     const metadataOf = (name) => metadatas.value?.[name] || null;
 

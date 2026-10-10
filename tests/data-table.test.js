@@ -4,26 +4,31 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { nextTick } from 'vue';
+import { effectScope, nextTick } from 'vue';
 import { useDataTable } from '../composables/data-table.js';
+import { bus } from '../composables/bus.js';
+import { RESOURCES_STALE } from '../composables/realtime.js';
 
 vi.mock('vue-router', () => ({
     useRoute: () => ({ query: {} }),
     useRouter: () => ({ replace: vi.fn() }),
 }));
 
+const held = vi.hoisted(() => ({
+    metadatas: {
+        invoice: {
+            fields: {
+                name: { type: 'char' },
+                amount_due: { type: 'computed' },
+            },
+        },
+    },
+}));
+
 vi.mock('../stores/metadata.js', () => ({
     useMetadataStore: () => ({
         getMetadata: () => Promise.resolve({}),
-        getMetadatas: () =>
-            Promise.resolve({
-                invoice: {
-                    fields: {
-                        name: { type: 'char' },
-                        amount_due: { type: 'computed' },
-                    },
-                },
-            }),
+        getMetadatas: () => Promise.resolve(held.metadatas),
     }),
 }));
 
@@ -47,5 +52,26 @@ describe('useDataTable', () => {
         await settle();
 
         expect(table.columns.value.map((column) => column.sortable)).toEqual([true, false, true]);
+    });
+
+    it('resolves its columns again from the metadata of the workspace it switches to', async () => {
+        const service = {
+            modelName: 'invoice',
+            list: vi.fn().mockResolvedValue({ data: { items: [], total: 0 } }),
+        };
+        const scope = effectScope();
+        const table = scope.run(() => useDataTable(service, { sortable: false, columns: [{ key: 'extra_level' }] }));
+
+        await settle();
+        expect(table.columns.value[0].type).toBeUndefined();
+
+        held.metadatas = { invoice: { fields: { extra_level: { type: 'integer' } } } };
+        bus.trigger(RESOURCES_STALE, { since: performance.now() });
+        await settle();
+        await settle();
+
+        expect(table.columns.value[0]).toMatchObject({ type: 'integer', sortable: true });
+
+        scope.stop();
     });
 });

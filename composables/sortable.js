@@ -13,7 +13,8 @@ import { useDataset } from './dataset.js';
  * @param {object|Promise<object>} metadata - Model metadata from metadata store, which hands it back as a promise
  * @param {boolean|undefined} sortableConfig - Sortable configuration override
  * @param {{prefix?: string}} [options] - Where the dataset routes answer, when they are not at the root
- * @returns {Object} Sortable state and methods, `ready` settling once the metadata is read
+ * @returns {Object} Sortable state and methods, `ready` settling once the metadata is read, `readMetadata` reading
+ *   it again
  */
 export function useSortable(modelName, metadata, sortableConfig, options = {}) {
     const { resequence: sendOrder } = useDataset({ prefix: options.prefix });
@@ -22,6 +23,9 @@ export function useSortable(modelName, metadata, sortableConfig, options = {}) {
     const sortableField = ref(null);
 
     const applyMetadata = (model) => {
+        isSortable.value = false;
+        sortableField.value = null;
+
         if (sortableConfig === undefined) {
             if (model?.sortable) {
                 isSortable.value = true;
@@ -33,7 +37,14 @@ export function useSortable(modelName, metadata, sortableConfig, options = {}) {
         }
     };
 
-    const ready = Promise.resolve(metadata).then(applyMetadata, () => applyMetadata(null));
+    /**
+     * Read the sortable state again from metadata, another workspace's for instance
+     * @param {object|Promise<object>} next - Model metadata, or the promise of it
+     * @returns {Promise<void>}
+     */
+    const readMetadata = (next) => Promise.resolve(next).then(applyMetadata, () => applyMetadata(null));
+
+    const ready = readMetadata(metadata);
 
     /**
      * Resequence items by updating their sequence field
@@ -62,6 +73,7 @@ export function useSortable(modelName, metadata, sortableConfig, options = {}) {
         sortableField: computed(() => sortableField.value),
         resequence,
         getSortableField,
+        readMetadata,
         ready,
     };
 }

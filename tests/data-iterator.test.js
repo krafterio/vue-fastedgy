@@ -4,8 +4,10 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { nextTick, reactive, ref } from 'vue';
+import { effectScope, nextTick, reactive, ref } from 'vue';
 import { useDataIterator } from '../composables/data-iterator.js';
+import { bus } from '../composables/bus.js';
+import { RESOURCES_STALE } from '../composables/realtime.js';
 
 const router = vi.hoisted(() => ({ route: { query: {} }, replace: null }));
 
@@ -29,8 +31,10 @@ vi.mock('../stores/auth.js', () => ({
     useAuthStore: () => ({ user: { id: 5 } }),
 }));
 
+const metadata = vi.hoisted(() => ({ model: {} }));
+
 vi.mock('../stores/metadata.js', () => ({
-    useMetadataStore: () => ({ getMetadata: () => Promise.resolve({}) }),
+    useMetadataStore: () => ({ getMetadata: () => Promise.resolve(metadata.model) }),
 }));
 
 const dataset = vi.hoisted(() => ({ resequence: null }));
@@ -50,6 +54,7 @@ describe('useDataIterator', () => {
     beforeEach(() => {
         router.route = { query: {} };
         router.replace = vi.fn();
+        metadata.model = {};
     });
 
     it('holds every read back until the caller enables it, then reads once', async () => {
@@ -930,5 +935,65 @@ describe('useDataIterator', () => {
         expect(service.list).toHaveBeenLastCalledWith(
             expect.objectContaining({ filter: [['plan', '=', 'plus']], orderBy: ['name:asc'] })
         );
+    });
+
+    it('starts over on a workspace switch: back to its opening, its metadata read again, one read', async () => {
+        router.route = reactive({ query: {} });
+        metadata.model = { sortable: true, sortable_field: 'sequence' };
+        const scope = effectScope();
+        const service = {
+            modelName: 'task',
+            list: vi.fn().mockResolvedValue({ data: { items: [{ id: 1 }], total: 500 } }),
+        };
+        const iterator = scope.run(() =>
+            useDataIterator(service, { enableSelection: true, defaultOrderBy: ['sequence:asc'] })
+        );
+
+        await settle();
+        expect(iterator.isSortable.value).toBe(true);
+
+        iterator.currentPage.value = 3;
+        iterator.selection.add([1]);
+        await settle();
+        iterator.orderBy.value = ['name:desc'];
+        iterator.expression.value = ['name', 'icontains', 'devis'];
+        await settle();
+        const reads = service.list.mock.calls.length;
+
+        metadata.model = {};
+        bus.trigger(RESOURCES_STALE, { since: performance.now() });
+        await settle();
+        await settle();
+
+        expect(iterator.currentPage.value).toBe(1);
+        expect(iterator.orderBy.value).toEqual(['sequence:asc']);
+        expect(iterator.expression.value).toBeNull();
+        expect(iterator.selection.ids).toEqual([]);
+        expect(iterator.isSortable.value).toBe(false);
+        expect(service.list).toHaveBeenCalledTimes(reads + 1);
+        expect(service.list).toHaveBeenLastCalledWith(
+            expect.objectContaining({ page: 1, orderBy: ['sequence:asc'], filter: null, fields: ['id'] })
+        );
+
+        scope.stop();
+    });
+
+    it('leaves alone a workspace switch that began before it was made', async () => {
+        const since = performance.now();
+        const scope = effectScope();
+        const service = { modelName: 'task', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+        const iterator = scope.run(() => useDataIterator(service, { sortable: false }));
+
+        await settle();
+        iterator.expression.value = ['name', 'icontains', 'devis'];
+        await settle();
+
+        bus.trigger(RESOURCES_STALE, { since });
+        await settle();
+
+        expect(iterator.expression.value).toEqual(['name', 'icontains', 'devis']);
+        expect(service.list).toHaveBeenCalledTimes(2);
+
+        scope.stop();
     });
 });

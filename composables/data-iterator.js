@@ -14,6 +14,8 @@ import { useMetadataStore } from '../stores/metadata.js';
 import { useOpeningView } from './custom-views.js';
 import { quickFilterOf, readQuickFilters, writeQuickFilters } from './quick-filter.js';
 import { sameExpression } from '../utils/query-expression.js';
+import { bus } from './bus.js';
+import { RESOURCES_STALE } from './realtime.js';
 
 /**
  * Read the expression a URL carries, `null` when it carries none or one that does not read.
@@ -197,16 +199,17 @@ export function useDataIterator(model, options = {}) {
     // and each replace would start from a query the previous one has not
     // landed yet: their keys are written together, with those of the other
     // lists of the page.
-    // While the list applies a URL changed from outside, the URL already says
-    // what the list comes to hold: nothing is written back.
-    let following = false;
+    // While the list takes a whole state at once (a URL changed from outside, a
+    // workspace switch), its watchers neither write the URL nor read: one read
+    // follows. The URL changed from outside already says what the list holds.
+    let settling = false;
 
     // The values each key was written with and the route has not shown yet: the
     // list knows its own writes when they land, late or not.
     const sent = new Map();
 
     const writeQuery = (patch) => {
-        if (config.url === false || following) {
+        if (config.url === false || settling) {
             return;
         }
 
@@ -299,6 +302,7 @@ export function useDataIterator(model, options = {}) {
         isSortable: sortableModel,
         sortableField,
         resequence,
+        readMetadata,
         ready: sortableReady,
     } = useSortable(modelName, metadata, config.sortable, { prefix: config.datasetPrefix });
 
@@ -487,9 +491,10 @@ export function useDataIterator(model, options = {}) {
     };
 
     /**
-     * Refresh data from server: the rows shown, every page an appended list holds read again at once
+     * Refresh data from server: the rows shown, every page an appended list holds read again at once; nothing
+     * while the list takes a whole state, which a read follows
      */
-    const refresh = () => fetchItems('held');
+    const refresh = () => (settling ? Promise.resolve() : fetchItems('held'));
 
     /**
      * Reset pagination to first page
@@ -619,7 +624,7 @@ export function useDataIterator(model, options = {}) {
         () => {
             selection.clear();
 
-            if (!following) {
+            if (!settling) {
                 reload();
             }
         }
@@ -630,7 +635,7 @@ export function useDataIterator(model, options = {}) {
     watch(
         () => fields.value.join(','),
         (next) => {
-            if (latest > 0 && next !== readFields) {
+            if (!settling && latest > 0 && next !== readFields) {
                 void refresh();
             }
         }
@@ -640,7 +645,7 @@ export function useDataIterator(model, options = {}) {
     watch(
         orderBy,
         (newOrderBy) => {
-            if (following) {
+            if (settling) {
                 return;
             }
 
@@ -655,7 +660,7 @@ export function useDataIterator(model, options = {}) {
 
     // Watch page size changes - read again from the first page, already there or not, and update URL
     watch(pageSize, (newSize) => {
-        if (following) {
+        if (settling) {
             return;
         }
 
@@ -666,7 +671,7 @@ export function useDataIterator(model, options = {}) {
 
     // Watch page changes - update URL and fetch
     watch(currentPage, (newPage) => {
-        if (following) {
+        if (settling) {
             return;
         }
 
@@ -777,7 +782,7 @@ export function useDataIterator(model, options = {}) {
         }
 
         sent.clear();
-        following = true;
+        settling = true;
 
         try {
             const page = Number.parseInt(query.p ?? '', 10);
@@ -825,7 +830,7 @@ export function useDataIterator(model, options = {}) {
 
             await nextTick();
         } finally {
-            following = false;
+            settling = false;
         }
 
         await fetchItems();
@@ -837,6 +842,86 @@ export function useDataIterator(model, options = {}) {
             () => void followUrl()
         );
     }
+
+    /**
+     * Start over in the workspace switched to, as a list opened there at once:
+     * its state back to the opening, the metadata of that workspace waited for
+     * and what hangs on it resolved again, its opening view read there, then
+     * one read. The rows of the other workspace go meanwhile.
+     */
+    const startOver = async () => {
+        sent.clear();
+        settling = true;
+        ++latest;
+
+        try {
+            selection.clear();
+            items.value = [];
+            total.value = 0;
+            loaded.value = false;
+            currentPage.value = 1;
+            firstHeld = 1;
+            clearTimeout(searchTimer);
+            search.value = '';
+            appliedSearch.value = '';
+            customFilter.value = null;
+            Object.assign(quick, readQuickFilters(null, quickFilters));
+            view.value = null;
+            viewExpression.value = undefined;
+            expression.value = null;
+            orderBy.value = config.defaultOrderBy ?? null;
+
+            await readMetadata(metadataStore.getMetadata(modelName));
+
+            if (config.views) {
+                const reading = useOpeningView(modelName, { scope: config.views.scope, prefix: viewsPrefix });
+
+                await reading.promise;
+
+                const start = reading.view.value;
+
+                for (const [name, one] of Object.entries(viewState)) {
+                    one.set(start?.[name] ?? null);
+                }
+
+                if (start) {
+                    expression.value = start.filters ?? null;
+                    viewExpression.value = start.filters ?? null;
+                    view.value = start.id;
+                    orderBy.value = start.order_by ?? config.defaultOrderBy ?? null;
+                }
+            }
+
+            await nextTick();
+        } finally {
+            settling = false;
+        }
+
+        writeQuery({
+            p: null,
+            q: null,
+            qf: null,
+            sl: null,
+            f: writtenExpression(),
+            cv: view.value,
+            order_by: shownAs.order_by(),
+        });
+        void nextTick(() => scrollElement()?.scrollTo?.({ top: 0 }));
+
+        await fetchItems();
+    };
+
+    // The switch is the workspace store's: a list born after it began reads in
+    // the new workspace already.
+    const born = performance.now();
+
+    const onSwitch = (event) => {
+        if ((event?.detail?.since ?? Infinity) >= born) {
+            void startOver();
+        }
+    };
+
+    bus.addEventListener(RESOURCES_STALE, onSwitch);
 
     // Scroll position - kept in the URL as `sl`
     function scrollElement() {
@@ -873,6 +958,7 @@ export function useDataIterator(model, options = {}) {
         onScopeDispose(() => {
             clearTimeout(searchTimer);
             clearTimeout(scrollTimer);
+            bus.removeEventListener(RESOURCES_STALE, onSwitch);
         });
     }
 

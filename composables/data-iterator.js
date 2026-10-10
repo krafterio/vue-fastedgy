@@ -508,13 +508,15 @@ export function useDataIterator(model, options = {}) {
     /**
      * Resequence items, holding the loading state and reading the rows again
      * @param {Array<number>} ids - New order of item IDs
+     * @param {{ groupField?: string, groupValue?: any }} [options] - The group the ids are moved to
      * @returns {Promise<void>}
      */
-    const resequenceWithState = async (ids) => {
+    const resequenceWithState = async (ids, options = {}) => {
         try {
             loading.value = true;
 
-            await resequence(ids);
+            // The rows shown come after the pages before them: their ranks count from there.
+            await resequence(ids, { ...options, sequenceOffset: (firstHeld - 1) * pageSize.value });
             await refresh();
         } finally {
             loading.value = false;

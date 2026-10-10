@@ -87,7 +87,10 @@ export declare function useDataIterator(model: any, options?: {}): {
     toggleSort: (field: string) => void;
     getSortDirection: (field: string) => 'asc' | 'desc' | null;
     isSortable: any;
-    resequence: (ids: Array<number>) => Promise<void>;
+    resequence: (ids: Array<number>, options?: {
+        groupField?: string;
+        groupValue?: any;
+    }) => Promise<void>;
     isSelectionEnabled: any;
     selection: any;
     refresh: () => Promise<void>;

@@ -38,15 +38,17 @@ export function useSortable(modelName, metadata, sortableConfig, options = {}) {
     /**
      * Resequence items by updating their sequence field
      * @param {Array<number>} ids - New order of item IDs
+     * @param {{ sequenceOffset?: number, groupField?: string, groupValue?: any }} [options] - The rank of the first
+     *   id in the whole list, and the group the ids are moved to
      * @returns {Promise<void>}
      */
-    const resequence = async (ids) => {
+    const resequence = async (ids, options = {}) => {
         if (!isSortable.value || !sortableField.value) {
             console.warn('[useSortable] Resequencing is not enabled');
             return;
         }
 
-        await sendOrder(modelName, ids, { sequenceField: sortableField.value });
+        await sendOrder(modelName, ids, { ...options, sequenceField: sortableField.value });
     };
 
     /**

@@ -28,6 +28,12 @@ vi.mock('../stores/metadata.js', () => ({
     useMetadataStore: () => ({ getMetadata: () => Promise.resolve({}) }),
 }));
 
+const dataset = vi.hoisted(() => ({ resequence: null }));
+
+vi.mock('../composables/dataset.js', () => ({
+    useDataset: () => ({ resequence: (...args) => dataset.resequence(...args) }),
+}));
+
 const page = (items) => ({ data: { items, total: items.length } });
 
 const settle = async () => {
@@ -662,5 +668,26 @@ describe('useDataIterator', () => {
                 ],
             })
         );
+    });
+
+    it('sends the offset of the rows it reorders and the group they are in', async () => {
+        router.route = { query: { p: '3' } };
+        dataset.resequence = vi.fn().mockResolvedValue({ model_name: 'task', records: [] });
+        const service = {
+            modelName: 'task',
+            list: vi.fn().mockResolvedValue({ data: { items: [{ id: 4 }, { id: 5 }], total: 500 } }),
+        };
+
+        const iterator = useDataIterator(service, { sortable: true, pageSize: 25 });
+
+        await settle();
+        await iterator.resequence([5, 4], { groupField: 'status', groupValue: 3 });
+
+        expect(dataset.resequence).toHaveBeenCalledWith('task', [5, 4], {
+            sequenceField: 'sequence',
+            sequenceOffset: 50,
+            groupField: 'status',
+            groupValue: 3,
+        });
     });
 });

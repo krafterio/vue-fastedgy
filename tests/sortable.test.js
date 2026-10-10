@@ -54,4 +54,28 @@ describe('useSortable', () => {
 
         expect(fetchSpy.mock.calls[0][0]).toContain('/{workspace}/dataset/resequence');
     });
+
+    it('sends the offset of the rows and their group with the order', async () => {
+        const fetchSpy = vi.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            headers: { get: () => 'application/json' },
+            json: async () => ({ model_name: 'task', records: [] }),
+        });
+
+        window.fetch = fetchSpy;
+
+        const { resequence, ready } = useSortable('task', Promise.resolve({}), true);
+
+        await ready;
+        await resequence([5, 4], { sequenceOffset: 50, groupField: 'status', groupValue: 3 });
+
+        expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toMatchObject({
+            ids: [5, 4],
+            sequence_field: 'sequence',
+            sequence_offset: 50,
+            group_field: 'status',
+            group_value: 3,
+        });
+    });
 });

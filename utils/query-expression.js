@@ -92,8 +92,14 @@ export function createAnyBlock(field, negated = false, group = createGroup()) {
     return { id: nextId(), kind: 'any', field, negated, group };
 }
 
+// `['|', [r1, r2]]`: the joint and the list of its items. `['|', r1]`, a joint
+// and a single rule, is the flat form of one item, not a list of three.
 const isGroupForm = (item) =>
-    Array.isArray(item) && item.length === 2 && JOINTS.includes(item[0]) && Array.isArray(item[1]);
+    Array.isArray(item) &&
+    item.length === 2 &&
+    JOINTS.includes(item[0]) &&
+    Array.isArray(item[1]) &&
+    item[1].every(Array.isArray);
 
 const isFlatForm = (item) =>
     Array.isArray(item) && item.length > 1 && JOINTS.includes(item[0]) && item.slice(1).every(Array.isArray);

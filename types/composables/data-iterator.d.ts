@@ -96,6 +96,8 @@ export declare function useDataIterator(model: any, options?: {}): {
     refresh: () => Promise<void>;
     resetPagination: () => void;
     exportData: (format?: string) => Promise<Blob>;
-    importData: (file: File) => Promise<any>;
+    importData: (file: File, options?: {
+        delimiter?: string;
+    }) => Promise<any>;
 };
 //# sourceMappingURL=data-iterator.d.ts.map

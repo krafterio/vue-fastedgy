@@ -493,11 +493,12 @@ export function useDataIterator(model, options = {}) {
     /**
      * Import data from a file
      * @param {File} file - File to import (CSV, XLSX, ODS)
+     * @param {{ delimiter?: string }} [options] - The column delimiter of a CSV, detected by the server when absent
      * @returns {Promise<Object>} - Import result with statistics
      */
-    const importData = async (file) => {
+    const importData = async (file, options = {}) => {
         try {
-            const response = await service.import(file);
+            const response = await service.import(file, options.delimiter ? { delimiter: options.delimiter } : {});
             const result = response.data;
 
             if (result.success > 0) {

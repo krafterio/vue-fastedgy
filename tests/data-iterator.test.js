@@ -738,4 +738,25 @@ describe('useDataIterator', () => {
 
         expect(iterator.isSortable.value).toBe(false);
     });
+
+    it('sends the delimiter of an imported csv, and lets the server detect it otherwise', async () => {
+        const result = { success: 2, errors: 0, created: 2, updated: 0 };
+        const service = {
+            modelName: 'aisle',
+            list: vi.fn().mockResolvedValue(page([{ id: 1 }])),
+            import: vi.fn().mockResolvedValue({ data: result }),
+        };
+        const file = new File(['name;code'], 'aisles.csv', { type: 'text/csv' });
+
+        const iterator = useDataIterator(service, { sortable: false });
+
+        await settle();
+
+        expect(await iterator.importData(file, { delimiter: ';' })).toEqual(result);
+        expect(service.import).toHaveBeenLastCalledWith(file, { delimiter: ';' });
+
+        await iterator.importData(file);
+
+        expect(service.import).toHaveBeenLastCalledWith(file, {});
+    });
 });

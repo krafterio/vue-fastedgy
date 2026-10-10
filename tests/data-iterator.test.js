@@ -15,9 +15,14 @@ vi.mock('vue-router', () => ({
 }));
 
 const apis = vi.hoisted(() => ({}));
+const apiParams = vi.hoisted(() => ({}));
 
 vi.mock('../composables/api.js', () => ({
-    useApiModel: (name) => apis[name],
+    useApiModel: (name, params) => {
+        apiParams[name] = params;
+
+        return apis[name];
+    },
 }));
 
 vi.mock('../stores/auth.js', () => ({
@@ -780,5 +785,22 @@ describe('useDataIterator', () => {
 
         expect(iterator.selection.ids).toEqual([]);
         expect(iterator.selection.all).toBe(false);
+    });
+
+    it('looks for its views under the prefix of its api model when the views name none', async () => {
+        apis.custom_view = { list: vi.fn().mockResolvedValue(page([])) };
+        apis.custom_view_favorite = { list: vi.fn().mockResolvedValue(page([])) };
+        const service = {
+            modelName: 'invoice',
+            prefix: '/console',
+            list: vi.fn().mockResolvedValue(page([{ id: 1 }])),
+        };
+
+        useDataIterator(service, { sortable: false, views: { scope: '' } });
+
+        await settle();
+
+        expect(apiParams.custom_view).toEqual({ prefix: '/console' });
+        expect(apiParams.custom_view_favorite).toEqual({ prefix: '/console' });
     });
 });

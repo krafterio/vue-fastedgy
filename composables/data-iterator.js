@@ -95,7 +95,8 @@ const DEFAULT_OPTIONS = {
  *   the screen (their definitions, or the components `defineQuickFilter` makes), held in `quick`, kept in the URL as
  *   `qf` when away from their default, their rules combined with the rest of the filter
  * @param {boolean|{ scope?: string, prefix?: string, state?: Record<string, ViewStateField> }} options.views - Open on
- *   the custom view the list starts from, applied before the first page: the one a link names (`cv`), else, for a URL
+ *   the custom view the list starts from, applied before the first page, the views being read under `prefix`, else
+ *   under the prefix of the api model, else under `options.prefix`: the one a link names (`cv`), else, for a URL
  *   saying nothing of the list, the favorite of the user, else the one of everyone. The filters of the view stay out
  *   of the URL, which says only those that moved away from it. `state` names what a view holds besides its filters
  *   and its order, by field of the view (`group_by`): applied on opening unless the URL says it under its `key`,
@@ -282,7 +283,8 @@ export function useDataIterator(model, options = {}) {
         config.views && (linkedView !== null || !entered)
             ? useOpeningView(modelName, {
                   scope: config.views.scope,
-                  prefix: config.views.prefix ?? config.prefix,
+                  // The views answer where the model does, unless the screen says otherwise.
+                  prefix: config.views.prefix ?? service.prefix ?? config.prefix,
                   id: linkedView,
               })
             : null;

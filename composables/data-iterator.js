@@ -125,8 +125,10 @@ const DEFAULT_OPTIONS = {
  *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer, when they are not at the root
  * @param {string} options.pageSizeKey - Where the page size is remembered, nowhere when absent
- * @param {boolean} options.url - Keep the state of the list in the URL (default: true); false holds it in memory, for
- *   a list drawn inside a screen whose URL says something else (a tab of a record shown over another list)
+ * @param {boolean|{ prefix?: string }} options.url - Keep the state of the list in the URL (default: true), its keys
+ *   after `prefix` when one is given (`done_p`, `done_q`…, the keys of `views.state` included), so that two lists of
+ *   one screen keep theirs apart; false holds it in memory, for a list drawn inside a screen whose URL says something
+ *   else (a tab of a record shown over another list)
  * @param {boolean|Function|import('vue').Ref<boolean>} options.enabled - Whether the list reads at all; the first
  *   page waits for it, so a screen still resolving its fields or filter does not read the list more than once
  *   (default: true)
@@ -163,8 +165,26 @@ export function useDataIterator(model, options = {}) {
     const route = useRoute();
     const router = useRouter();
 
-    // A list drawn inside another screen leaves the URL to that screen.
-    const urlQuery = () => (config.url === false ? {} : route.query);
+    // A list drawn inside another screen leaves the URL to that screen. Two
+    // lists of one screen keep their keys apart, each after its own prefix.
+    const urlPrefix = config.url !== null && typeof config.url === 'object' ? (config.url.prefix ?? '') : '';
+
+    // The query of the route as this list reads it: its own keys, without their prefix.
+    const urlQuery = () => {
+        if (config.url === false) {
+            return {};
+        }
+
+        if (!urlPrefix) {
+            return route.query;
+        }
+
+        return Object.fromEntries(
+            Object.entries(route.query)
+                .filter(([key]) => key.startsWith(urlPrefix))
+                .map(([key, value]) => [key.slice(urlPrefix.length), value])
+        );
+    };
     const entry = urlQuery();
 
     const items = ref([]);
@@ -182,7 +202,11 @@ export function useDataIterator(model, options = {}) {
             return;
         }
 
-        queueQuery(router, route, patch);
+        queueQuery(
+            router,
+            route,
+            Object.fromEntries(Object.entries(patch).map(([key, value]) => [urlPrefix + key, value]))
+        );
     };
 
     const initialPage = entry.p ? parseInt(entry.p, 10) : 1;

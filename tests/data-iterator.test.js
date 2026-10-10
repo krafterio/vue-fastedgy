@@ -820,4 +820,29 @@ describe('useDataIterator', () => {
             query: { order_by: 'name:asc', f: JSON.stringify(['title', 'icontains', 'idée']) },
         });
     });
+
+    it('reads and writes its keys after the prefix it is given, leaving those of another list alone', async () => {
+        router.route = { query: { done_p: '2', done_q: 'facture', p: '5' } };
+        const service = {
+            modelName: 'task',
+            list: vi.fn().mockResolvedValue({ data: { items: [{ id: 1 }], total: 500 } }),
+        };
+
+        const iterator = useDataIterator(service, { sortable: false, url: { prefix: 'done_' } });
+
+        await settle();
+
+        expect(iterator.currentPage.value).toBe(2);
+        expect(iterator.search.value).toBe('facture');
+        expect(service.list).toHaveBeenLastCalledWith(
+            expect.objectContaining({ page: 2, filter: [['search_value', 'search_fuzzy', 'facture']] })
+        );
+
+        iterator.orderBy.value = ['done_at:desc'];
+        await settle();
+
+        expect(router.replace).toHaveBeenLastCalledWith({
+            query: { done_order_by: 'done_at:desc', done_q: 'facture', p: '5' },
+        });
+    });
 });

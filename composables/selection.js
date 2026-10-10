@@ -19,6 +19,11 @@ export function useSelection({ enabled = false, items, total }) {
     const selectedIds = ref(new Set());
     const selectAllRecords = ref(false);
 
+    // In the all mode, the rows unchecked one by one: every record of the filter
+    // is selected but them, and an action on the selection sends the filter with
+    // ['id', 'not in', excluded].
+    const excludedIds = ref(new Set());
+
     /**
      * Selection object exposed to components
      * Provides methods and reactive state for selection management
@@ -43,18 +48,26 @@ export function useSelection({ enabled = false, items, total }) {
         },
         set all(value) {
             selectAllRecords.value = !!value;
+            excludedIds.value = new Set();
             if (value) {
                 selectedIds.value.clear();
             }
         },
 
         /**
+         * IDs unchecked while in "all" mode, every other record matching the filters staying selected
+         */
+        get excluded() {
+            return Array.from(excludedIds.value);
+        },
+
+        /**
          * Get count of selected items
-         * @returns {number} - Number of selected items, or total if "all" mode
+         * @returns {number} - Number of selected items, or total less the unchecked ones if "all" mode
          */
         get count() {
             if (selectAllRecords.value) {
-                return total.value;
+                return total.value - excludedIds.value.size;
             }
             return selectedIds.value.size;
         },
@@ -82,6 +95,12 @@ export function useSelection({ enabled = false, items, total }) {
          */
         add(ids) {
             const idArray = Array.isArray(ids) ? ids : [ids];
+
+            if (selectAllRecords.value) {
+                excludedIds.value = new Set([...excludedIds.value].filter((id) => !idArray.includes(id)));
+                return;
+            }
+
             idArray.forEach((id) => selectedIds.value.add(id));
             selectedIds.value = new Set(selectedIds.value);
         },
@@ -92,12 +111,14 @@ export function useSelection({ enabled = false, items, total }) {
          */
         remove(ids) {
             const idArray = Array.isArray(ids) ? ids : [ids];
-            idArray.forEach((id) => selectedIds.value.delete(id));
-            selectedIds.value = new Set(selectedIds.value);
 
             if (selectAllRecords.value) {
-                selectAllRecords.value = false;
+                excludedIds.value = new Set([...excludedIds.value, ...idArray]);
+                return;
             }
+
+            idArray.forEach((id) => selectedIds.value.delete(id));
+            selectedIds.value = new Set(selectedIds.value);
         },
 
         /**
@@ -107,7 +128,7 @@ export function useSelection({ enabled = false, items, total }) {
          */
         has(id) {
             if (selectAllRecords.value) {
-                return true;
+                return !excludedIds.value.has(id);
             }
             return selectedIds.value.has(id);
         },
@@ -118,6 +139,7 @@ export function useSelection({ enabled = false, items, total }) {
         clear() {
             selectedIds.value.clear();
             selectAllRecords.value = false;
+            excludedIds.value = new Set();
         },
 
         /**
@@ -136,10 +158,7 @@ export function useSelection({ enabled = false, items, total }) {
          * Select all visible items on current page
          */
         selectAllVisible() {
-            items.value.forEach((item) => {
-                selectedIds.value.add(item.id);
-            });
-            selectedIds.value = new Set(selectedIds.value);
+            this.add(items.value.map((item) => item.id));
         },
 
         /**
@@ -147,6 +166,7 @@ export function useSelection({ enabled = false, items, total }) {
          */
         toggleAll() {
             selectAllRecords.value = !selectAllRecords.value;
+            excludedIds.value = new Set();
             if (selectAllRecords.value) {
                 selectedIds.value.clear();
             }

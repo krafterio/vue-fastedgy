@@ -553,9 +553,13 @@ export function useDataIterator(model, options = {}) {
     // again whenever anything it reads is recomputed, and a deep watcher takes
     // each of those for a change, so the screen read its whole list again for
     // rules it was already showing. The filter the screen sets is among them.
+    // A selection made under other rules is not this list's: it is emptied.
     watch(
         () => JSON.stringify(filter.value ?? null),
-        () => reload()
+        () => {
+            selection.clear();
+            reload();
+        }
     );
 
     // A column added or removed is another read; the fields the read already

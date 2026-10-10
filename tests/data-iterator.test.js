@@ -759,4 +759,26 @@ describe('useDataIterator', () => {
 
         expect(service.import).toHaveBeenLastCalledWith(file, {});
     });
+
+    it('empties its selection when its filter changes, and keeps it from one page to another', async () => {
+        const service = {
+            modelName: 'aisle',
+            list: vi.fn().mockResolvedValue({ data: { items: [{ id: 1 }], total: 500 } }),
+        };
+
+        const iterator = useDataIterator(service, { sortable: false, enableSelection: true });
+
+        await settle();
+        iterator.selection.add([1, 2]);
+        iterator.currentPage.value = 2;
+        await settle();
+
+        expect(iterator.selection.ids).toEqual([1, 2]);
+
+        iterator.filter.value = ['status', '=', 'opened'];
+        await settle();
+
+        expect(iterator.selection.ids).toEqual([]);
+        expect(iterator.selection.all).toBe(false);
+    });
 });

@@ -61,9 +61,12 @@ export function useDataTable(model, options = {}) {
             return column;
         }
 
+        // A computed field is not stored: the server leaves it out of an order without a word.
+        const sortable = field.type !== 'computed' && field.sortable !== false;
+
         return {
             ...column,
-            sortable: column.sortable !== undefined ? column.sortable : field.sortable !== false,
+            sortable: column.sortable !== undefined ? column.sortable : sortable,
             type: column.type || field.type || 'string',
             meta: field,
         };

@@ -664,6 +664,24 @@ describe('useDataIterator', () => {
         expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, size: 25 }));
     });
 
+    it('reads once when its filters and its order change together, as a view applied does', async () => {
+        const list = vi.fn().mockResolvedValue(page([{ id: 1 }]));
+        apis.thing = { modelName: 'thing', list };
+        const scope = effectScope();
+        const iterator = scope.run(() => useDataIterator('thing', { url: false }));
+
+        await settle();
+        list.mockClear();
+        iterator.expression.value = ['name', '=', 'a'];
+        iterator.orderBy.value = ['name:desc'];
+        await settle();
+
+        expect(list).toHaveBeenCalledTimes(1);
+        expect(list.mock.calls[0][0]).toMatchObject({ filter: [['name', '=', 'a']], orderBy: ['name:desc'] });
+
+        scope.stop();
+    });
+
     it('reads once when the screen sets its own filter', async () => {
         const service = { modelName: 'aisle', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
 

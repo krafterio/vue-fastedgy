@@ -460,6 +460,29 @@ export function useDataIterator(model, options = {}) {
         }
     };
 
+    // The watchers answering to one change of the screen (a view applied sets
+    // its filters and its order at once) read once, after them all: the page,
+    // which carries the new fields too, before the rows held.
+    let queued = null;
+    let queuedMode = null;
+
+    const queueRead = (mode) => {
+        if (queuedMode !== 'page') {
+            queuedMode = mode;
+        }
+
+        queued ??= Promise.resolve().then(() => {
+            const next = queuedMode;
+
+            queued = null;
+            queuedMode = null;
+
+            return fetchItems(next);
+        });
+
+        return queued;
+    };
+
     /**
      * Toggle sort direction for a field: ascending, descending, then back to the default order
      * @param {string} field - Field to sort by
@@ -535,7 +558,7 @@ export function useDataIterator(model, options = {}) {
         if (config.append || currentPage.value === 1) {
             currentPage.value = 1;
 
-            void fetchItems();
+            void queueRead('page');
 
             return;
         }
@@ -640,7 +663,7 @@ export function useDataIterator(model, options = {}) {
         () => fields.value.join(','),
         (next) => {
             if (!settling && latest > 0 && next !== readFields) {
-                void refresh();
+                void queueRead('held');
             }
         }
     );
@@ -686,7 +709,7 @@ export function useDataIterator(model, options = {}) {
         pageOfMore = null;
 
         if (!config.append && !byMore) {
-            void fetchItems();
+            void queueRead('page');
         }
     });
 

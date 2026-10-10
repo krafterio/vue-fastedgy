@@ -57,7 +57,9 @@ const settle = async () => {
 describe('useDataIterator', () => {
     beforeEach(() => {
         router.route = { query: {} };
-        router.replace = vi.fn();
+        router.replace = vi.fn((to) => {
+            router.route.query = to.query;
+        });
         metadata.model = {};
     });
 
@@ -910,6 +912,7 @@ describe('useDataIterator', () => {
 
     it('does not take its own writes landing late for a change from outside', async () => {
         router.route = reactive({ query: {} });
+        router.replace = vi.fn();
         const service = {
             modelName: 'task',
             list: vi.fn().mockResolvedValue({ data: { items: [{ id: 1 }], total: 500 } }),
@@ -957,6 +960,22 @@ describe('useDataIterator', () => {
         expect(service.list).toHaveBeenLastCalledWith(
             expect.objectContaining({ filter: [['plan', '=', 'plus']], orderBy: ['name:asc'] })
         );
+    });
+
+    it('leaves the url alone when its keys say what it says already, a navigation of the screen going on', async () => {
+        router.route = reactive({ query: { tab: 'members' } });
+        const scope = effectScope();
+        const service = { modelName: 'task', list: vi.fn().mockResolvedValue({ data: { items: [], total: 0 } }) };
+        const iterator = scope.run(() => useDataIterator(service, { defaultOrderBy: ['name:asc'] }));
+
+        await settle();
+        iterator.orderBy.value = ['name:asc'];
+        await settle();
+
+        expect(router.replace).not.toHaveBeenCalled();
+        expect(service.list).toHaveBeenCalledTimes(2);
+
+        scope.stop();
     });
 
     it('starts over on a workspace switch: back to its opening, its metadata read again, one read', async () => {

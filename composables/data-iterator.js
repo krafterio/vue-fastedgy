@@ -77,7 +77,11 @@ function queueQuery(router, route, patch) {
                 }
             }
 
-            void router.replace({ query });
+            // A replace is a navigation even when it changes nothing, and it
+            // cancels the one the screen has going on (to another workspace).
+            if (JSON.stringify(query) !== JSON.stringify(route.query)) {
+                void router.replace({ query });
+            }
         });
     }
 

@@ -207,16 +207,21 @@ export function useDataIterator(model, options = {}) {
         return rules.length > 1 ? ['|', rules] : rules[0];
     };
 
-    const filter = computed(() => {
-        const restrictiveFilters = typeof config.filter === 'function' ? config.filter() || [] : config.filter || [];
-        const extraRules = [
+    // What narrows the list beyond its restrictive filter: the filter the screen
+    // sets, the expression, the quick filters and the search.
+    const extraRules = computed(() =>
+        [
             customFilter.value,
             expression.value,
             ...quickFilters.map((one) => one.filter(quick[one.name])),
             appliedSearch.value ? searchRule(appliedSearch.value) : null,
-        ].filter(Boolean);
+        ].filter(Boolean)
+    );
 
-        if (extraRules.length === 0) {
+    const filter = computed(() => {
+        const restrictiveFilters = typeof config.filter === 'function' ? config.filter() || [] : config.filter || [];
+
+        if (extraRules.value.length === 0) {
             return restrictiveFilters.length > 0 ? restrictiveFilters : null;
         }
 
@@ -224,16 +229,21 @@ export function useDataIterator(model, options = {}) {
             ? restrictiveFilters
             : [restrictiveFilters];
 
-        return [...restrictiveRules, ...extraRules];
+        return [...restrictiveRules, ...extraRules.value];
     });
 
     const metadata = metadataStore.getMetadata(modelName);
     const {
-        isSortable,
+        isSortable: sortableModel,
         sortableField,
         resequence,
         ready: sortableReady,
     } = useSortable(modelName, metadata, config.sortable, { prefix: config.datasetPrefix });
+
+    // A manual order only means something over the whole list: numbering the
+    // rows a search or a filter leaves would mix their ranks with the others'.
+    // The restrictive filter fixes the list, and does not count.
+    const isSortable = computed(() => sortableModel.value && extraRules.value.length === 0);
 
     const fields = computed(() => {
         let baseFields = [];
@@ -248,7 +258,7 @@ export function useDataIterator(model, options = {}) {
 
         const allFields = ['id', ...baseFields];
 
-        if (isSortable.value && sortableField.value && !allFields.includes(sortableField.value)) {
+        if (sortableModel.value && sortableField.value && !allFields.includes(sortableField.value)) {
             allFields.push(sortableField.value);
         }
 
@@ -512,6 +522,14 @@ export function useDataIterator(model, options = {}) {
      * @returns {Promise<void>}
      */
     const resequenceWithState = async (ids, options = {}) => {
+        if (sortableModel.value && !isSortable.value) {
+            console.warn('[useDataIterator] Resequencing waits for the list to be narrowed by nothing');
+
+            await refresh();
+
+            return;
+        }
+
         try {
             loading.value = true;
 

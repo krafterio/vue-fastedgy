@@ -86,7 +86,7 @@ export declare function useDataIterator(model: any, options?: {}): {
     orderBy: any;
     toggleSort: (field: string) => void;
     getSortDirection: (field: string) => 'asc' | 'desc' | null;
-    isSortable: any;
+    isSortable: import("vue").ComputedRef<any>;
     resequence: (ids: Array<number>, options?: {
         groupField?: string;
         groupValue?: any;

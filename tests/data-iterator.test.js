@@ -690,4 +690,52 @@ describe('useDataIterator', () => {
             groupValue: 3,
         });
     });
+
+    it('stops the manual order while a search, an expression, a quick filter or its own filter narrows the list', async () => {
+        const kind = {
+            name: 'kind',
+            default: 'all',
+            filter: (value) => (value === 'all' ? null : ['type', '=', value]),
+        };
+        const service = { modelName: 'task', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, {
+            sortable: true,
+            filter: [['project', '=', 3]],
+            quickFilters: [kind],
+        });
+
+        await settle();
+        expect(iterator.isSortable.value).toBe(true);
+
+        iterator.expression.value = ['name', 'ilike', 'tomate'];
+        await settle();
+        expect(iterator.isSortable.value).toBe(false);
+
+        iterator.expression.value = null;
+        iterator.filter.value = ['status', '=', 'opened'];
+        await settle();
+        expect(iterator.isSortable.value).toBe(false);
+
+        iterator.filter.value = null;
+        iterator.quick.kind = 'idea';
+        await settle();
+        expect(iterator.isSortable.value).toBe(false);
+
+        iterator.quick.kind = 'all';
+        await settle();
+        expect(iterator.isSortable.value).toBe(true);
+        expect(service.list.mock.calls.every(([query]) => query.fields.includes('sequence'))).toBe(true);
+    });
+
+    it('stops the manual order while the list is searched', async () => {
+        router.route = { query: { q: 'tomate' } };
+        const service = { modelName: 'task', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: true });
+
+        await settle();
+
+        expect(iterator.isSortable.value).toBe(false);
+    });
 });

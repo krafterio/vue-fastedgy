@@ -552,4 +552,27 @@ describe('useDataIterator', () => {
 
         expect(iterator.orderBy.value).toEqual(['name:desc']);
     });
+
+    it('reads again every page an appended list holds on a refresh, without folding it back to the first one', async () => {
+        const service = {
+            modelName: 'aisle',
+            list: vi.fn().mockResolvedValue({ data: { items: [{ id: 1 }], total: 500 } }),
+        };
+
+        const iterator = useDataIterator(service, { sortable: false, append: true, pageSize: 25 });
+
+        await settle();
+        await iterator.loadMore();
+        await iterator.loadMore();
+        await settle();
+
+        expect(iterator.currentPage.value).toBe(3);
+
+        await iterator.refresh();
+        await settle();
+
+        expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, size: 75 }));
+        expect(iterator.currentPage.value).toBe(3);
+        expect(router.replace).toHaveBeenLastCalledWith({ query: { p: '3' } });
+    });
 });

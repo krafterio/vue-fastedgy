@@ -398,14 +398,10 @@ export function useDataIterator(model, options = {}) {
     };
 
     /**
-     * Refresh data from server
+     * Refresh data from server: the rows shown, every page an appended list holds read again at once
      */
     const refresh = () => {
-        restorePages = 1;
-
-        if (config.append) {
-            currentPage.value = 1;
-        }
+        restorePages = config.append ? currentPage.value : 1;
 
         return fetchItems();
     };

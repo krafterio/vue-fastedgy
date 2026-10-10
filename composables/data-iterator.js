@@ -387,16 +387,14 @@ export function useDataIterator(model, options = {}) {
     };
 
     /**
-     * Get current sort state for a field
+     * Get current sort state for a field, a term written without a direction being ascending
      * @param {string} field - Field name
      * @returns {'asc' | 'desc' | null}
      */
     const getSortDirection = (field) => {
-        if (!orderBy.value) return null;
-        const sortItem = orderBy.value.find((item) => item.startsWith(`${field}:`));
-        if (!sortItem) return null;
-        const [, direction = 'asc'] = sortItem.split(':');
-        return direction;
+        const term = (orderBy.value ?? []).map(orderByTerm).find((one) => one.field === field);
+
+        return term ? /** @type {'asc' | 'desc'} */ (term.direction) : null;
     };
 
     /**

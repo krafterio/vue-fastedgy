@@ -537,4 +537,19 @@ describe('useDataIterator', () => {
         iterator.toggleSort('name');
         expect(iterator.orderBy.value).toEqual(['name:desc']);
     });
+
+    it('reads a term written without a direction as ascending, as the server does', async () => {
+        router.route = { query: { order_by: 'name,created_at:desc' } };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: false });
+
+        expect(iterator.getSortDirection('name')).toBe('asc');
+        expect(iterator.getSortDirection('created_at')).toBe('desc');
+        expect(iterator.getSortDirection('name_short')).toBeNull();
+
+        iterator.toggleSort('name');
+
+        expect(iterator.orderBy.value).toEqual(['name:desc']);
+    });
 });

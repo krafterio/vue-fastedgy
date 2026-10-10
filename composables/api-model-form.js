@@ -14,26 +14,36 @@ import { useMetadataStore } from '../stores/metadata.js';
  * every content type costs its own hand-written dialog. With it, a new model
  * becomes a list of column keys and nothing else.
  *
+ * The keys are the types `/dataset/metadatas` generates (`char`, `many2one`,
+ * `many2many`…), next to the names an older generator gave the same fields.
  * Anything unmapped falls back to a plain text input rather than throwing: an
  * unknown type must degrade to something editable, never break the screen.
  */
 export const FIELD_WIDGETS = {
+    char: 'text',
     string: 'text',
     text: 'textarea',
     email: 'text',
     url: 'text',
+    u_r_l: 'text',
     password: 'text',
     integer: 'number',
+    small_integer: 'number',
+    big_integer: 'number',
     biginteger: 'number',
     float: 'number',
     decimal: 'number',
     boolean: 'switch',
     date: 'date',
     datetime: 'date',
+    date_time: 'date',
     choice: 'choice',
     char_choice: 'choice',
+    many2one: 'relation',
     foreignkey: 'relation',
+    one2one: 'relation',
     onetoone: 'relation',
+    many2many: 'relations',
     manytomany: 'relations',
     json: 'textarea',
     file: 'file',

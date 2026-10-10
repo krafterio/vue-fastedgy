@@ -37,6 +37,16 @@ describe('resolveWidget', () => {
     it('falls back on a text input rather than breaking the screen', () => {
         expect(resolveWidget({ type: 'something_new' })).toBe('text');
     });
+
+    it('names the input of the field types the server generates', () => {
+        expect(resolveWidget({ type: 'char' })).toBe('text');
+        expect(resolveWidget({ type: 'u_r_l' })).toBe('text');
+        expect(resolveWidget({ type: 'small_integer' })).toBe('number');
+        expect(resolveWidget({ type: 'big_integer' })).toBe('number');
+        expect(resolveWidget({ type: 'many2one' })).toBe('relation');
+        expect(resolveWidget({ type: 'one2one' })).toBe('relation');
+        expect(resolveWidget({ type: 'many2many' })).toBe('relations');
+    });
 });
 
 describe('useApiModelForm', () => {

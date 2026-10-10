@@ -5,26 +5,36 @@
  * every content type costs its own hand-written dialog. With it, a new model
  * becomes a list of column keys and nothing else.
  *
+ * The keys are the types `/dataset/metadatas` generates (`char`, `many2one`,
+ * `many2many`…), next to the names an older generator gave the same fields.
  * Anything unmapped falls back to a plain text input rather than throwing: an
  * unknown type must degrade to something editable, never break the screen.
  */
 export declare const FIELD_WIDGETS: {
+    char: string;
     string: string;
     text: string;
     email: string;
     url: string;
+    u_r_l: string;
     password: string;
     integer: string;
+    small_integer: string;
+    big_integer: string;
     biginteger: string;
     float: string;
     decimal: string;
     boolean: string;
     date: string;
     datetime: string;
+    date_time: string;
     choice: string;
     char_choice: string;
+    many2one: string;
     foreignkey: string;
+    one2one: string;
     onetoone: string;
+    many2many: string;
     manytomany: string;
     json: string;
     file: string;

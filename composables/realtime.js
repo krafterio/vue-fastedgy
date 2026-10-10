@@ -553,8 +553,21 @@ export function useApiCollection(model, query = {}, options = {}) {
             }
 
             if (change.action === 'deleted') {
-                items.value = items.value.filter((one) => String(one?.id) !== String(change.id));
-                total.value = Math.max(0, total.value - 1);
+                const held = items.value.some((one) => String(one?.id) === String(change.id));
+
+                if (held) {
+                    items.value = items.value.filter((one) => String(one?.id) !== String(change.id));
+                    total.value = Math.max(0, total.value - 1);
+
+                    return;
+                }
+
+                // A row it does not hold: nothing moved on a list holding all of
+                // them; on a list holding only some, the server says what did.
+                if (change.id === null || change.id === undefined || total.value > items.value.length) {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => load(true), refreshDelay);
+                }
 
                 return;
             }

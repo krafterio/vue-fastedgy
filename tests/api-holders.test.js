@@ -116,6 +116,38 @@ describe('useApiCollection', () => {
         list = vi.fn().mockResolvedValue({ data: { items: [{ id: 7 }, { id: 9 }], total: 2 } });
     });
 
+    it('leaves its count alone on the delete of a row it does not hold, all its rows being there', async () => {
+        const { held } = harness(() =>
+            useApiCollection('company', { fields: 'id,name' }, { api: { list }, refreshDelay: 0 })
+        );
+
+        await flushPromises();
+        change({ id: 11, action: 'deleted' });
+        await flushPromises();
+        await new Promise((resolve) => setTimeout(resolve));
+
+        expect(held().items.value).toEqual([{ id: 7 }, { id: 9 }]);
+        expect(held().total.value).toBe(2);
+        expect(list).toHaveBeenCalledTimes(1);
+    });
+
+    it('reads again on the delete of a row it does not hold when it holds only some of the rows', async () => {
+        list.mockResolvedValue({ data: { items: [{ id: 7 }, { id: 9 }], total: 40 } });
+        const { held } = harness(() =>
+            useApiCollection('company', { fields: 'id,name', limit: 2 }, { api: { list }, refreshDelay: 0 })
+        );
+
+        await flushPromises();
+        list.mockResolvedValue({ data: { items: [{ id: 7 }, { id: 9 }], total: 39 } });
+        change({ id: 11, action: 'deleted' });
+        await flushPromises();
+        await new Promise((resolve) => setTimeout(resolve));
+        await flushPromises();
+
+        expect(list).toHaveBeenCalledTimes(2);
+        expect(held().total.value).toBe(39);
+    });
+
     it('drops a deleted row without going back to the server', async () => {
         const { held } = harness(() => useApiCollection('company', { fields: 'id,name' }, { api: { list } }));
 

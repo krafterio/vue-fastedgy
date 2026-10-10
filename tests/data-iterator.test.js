@@ -619,4 +619,28 @@ describe('useDataIterator', () => {
         expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 3, size: 2 }));
         expect(iterator.hasMore.value).toBe(false);
     });
+
+    it('reads again at the new page size, from the first page as from any other', async () => {
+        const service = {
+            modelName: 'aisle',
+            list: vi.fn().mockResolvedValue({ data: { items: [{ id: 1 }], total: 500 } }),
+        };
+
+        const iterator = useDataIterator(service, { sortable: false });
+
+        await settle();
+        iterator.pageSize.value = 100;
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(2);
+        expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, size: 100 }));
+
+        iterator.currentPage.value = 3;
+        await settle();
+        iterator.pageSize.value = 25;
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(4);
+        expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, size: 25 }));
+    });
 });

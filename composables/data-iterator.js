@@ -566,9 +566,9 @@ export function useDataIterator(model, options = {}) {
         { deep: true }
     );
 
-    // Watch page size changes - reset to first page and update URL
+    // Watch page size changes - read again from the first page, already there or not, and update URL
     watch(pageSize, (newSize) => {
-        resetPagination();
+        reload();
 
         writeQuery({ s: newSize });
     });

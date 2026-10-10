@@ -69,6 +69,30 @@ describe('useApiOptions', () => {
         expect(hasMore.value).toBe(false);
     });
 
+    it('keeps the latest search when an earlier one answers after it', async () => {
+        let release;
+        const slow = new Promise((resolve) => (release = resolve));
+
+        api.list = vi
+            .fn()
+            .mockImplementationOnce(async () => {
+                await slow;
+
+                return { data: { items: [{ id: 1, name: 'Old' }], total: 1 } };
+            })
+            .mockImplementationOnce(() => page([{ id: 2, name: 'New' }], 1));
+
+        const options = useApiOptions(api, { fields: ['name'], searchFilter: (text) => ['name', 'icontains', text] });
+        const first = options.search('ol');
+
+        await options.search('ne');
+        release();
+        await first;
+
+        expect(options.items.value.map((item) => item.name)).toEqual(['New']);
+        expect(options.loading.value).toBe(false);
+    });
+
     it('reads back the record a field holds by its id', async () => {
         const { resolve } = useApiOptions(api, { fields: ['name'] });
 

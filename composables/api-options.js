@@ -51,6 +51,10 @@ export function useApiOptions(model, options = {}) {
     let offset = 0;
     let text = '';
 
+    // Only the latest read lands: an earlier search answering last would put
+    // back the records of a text the field has left.
+    let latest = 0;
+
     const read = () => ['id', ...fields].filter((field, index, all) => all.indexOf(field) === index);
 
     const restrictive = () => (typeof filter === 'function' ? filter() : toValue(filter));
@@ -67,6 +71,8 @@ export function useApiOptions(model, options = {}) {
     };
 
     async function load(append) {
+        const run = ++latest;
+
         loading.value = true;
 
         try {
@@ -78,6 +84,10 @@ export function useApiOptions(model, options = {}) {
                 offset: append ? offset : 0,
             });
 
+            if (run !== latest) {
+                return;
+            }
+
             const page = response?.data ?? {};
             const read_items = page.items ?? [];
 
@@ -86,13 +96,19 @@ export function useApiOptions(model, options = {}) {
             offset = items.value.length;
             hasMore.value = read_items.length === limit && items.value.length < total.value;
         } catch {
+            if (run !== latest) {
+                return;
+            }
+
             if (!append) {
                 items.value = [];
             }
 
             hasMore.value = false;
         } finally {
-            loading.value = false;
+            if (run === latest) {
+                loading.value = false;
+            }
         }
     }
 

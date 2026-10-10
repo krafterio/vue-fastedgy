@@ -21,6 +21,7 @@ export * from './composables/query-expression.js';
 export * from './composables/quick-filter.js';
 export * from './composables/realtime.js';
 export * from './composables/record-context.js';
+export * from './composables/record-edit.js';
 export * from './composables/api-model-form.js';
 export * from './composables/selection.js';
 export * from './composables/sortable.js';

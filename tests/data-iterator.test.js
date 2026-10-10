@@ -125,6 +125,23 @@ describe('useDataIterator', () => {
         expect(service.list).toHaveBeenCalledTimes(2);
     });
 
+    it('reads its first page once when its view opens before its metadata are read', async () => {
+        let readMetadata = null;
+
+        metadata.model = new Promise((resolve) => (readMetadata = resolve));
+        apis.custom_view = { list: vi.fn().mockResolvedValue(page([])) };
+        apis.custom_view_favorite = { list: vi.fn().mockResolvedValue(page([])) };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        useDataIterator(service, { views: {} });
+
+        await settle();
+        readMetadata({});
+        await settle();
+
+        expect(service.list).toHaveBeenCalledTimes(1);
+    });
+
     it('reads again on the rules a filter says, not on the array that says them', async () => {
         const closed = ref('is false');
         const rebuilt = ref(0);

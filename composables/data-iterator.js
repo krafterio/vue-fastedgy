@@ -993,14 +993,26 @@ export function useDataIterator(model, options = {}) {
         });
     }
 
-    // Initial fetch, held back until the caller says the list is ready
-    void sortableReady.then(() => fetchItems());
+    // Initial fetch, held back until the caller says the list is ready and its
+    // metadata read: the list enabled while it waits for them reads once.
+    let starting = null;
 
-    watch(enabled, (on) => {
-        if (on) {
-            void sortableReady.then(() => fetchItems());
-        }
-    });
+    const start = () =>
+        (starting ??= sortableReady.then(() => {
+            starting = null;
+
+            return fetchItems();
+        }));
+
+    watch(
+        enabled,
+        (on) => {
+            if (on) {
+                void start();
+            }
+        },
+        { immediate: true }
+    );
 
     return {
         // Data

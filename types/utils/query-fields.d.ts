@@ -6,6 +6,15 @@
  */
 export declare function relationKindOf(field: import('../stores/metadata.js').MetadataField | null | undefined): 'single' | 'multiple' | null;
 /**
+ * Whether a list groups its rows by a field: one with choices, a boolean or a
+ * single relation. Any other field would need the server to say which values
+ * hold rows at all.
+ *
+ * @param {import('../stores/metadata.js').MetadataField|null|undefined} field
+ * @returns {boolean}
+ */
+export declare function isGroupable(field: import('../stores/metadata.js').MetadataField | null | undefined): boolean;
+/**
  * The fields a filter can be built on, in the order the metadata gives them.
  *
  * A field is offered when the server filters on it and it is not a technical

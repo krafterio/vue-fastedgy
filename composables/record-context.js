@@ -9,13 +9,15 @@ import { useApiSiblings } from './realtime.js';
 
 /**
  * The list a record is opened from, carried by the query of its route so a
- * reload keeps it: the filter the list sends and its order.
+ * reload keeps it: the filter the list sends, or the one of the group the
+ * record is opened from, and its order.
  *
  * @param {{ combinedFilter: import('vue').Ref<any>, orderBy: import('vue').Ref<Array<string>|null> }} list - A data iterator
+ * @param {{ group?: { filter: any }|null }} [options] - The group of a grouped list the record is opened from
  * @returns {{ ctx: string }}
  */
-export function listContext(list) {
-    const filter = toValue(list.combinedFilter);
+export function listContext(list, { group = null } = {}) {
+    const filter = group ? group.filter : toValue(list.combinedFilter);
     const orderBy = toValue(list.orderBy);
 
     return {

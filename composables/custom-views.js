@@ -37,9 +37,9 @@ const listOf = (model, scope) => [
  * The custom views of a list: read once the menu opens, applied to the list,
  * saved from what it shows.
  *
- * `list` is the data iterator of the list: a view reads its expression and its
- * order, and is applied back to them. The methods reject what the server
- * refuses; showing it is the interface's business.
+ * `list` is the data iterator of the list: a view reads its expression, its
+ * order and its grouping, and is applied back to them. The methods reject
+ * what the server refuses; showing it is the interface's business.
  *
  * @param {string} model - The metadata name of the listed model
  * @param {{ scope?: string, prefix?: string, list?: any }} [options]
@@ -116,11 +116,15 @@ export function useCustomViews(model, options = {}) {
         return (
             !sameExpression(view.filters, list.expression.value) ||
             !sameOrder(view.order_by ?? list.defaultOrderBy ?? null, list.orderBy.value) ||
+            (grouping() && list.groupByOf(view.group_by ?? null) !== list.groupBy.value) ||
             held().some(([name, one]) => !sameOrder(view[name], one.get()))
         );
     });
 
     const held = () => Object.entries(list?.viewState ?? {});
+
+    // The list keeps the grouping of its views, unless its screen keeps it in its own state.
+    const grouping = () => Boolean(list?.groupBy) && !('group_by' in (list?.viewState ?? {}));
 
     const replaceItem = (view) => {
         items.value = items.value.map((item) => (item.id === view.id ? view : item));
@@ -134,11 +138,19 @@ export function useCustomViews(model, options = {}) {
         }
     };
 
-    const state = () => ({
-        filters: list?.expression?.value ?? null,
-        order_by: list?.orderBy?.value ?? null,
-        ...Object.fromEntries(held().map(([name, one]) => [name, one.get() ?? null])),
-    });
+    // What the list shows, as a view keeps it: its grouping, `none` for a flat
+    // list whose option groups, written when it says something or clears what
+    // the view said.
+    const state = (view = null) => {
+        const groupBy = grouping() ? (list.groupBy.value ?? (list.defaultGroupBy ? 'none' : null)) : null;
+
+        return {
+            filters: list?.expression?.value ?? null,
+            order_by: list?.orderBy?.value ?? null,
+            ...(grouping() && (groupBy !== null || view?.group_by != null) ? { group_by: groupBy } : {}),
+            ...Object.fromEntries(held().map(([name, one]) => [name, one.get() ?? null])),
+        };
+    };
 
     return {
         items,
@@ -185,7 +197,7 @@ export function useCustomViews(model, options = {}) {
          * @param {CustomView} view
          */
         save: async (view) => {
-            const saved = (await api.update(view.id, state(), { fields: VIEW_FIELDS })).data;
+            const saved = (await api.update(view.id, state(view), { fields: VIEW_FIELDS })).data;
 
             replaceItem(saved);
 
@@ -253,8 +265,9 @@ export function useCustomViews(model, options = {}) {
         },
 
         /**
-         * Show a view: its expression, its order (the list's own when it has
-         * none) and itself as the current view. The search stays.
+         * Show a view: its expression, its order and its grouping (the list's
+         * own when it has none), what it holds besides, and itself as the
+         * current view. The search stays.
          * @param {CustomView} view
          */
         apply: (view) => {
@@ -264,12 +277,14 @@ export function useCustomViews(model, options = {}) {
 
             list.expression.value = view.filters ?? null;
             list.orderBy.value = view.order_by ?? list.defaultOrderBy ?? null;
+
+            if (grouping()) {
+                list.groupBy.value = list.groupByOf(view.group_by ?? null);
+            }
+
             list.view.value = view.id;
             follow(view);
-
-            for (const [name, one] of held()) {
-                one.set(view[name] ?? null);
-            }
+            list.applyView(view);
         },
     };
 }

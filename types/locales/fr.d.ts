@@ -10,5 +10,9 @@ export declare const fr: {
     'Import failed': string;
     'Order updated': string;
     'Order update failed': string;
+    Yes: string;
+    No: string;
+    'No value': string;
+    "This field can't be grouped.": string;
 };
 //# sourceMappingURL=fr.d.ts.map

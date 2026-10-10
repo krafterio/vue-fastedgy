@@ -35,6 +35,13 @@ describe('the list a record is opened from', () => {
         expect(JSON.parse(listContext({ combinedFilter: ref(null), orderBy: ref(null) }).ctx)).toEqual({});
     });
 
+    it('carries the filter of the group a record is opened from', () => {
+        const list = { combinedFilter: ref([['is_active', 'is true']]), orderBy: ref(['sequence:asc']) };
+        const group = { filter: ['&', [[['is_active', 'is true']], ['stage', '=', 2]]] };
+
+        expect(JSON.parse(listContext(list, { group }).ctx)).toEqual({ f: group.filter, o: ['sequence:asc'] });
+    });
+
     it('gives the neighbours of the record in that list, and steps without stacking the history', () => {
         router.route = {
             params: { id: '5' },

@@ -15,4 +15,8 @@ export const it = {
     'Import failed': 'Importazione non riuscita',
     'Order updated': 'Ordine aggiornato',
     'Order update failed': "Aggiornamento dell'ordine non riuscito",
+    Yes: 'Sì',
+    No: 'No',
+    'No value': 'Nessun valore',
+    "This field can't be grouped.": 'Questo campo non può essere raggruppato.',
 };

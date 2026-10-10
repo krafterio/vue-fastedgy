@@ -15,4 +15,8 @@ export const de = {
     'Import failed': 'Import fehlgeschlagen',
     'Order updated': 'Reihenfolge aktualisiert',
     'Order update failed': 'Aktualisierung der Reihenfolge fehlgeschlagen',
+    Yes: 'Ja',
+    No: 'Nein',
+    'No value': 'Kein Wert',
+    "This field can't be grouped.": 'Nach diesem Feld kann nicht gruppiert werden.',
 };

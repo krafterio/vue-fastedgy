@@ -18,9 +18,9 @@ export type CustomView = {
  * The custom views of a list: read once the menu opens, applied to the list,
  * saved from what it shows.
  *
- * `list` is the data iterator of the list: a view reads its expression and its
- * order, and is applied back to them. The methods reject what the server
- * refuses; showing it is the interface's business.
+ * `list` is the data iterator of the list: a view reads its expression, its
+ * order and its grouping, and is applied back to them. The methods reject
+ * what the server refuses; showing it is the interface's business.
  *
  * @param {string} model - The metadata name of the listed model
  * @param {{ scope?: string, prefix?: string, list?: any }} [options]

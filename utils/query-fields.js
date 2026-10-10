@@ -15,6 +15,8 @@ const RELATION_KINDS = {
     many2many: 'multiple',
 };
 
+const GROUPING_RELATIONS = ['many2one', 'many2one_ref', 'one2one'];
+
 /**
  * Whether a field leads to one related record, to several, or is no relation.
  *
@@ -23,6 +25,23 @@ const RELATION_KINDS = {
  */
 export function relationKindOf(field) {
     return (field && RELATION_KINDS[field.type]) || null;
+}
+
+/**
+ * Whether a list groups its rows by a field: one with choices, a boolean or a
+ * single relation. Any other field would need the server to say which values
+ * hold rows at all.
+ *
+ * @param {import('../stores/metadata.js').MetadataField|null|undefined} field
+ * @returns {boolean}
+ */
+export function isGroupable(field) {
+    return Boolean(
+        field &&
+        (Object.keys(field.choices ?? {}).length > 0 ||
+            field.type === 'boolean' ||
+            (GROUPING_RELATIONS.includes(field.type) && field.target))
+    );
 }
 
 /**

@@ -15,4 +15,8 @@ export const fr = {
     'Import failed': "Échec de l'import",
     'Order updated': 'Ordre mis à jour',
     'Order update failed': "Échec de la mise à jour de l'ordre",
+    Yes: 'Oui',
+    No: 'Non',
+    'No value': 'Aucune valeur',
+    "This field can't be grouped.": 'Ce champ ne peut pas être regroupé.',
 };

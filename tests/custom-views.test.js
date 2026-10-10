@@ -32,13 +32,25 @@ const view = (id, values = {}) => ({
     ...values,
 });
 
-const iterator = () => ({
-    expression: ref(null),
-    orderBy: ref(['created_at:desc']),
-    view: ref(null),
-    viewExpression: ref(undefined),
-    defaultOrderBy: ['created_at:desc'],
-});
+const iterator = (extra = {}) => {
+    const list = {
+        expression: ref(null),
+        orderBy: ref(['created_at:desc']),
+        view: ref(null),
+        viewExpression: ref(undefined),
+        defaultOrderBy: ['created_at:desc'],
+        viewState: {},
+        ...extra,
+    };
+
+    list.applyView = (view) => {
+        for (const [name, one] of Object.entries(list.viewState)) {
+            one.set(view?.[name] ?? null);
+        }
+    };
+
+    return list;
+};
 
 beforeEach(() => {
     apis.custom_view = { list: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() };
@@ -139,10 +151,9 @@ describe('useCustomViews', () => {
 
     it('applies and saves what the list holds besides its filter and its order', async () => {
         const groupBy = ref('status');
-        const list = {
-            ...iterator(),
+        const list = iterator({
             viewState: { group_by: { get: () => groupBy.value, set: (value) => (groupBy.value = value) } },
-        };
+        });
         apis.custom_view.list.mockResolvedValue(page([view(1, { group_by: 'owner' }), view(2)]));
         apis.custom_view.create.mockImplementation((payload) => Promise.resolve({ data: view(3, payload) }));
         const views = useCustomViews('household', { list });

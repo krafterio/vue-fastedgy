@@ -15,4 +15,8 @@ export const es = {
     'Import failed': 'Error en la importación',
     'Order updated': 'Orden actualizado',
     'Order update failed': 'Error al actualizar el orden',
+    Yes: 'Sí',
+    No: 'No',
+    'No value': 'Sin valor',
+    "This field can't be grouped.": 'Este campo no se puede agrupar.',
 };

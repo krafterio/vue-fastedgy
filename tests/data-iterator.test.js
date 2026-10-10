@@ -4,7 +4,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { nextTick, ref } from 'vue';
+import { nextTick, reactive, ref } from 'vue';
 import { useDataIterator } from '../composables/data-iterator.js';
 
 const router = vi.hoisted(() => ({ route: { query: {} }, replace: null }));
@@ -844,5 +844,91 @@ describe('useDataIterator', () => {
         expect(router.replace).toHaveBeenLastCalledWith({
             query: { done_order_by: 'done_at:desc', done_q: 'facture', p: '5' },
         });
+    });
+
+    it('follows the url when it changes from outside, in one read', async () => {
+        router.route = reactive({ query: {} });
+        const service = {
+            modelName: 'task',
+            list: vi.fn().mockResolvedValue({ data: { items: [{ id: 1 }], total: 500 } }),
+        };
+
+        const iterator = useDataIterator(service, { sortable: false, defaultOrderBy: ['sequence:asc'] });
+
+        await settle();
+        router.route.query = { p: '3', order_by: 'name:desc', q: 'pomme' };
+        await settle();
+
+        expect(iterator.currentPage.value).toBe(3);
+        expect(iterator.orderBy.value).toEqual(['name:desc']);
+        expect(iterator.search.value).toBe('pomme');
+        expect(service.list).toHaveBeenCalledTimes(2);
+        expect(service.list).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+                page: 3,
+                orderBy: ['name:desc'],
+                filter: [['search_value', 'search_fuzzy', 'pomme']],
+            })
+        );
+        expect(router.replace).not.toHaveBeenCalled();
+
+        router.route.query = {};
+        await settle();
+
+        expect(iterator.currentPage.value).toBe(1);
+        expect(iterator.orderBy.value).toEqual(['sequence:asc']);
+        expect(iterator.search.value).toBe('');
+        expect(service.list).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not take its own writes landing late for a change from outside', async () => {
+        router.route = reactive({ query: {} });
+        const service = {
+            modelName: 'task',
+            list: vi.fn().mockResolvedValue({ data: { items: [{ id: 1 }], total: 500 } }),
+        };
+        const land = (index) => (router.route.query = router.replace.mock.calls[index][0].query);
+
+        const iterator = useDataIterator(service, { sortable: false });
+
+        await settle();
+        iterator.currentPage.value = 2;
+        await settle();
+        iterator.currentPage.value = 3;
+        await settle();
+        land(0);
+        await settle();
+        land(1);
+        await settle();
+
+        expect(iterator.currentPage.value).toBe(3);
+        expect(service.list).toHaveBeenCalledTimes(3);
+        expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 3 }));
+    });
+
+    it('opens the view a url changed from outside names', async () => {
+        router.route = reactive({ query: {} });
+        apis.custom_view = {
+            list: vi.fn().mockResolvedValue(page([])),
+            get: vi.fn().mockResolvedValue({
+                data: { id: 4, model: 'household', scope: '', filters: ['plan', '=', 'plus'], order_by: ['name:asc'] },
+            }),
+        };
+        apis.custom_view_favorite = { list: vi.fn().mockResolvedValue(page([])) };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: false, views: { scope: '' } });
+
+        await settle();
+        router.route.query = { cv: '4', order_by: 'name:asc' };
+        await settle();
+
+        expect(apis.custom_view.get).toHaveBeenCalledWith(4, expect.anything());
+        expect(iterator.view.value).toBe(4);
+        expect(iterator.expression.value).toEqual(['plan', '=', 'plus']);
+        expect(service.list).toHaveBeenCalledTimes(2);
+        expect(service.list).toHaveBeenLastCalledWith(
+            expect.objectContaining({ filter: [['plan', '=', 'plus']], orderBy: ['name:asc'] })
+        );
     });
 });

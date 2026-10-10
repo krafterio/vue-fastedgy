@@ -197,9 +197,27 @@ export function useDataIterator(model, options = {}) {
     // and each replace would start from a query the previous one has not
     // landed yet: their keys are written together, with those of the other
     // lists of the page.
+    // While the list applies a URL changed from outside, the URL already says
+    // what the list comes to hold: nothing is written back.
+    let following = false;
+
+    // The values each key was written with and the route has not shown yet: the
+    // list knows its own writes when they land, late or not.
+    const sent = new Map();
+
     const writeQuery = (patch) => {
-        if (config.url === false) {
+        if (config.url === false || following) {
             return;
+        }
+
+        const shown = urlQuery();
+
+        for (const [key, value] of Object.entries(patch)) {
+            const text = value == null || value === '' ? null : String(value);
+
+            if (text !== (shown[key] ?? null)) {
+                sent.set(key, [...(sent.get(key) ?? []), text]);
+            }
         }
 
         queueQuery(
@@ -322,14 +340,11 @@ export function useDataIterator(model, options = {}) {
         .filter(Boolean);
     const linkedView = 'f' in entry ? null : view.value;
     const entered = ['p', 's', 'order_by', 'q', 'sl', 'f', 'cv', 'qf', ...stateKeys].some((key) => key in entry);
+    // The views answer where the model does, unless the screen says otherwise.
+    const viewsPrefix = config.views ? (config.views.prefix ?? service.prefix ?? config.prefix) : config.prefix;
     const opening =
         config.views && (linkedView !== null || !entered)
-            ? useOpeningView(modelName, {
-                  scope: config.views.scope,
-                  // The views answer where the model does, unless the screen says otherwise.
-                  prefix: config.views.prefix ?? service.prefix ?? config.prefix,
-                  id: linkedView,
-              })
+            ? useOpeningView(modelName, { scope: config.views.scope, prefix: viewsPrefix, id: linkedView })
             : null;
     const opened = ref(opening === null);
 
@@ -603,7 +618,10 @@ export function useDataIterator(model, options = {}) {
         () => JSON.stringify(filter.value ?? null),
         () => {
             selection.clear();
-            reload();
+
+            if (!following) {
+                reload();
+            }
         }
     );
 
@@ -622,6 +640,10 @@ export function useDataIterator(model, options = {}) {
     watch(
         orderBy,
         (newOrderBy) => {
+            if (following) {
+                return;
+            }
+
             const byDefault = JSON.stringify(newOrderBy ?? null) === JSON.stringify(config.defaultOrderBy ?? null);
 
             writeQuery({ order_by: byDefault ? null : formatOrderBy(newOrderBy) });
@@ -633,6 +655,10 @@ export function useDataIterator(model, options = {}) {
 
     // Watch page size changes - read again from the first page, already there or not, and update URL
     watch(pageSize, (newSize) => {
+        if (following) {
+            return;
+        }
+
         reload();
 
         writeQuery({ s: newSize });
@@ -640,6 +666,10 @@ export function useDataIterator(model, options = {}) {
 
     // Watch page changes - update URL and fetch
     watch(currentPage, (newPage) => {
+        if (following) {
+            return;
+        }
+
         writeQuery({ p: newPage > 1 ? newPage : null });
 
         const byMore = newPage === pageOfMore;
@@ -695,6 +725,118 @@ export function useDataIterator(model, options = {}) {
         () => JSON.stringify(quickFilters.map((one) => quick[one.name] ?? null)),
         () => writeQuery({ qf: writeQuickFilters(quick, quickFilters) })
     );
+
+    // What each followed key says of the list as it stands: the value it would be written with.
+    const shownAs = {
+        p: () => (currentPage.value > 1 ? String(currentPage.value) : null),
+        s: () => String(pageSize.value),
+        order_by: () =>
+            JSON.stringify(orderBy.value ?? null) === JSON.stringify(config.defaultOrderBy ?? null)
+                ? null
+                : formatOrderBy(orderBy.value),
+        q: () => appliedSearch.value || null,
+        f: () => writtenExpression(),
+        cv: () => (view.value === null ? null : String(view.value)),
+        qf: () => writeQuickFilters(quick, quickFilters),
+    };
+
+    /**
+     * Whether the URL moved under the list: a key saying something the list
+     * neither holds nor wrote. A size the URL leaves out keeps the one chosen.
+     *
+     * @param {Record<string, any>} query
+     * @returns {boolean}
+     */
+    const movedFromOutside = (query) => {
+        let moved = false;
+
+        for (const [key, current] of Object.entries(shownAs)) {
+            const value = typeof query[key] === 'string' ? query[key] : null;
+            const pending = sent.get(key) ?? [];
+            const own = pending.indexOf(value);
+
+            if (own >= 0) {
+                sent.set(key, pending.slice(own + 1));
+            } else if (value !== current() && !(key === 's' && value === null)) {
+                moved = true;
+            }
+        }
+
+        return moved;
+    };
+
+    /**
+     * Hold what a URL changed from outside says (back, forward, a link followed
+     * to the same screen), as a list entered on it would, then read once.
+     */
+    const followUrl = async () => {
+        const query = urlQuery();
+
+        if (!opened.value || !movedFromOutside(query)) {
+            return;
+        }
+
+        sent.clear();
+        following = true;
+
+        try {
+            const page = Number.parseInt(query.p ?? '', 10);
+            const size = Number.parseInt(query.s ?? '', 10);
+
+            currentPage.value = page > 0 ? page : 1;
+
+            if (config.availablePageSizes.includes(size)) {
+                pageSize.value = size;
+            }
+
+            search.value = typeof query.q === 'string' ? query.q : '';
+            appliedSearch.value = search.value.trim();
+            Object.assign(quick, readQuickFilters(query.qf, quickFilters));
+
+            const linked = readId(query.cv);
+
+            if (linked !== view.value) {
+                let named = null;
+
+                if (linked !== null && config.views) {
+                    const reading = useOpeningView(modelName, {
+                        scope: config.views.scope,
+                        prefix: viewsPrefix,
+                        id: linked,
+                    });
+
+                    await reading.promise;
+                    named = reading.view.value;
+
+                    for (const [name, one] of Object.entries(viewState)) {
+                        if (!(one.key && one.key in query)) {
+                            one.set(named?.[name] ?? null);
+                        }
+                    }
+                }
+
+                view.value = config.views ? (named?.id ?? null) : linked;
+                viewExpression.value = named ? (named.filters ?? null) : undefined;
+            }
+
+            expression.value =
+                'f' in query ? readExpression(query.f) : view.value !== null ? (viewExpression.value ?? null) : null;
+            orderBy.value = parseOrderBy(query.order_by) ?? config.defaultOrderBy ?? null;
+
+            await nextTick();
+        } finally {
+            following = false;
+        }
+
+        await fetchItems();
+    };
+
+    if (config.url !== false) {
+        watch(
+            () => JSON.stringify(Object.keys(shownAs).map((key) => urlQuery()[key] ?? null)),
+            () => void followUrl()
+        );
+    }
 
     // Scroll position - kept in the URL as `sl`
     function scrollElement() {

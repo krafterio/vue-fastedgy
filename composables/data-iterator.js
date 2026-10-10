@@ -125,8 +125,9 @@ const DEFAULT_OPTIONS = {
  * @param {boolean} options.enableSelection - Enable row selection (default: false)
  * @param {boolean} options.append - Keep the loaded items and append the next pages (default: false)
  * @param {string} options.searchField - Fulltext field the `search` text is matched on (default: 'search_value')
- * @param {Array<string>} options.searchFields - Fields the `search` text is looked for in instead, a record matching
- *   on any of them (`icontains`)
+ * @param {Array<string>|Function|import('vue').Ref<Array<string>>} options.searchFields - Fields the `search` text is
+ *   looked for in instead, a record matching on any of them (`icontains`); a getter or a ref is read again as it
+ *   changes
  * @param {HTMLElement|Window|import('vue').Ref|Function} options.scrollTarget - Element that scrolls the list, whose
  *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer: by default where the api model does
@@ -266,7 +267,7 @@ export function useDataIterator(model, options = {}) {
     const appliedSearch = ref(search.value.trim());
 
     const searchRule = (text) => {
-        const fields = config.searchFields;
+        const fields = toValue(config.searchFields);
 
         if (!Array.isArray(fields) || fields.length === 0) {
             return [config.searchField, 'search_fuzzy', text];

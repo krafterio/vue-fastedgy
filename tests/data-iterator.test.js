@@ -342,6 +342,35 @@ describe('useDataIterator', () => {
         expect(service.list.mock.calls[0][0].filter).toBeNull();
     });
 
+    it('looks for the search in the fields a getter gives, read again as they change', async () => {
+        router.route = { query: { q: 'dupont' } };
+        const searched = ref(['name']);
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([])) };
+
+        useDataIterator(service, { sortable: false, searchFields: () => searched.value });
+
+        await settle();
+
+        expect(service.list.mock.calls[0][0].filter).toEqual([['name', 'icontains', 'dupont']]);
+
+        searched.value = ['name', 'email'];
+        await settle();
+
+        expect(service.list).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+                filter: [
+                    [
+                        '|',
+                        [
+                            ['name', 'icontains', 'dupont'],
+                            ['email', 'icontains', 'dupont'],
+                        ],
+                    ],
+                ],
+            })
+        );
+    });
+
     it('looks for the search in the fields it is given, any of them matching', async () => {
         router.route = { query: { q: 'dupont' } };
         const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([])) };

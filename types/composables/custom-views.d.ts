@@ -19,8 +19,10 @@ export type CustomView = {
  * saved from what it shows.
  *
  * `list` is the data iterator of the list: a view reads its expression, its
- * order and its grouping, and is applied back to them. The methods reject
- * what the server refuses; showing it is the interface's business.
+ * order, its grouping and, for a list whose users choose its columns, its
+ * columns, and is applied back to them. A view saved with no columns leaves
+ * the columns of the list as they are. The methods reject what the server
+ * refuses; showing it is the interface's business.
  *
  * @param {string} model - The metadata name of the listed model
  * @param {{ scope?: string, prefix?: string, list?: any }} [options]

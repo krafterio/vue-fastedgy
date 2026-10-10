@@ -19,4 +19,7 @@ export const es = {
     No: 'No',
     'No value': 'Sin valor',
     "This field can't be grouped.": 'Este campo no se puede agrupar.',
+    Compact: 'Compacta',
+    Normal: 'Normal',
+    Large: 'Ancha',
 };

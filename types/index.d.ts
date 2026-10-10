@@ -1,6 +1,7 @@
 export * from './composables/api.js';
 export * from './composables/api-options.js';
 export * from './composables/bus.js';
+export * from './composables/column-layout.js';
 export * from './composables/custom-views.js';
 export * from './composables/data-grid.js';
 export * from './composables/data-iterator.js';

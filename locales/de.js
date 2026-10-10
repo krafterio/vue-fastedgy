@@ -19,4 +19,7 @@ export const de = {
     No: 'Nein',
     'No value': 'Kein Wert',
     "This field can't be grouped.": 'Nach diesem Feld kann nicht gruppiert werden.',
+    Compact: 'Kompakt',
+    Normal: 'Normal',
+    Large: 'Breit',
 };

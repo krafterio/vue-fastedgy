@@ -3,7 +3,7 @@
  * MIT License (see LICENSE file).
  */
 
-import { computed, getCurrentScope, onScopeDispose, ref } from 'vue';
+import { computed, getCurrentScope, onScopeDispose, ref, shallowRef } from 'vue';
 import { bus } from './bus.js';
 import { useDataIterator } from './data-iterator.js';
 import { RESOURCES_STALE } from './realtime.js';
@@ -25,7 +25,9 @@ import { useMetadataStore } from '../stores/metadata.js';
  * @param {Object} options.headers - Custom headers for API requests
  * @param {boolean} options.orderable - Enable column sorting (default: true)
  * @param {boolean} options.enableSelection - Enable row selection (default: false)
- * @returns {Object} - The data iterator, with `columns`
+ * @returns {Object} - The data iterator, with `columns`: the columns declared, or, once `useColumnLayout` is given the
+ *   table, those its users choose (a declared column an entry names, at the width of the entry, else the column of its
+ *   field)
  */
 export function useDataTable(model, options = {}) {
     const metadataStore = useMetadataStore();
@@ -93,15 +95,29 @@ export function useDataTable(model, options = {}) {
         };
     };
 
+    // The columns its users choose, once a column layout is given the table.
+    const layout = shallowRef(null);
+
     const columns = computed(() => {
         const declared = options.columns || [];
         const metadata = metadataOf(typeof model === 'string' ? model : model.modelName);
+        const shown = layout.value
+            ? layout.value.entries.value.map((entry) => {
+                  const column = declared.find((one) => one.key === entry.name) ?? {
+                      key: entry.name,
+                      label: metadata?.fields?.[entry.name]?.label ?? entry.name,
+                  };
 
-        return metadata ? declared.map((column) => enrichColumn(column, metadata)) : declared;
+                  return entry.width ? { ...column, width: entry.width } : column;
+              })
+            : declared;
+
+        return metadata ? shown.map((column) => enrichColumn(column, metadata)) : shown;
     });
 
     const iterator = useDataIterator(model, {
         ...options,
+        layout,
         fieldsResolver: () => [...columns.value.map((column) => column.key), ...(options.additionalFields || [])],
         pageSize: options.pageSize || 100,
         availablePageSizes: options.availablePageSizes || [25, 50, 100, 150, 200],

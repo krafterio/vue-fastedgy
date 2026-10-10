@@ -14,5 +14,8 @@ export declare const es: {
     No: string;
     'No value': string;
     "This field can't be grouped.": string;
+    Compact: string;
+    Normal: string;
+    Large: string;
 };
 //# sourceMappingURL=es.d.ts.map

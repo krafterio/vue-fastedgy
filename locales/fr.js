@@ -19,4 +19,7 @@ export const fr = {
     No: 'Non',
     'No value': 'Aucune valeur',
     "This field can't be grouped.": 'Ce champ ne peut pas être regroupé.',
+    Compact: 'Compacte',
+    Normal: 'Normale',
+    Large: 'Large',
 };

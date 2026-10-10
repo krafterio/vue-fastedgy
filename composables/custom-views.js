@@ -38,8 +38,10 @@ const listOf = (model, scope) => [
  * saved from what it shows.
  *
  * `list` is the data iterator of the list: a view reads its expression, its
- * order and its grouping, and is applied back to them. The methods reject
- * what the server refuses; showing it is the interface's business.
+ * order, its grouping and, for a list whose users choose its columns, its
+ * columns, and is applied back to them. A view saved with no columns leaves
+ * the columns of the list as they are. The methods reject what the server
+ * refuses; showing it is the interface's business.
  *
  * @param {string} model - The metadata name of the listed model
  * @param {{ scope?: string, prefix?: string, list?: any }} [options]
@@ -113,10 +115,13 @@ export function useCustomViews(model, options = {}) {
             return false;
         }
 
+        const columns = list.displayFields?.value ?? null;
+
         return (
             !sameExpression(view.filters, list.expression.value) ||
             !sameOrder(view.order_by ?? list.defaultOrderBy ?? null, list.orderBy.value) ||
             (grouping() && list.groupByOf(view.group_by ?? null) !== list.groupBy.value) ||
+            (columns !== null && view.display_fields != null && !sameOrder(view.display_fields, columns)) ||
             held().some(([name, one]) => !sameOrder(view[name], one.get()))
         );
     });
@@ -140,14 +145,16 @@ export function useCustomViews(model, options = {}) {
 
     // What the list shows, as a view keeps it: its grouping, `none` for a flat
     // list whose option groups, written when it says something or clears what
-    // the view said.
+    // the view said; its columns when its users choose them.
     const state = (view = null) => {
         const groupBy = grouping() ? (list.groupBy.value ?? (list.defaultGroupBy ? 'none' : null)) : null;
+        const columns = list?.displayFields?.value ?? null;
 
         return {
             filters: list?.expression?.value ?? null,
             order_by: list?.orderBy?.value ?? null,
             ...(grouping() && (groupBy !== null || view?.group_by != null) ? { group_by: groupBy } : {}),
+            ...(columns !== null ? { display_fields: columns } : {}),
             ...Object.fromEntries(held().map(([name, one]) => [name, one.get() ?? null])),
         };
     };
@@ -266,8 +273,8 @@ export function useCustomViews(model, options = {}) {
 
         /**
          * Show a view: its expression, its order and its grouping (the list's
-         * own when it has none), what it holds besides, and itself as the
-         * current view. The search stays.
+         * own when it has none), its columns, what it holds besides, and itself
+         * as the current view. The search stays.
          * @param {CustomView} view
          */
         apply: (view) => {

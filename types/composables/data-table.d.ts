@@ -14,7 +14,9 @@
  * @param {Object} options.headers - Custom headers for API requests
  * @param {boolean} options.orderable - Enable column sorting (default: true)
  * @param {boolean} options.enableSelection - Enable row selection (default: false)
- * @returns {Object} - The data iterator, with `columns`
+ * @returns {Object} - The data iterator, with `columns`: the columns declared, or, once `useColumnLayout` is given the
+ *   table, those its users choose (a declared column an entry names, at the width of the entry, else the column of its
+ *   field)
  */
 export declare function useDataTable(model: string | object, options?: {
     columns: any[];

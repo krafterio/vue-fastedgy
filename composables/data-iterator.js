@@ -43,6 +43,45 @@ function readId(value) {
     return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+// The keys of every list of a page go through one queue per router: two lists
+// writing in the same tick would each replace a query the other has not landed.
+const queues = new WeakMap();
+
+/**
+ * Write keys in the query of the current route, with those of every list of the
+ * page written in the same tick, in one replace.
+ *
+ * @param {object} router
+ * @param {{ query: Record<string, any> }} route
+ * @param {Record<string, unknown>} patch - The keys to write, `null` or `''` removing one
+ */
+function queueQuery(router, route, patch) {
+    let pending = queues.get(router);
+
+    if (!pending) {
+        pending = {};
+        queues.set(router, pending);
+
+        queueMicrotask(() => {
+            queues.delete(router);
+
+            const query = { ...route.query };
+
+            for (const [key, value] of Object.entries(pending)) {
+                if (value == null || value === '') {
+                    delete query[key];
+                } else {
+                    query[key] = String(value);
+                }
+            }
+
+            void router.replace({ query });
+        });
+    }
+
+    Object.assign(pending, patch);
+}
+
 /**
  * Default configuration values for data iteration
  */
@@ -136,34 +175,14 @@ export function useDataIterator(model, options = {}) {
 
     // Several watchers answer to the same change (a search resets the page),
     // and each replace would start from a query the previous one has not
-    // landed yet: their keys are written together.
-    let pendingQuery = null;
-
+    // landed yet: their keys are written together, with those of the other
+    // lists of the page.
     const writeQuery = (patch) => {
         if (config.url === false) {
             return;
         }
 
-        if (!pendingQuery) {
-            pendingQuery = {};
-
-            queueMicrotask(() => {
-                const query = { ...route.query };
-
-                for (const [key, value] of Object.entries(pendingQuery)) {
-                    if (value == null || value === '') {
-                        delete query[key];
-                    } else {
-                        query[key] = String(value);
-                    }
-                }
-
-                pendingQuery = null;
-                void router.replace({ query });
-            });
-        }
-
-        Object.assign(pendingQuery, patch);
+        queueQuery(router, route, patch);
     };
 
     const initialPage = entry.p ? parseInt(entry.p, 10) : 1;

@@ -11,7 +11,7 @@ const router = vi.hoisted(() => ({ route: { query: {} }, replace: null }));
 
 vi.mock('vue-router', () => ({
     useRoute: () => router.route,
-    useRouter: () => ({ replace: router.replace }),
+    useRouter: () => router,
 }));
 
 const apis = vi.hoisted(() => ({}));
@@ -802,5 +802,22 @@ describe('useDataIterator', () => {
 
         expect(apiParams.custom_view).toEqual({ prefix: '/console' });
         expect(apiParams.custom_view_favorite).toEqual({ prefix: '/console' });
+    });
+
+    it('writes the keys of two lists of one page together, neither losing those of the other', async () => {
+        const service = { modelName: 'task', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+        const other = { modelName: 'note', list: vi.fn().mockResolvedValue(page([{ id: 2 }])) };
+
+        const tasks = useDataIterator(service, { sortable: false });
+        const notes = useDataIterator(other, { sortable: false });
+
+        await settle();
+        tasks.orderBy.value = ['name:asc'];
+        notes.expression.value = ['title', 'icontains', 'idée'];
+        await settle();
+
+        expect(router.replace).toHaveBeenLastCalledWith({
+            query: { order_by: 'name:asc', f: JSON.stringify(['title', 'icontains', 'idée']) },
+        });
     });
 });

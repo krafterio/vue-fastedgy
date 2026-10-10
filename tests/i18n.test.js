@@ -224,7 +224,16 @@ describe('formatValidationErrors', () => {
         expect(formatValidationErrors({ data: { detail: { code: 'nope' } } })).toBe('Erreur inconnue');
     });
 
-    it('says nothing when the error carries no detail', () => {
-        expect(formatValidationErrors({})).toBeUndefined();
+    it('falls back on its wording when the server named no reason, the network down for instance', () => {
+        application();
+
+        expect(formatValidationErrors(new TypeError('Failed to fetch'), 'Export failed')).toBe('Export failed');
+        expect(formatValidationErrors({})).toBe('Erreur inconnue');
+        expect(formatValidationErrors({ data: { detail: [] } })).toBe('Erreur inconnue');
+    });
+
+    it('says nothing without an error', () => {
+        expect(formatValidationErrors(null)).toBeUndefined();
+        expect(formatValidationErrors(undefined)).toBeUndefined();
     });
 });

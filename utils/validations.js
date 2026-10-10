@@ -10,14 +10,19 @@ import { t } from './i18n.js';
  *
  * @param {Error} error - The error object of api request
  * @param {string} [defaultMessage] - What to say when the server named no reason, already translated by the caller
- * @returns {string | undefined} Formatted error message or undefined if no error
+ * @returns {string | undefined} Formatted error message, the default one when the server named no reason (the
+ *   network down, an answer without a body), or undefined if no error
  */
 export function formatValidationErrors(error, defaultMessage) {
+    if (!error) {
+        return undefined;
+    }
+
     const errorDetail = error.data?.detail;
     const fallback = defaultMessage || t('Unknown error');
 
     if (!errorDetail) {
-        return undefined;
+        return fallback;
     }
 
     if (typeof errorDetail === 'string') {
@@ -26,7 +31,7 @@ export function formatValidationErrors(error, defaultMessage) {
 
     if (Array.isArray(errorDetail)) {
         if (errorDetail.length === 0) {
-            return undefined;
+            return fallback;
         }
 
         if (errorDetail.length === 1) {

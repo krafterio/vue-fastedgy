@@ -272,6 +272,36 @@ describe('a list grouped by a field', () => {
             expect(list.groupTotalPages.value).toBe(1);
         });
 
+        it('pages the records of the axis fifty at a time, and stays on a page that exists', async () => {
+            for (let id = 3; id <= 60; id++) {
+                stages.push({ id, name: `Stage ${id}`, color: null, is_done: false, sequence: id });
+            }
+
+            const list = useDataIterator(service, { groupBy: 'stage' });
+
+            await settle();
+
+            expect(list.groupTotalPages.value).toBe(2);
+            expect(list.groups.value.filter((group) => !group.isEmptyBucket)).toHaveLength(50);
+            expect(labels(list).slice(0, 2)).toEqual(['To do', 'Done']);
+
+            await list.setGroupPage(2);
+            await settle();
+
+            expect(list.groupPage.value).toBe(2);
+            expect(apis.stage.list.mock.calls.at(-1)[0]).toMatchObject({ page: 2, size: 50 });
+            expect(list.groups.value.filter((group) => !group.isEmptyBucket)).toHaveLength(10);
+            expect(labels(list)[0]).toBe('Stage 51');
+
+            const reads = apis.stage.list.mock.calls.length;
+
+            await list.setGroupPage(3);
+            await settle();
+
+            expect(apis.stage.list).toHaveBeenCalledTimes(reads);
+            expect(list.groupPage.value).toBe(2);
+        });
+
         it('colors the group of a record as the screen says, from a color kept as an index of a palette', async () => {
             stages[1].color = 3;
             const palette = ['#000000', '#111111', '#222222', '#333333'];

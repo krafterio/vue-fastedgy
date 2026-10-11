@@ -119,8 +119,9 @@ export type DataGroup = {
  *   the rows with no value stands (default: last), or what says it for the field grouped by; a required field has none
  * @param {Record<string, any>|Function|import('vue').Ref<Record<string, any>>} options.relationScopes - The rule
  *   narrowing the records an axis made of a relation shows, by field
- * @param {(field: string, value: any) => any} options.colorOf - The color of the group of a value on an axis of
- *   choices, null to leave it to the screen
+ * @param {(field: string, value: any, record: Object|null) => any} options.colorOf - The color of the group of a
+ *   value, null to leave it to the screen: of a choice, or of a record of a relation (given, its `color` serving
+ *   otherwise: a color kept as an index of a palette is turned into one here)
  * @param {import('vue').ShallowRef<any>} options.layout - Where the column layout of the list is held, which
  *   `useColumnLayout` fills when it is given the list: a view then saves and shows its columns
  * @returns {Object} - DataIterator state and methods

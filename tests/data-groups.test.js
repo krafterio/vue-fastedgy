@@ -272,6 +272,20 @@ describe('a list grouped by a field', () => {
             expect(list.groupTotalPages.value).toBe(1);
         });
 
+        it('colors the group of a record as the screen says, from a color kept as an index of a palette', async () => {
+            stages[1].color = 3;
+            const palette = ['#000000', '#111111', '#222222', '#333333'];
+            const list = useDataIterator(service, {
+                groupBy: 'stage',
+                colorOf: (name, value, record) =>
+                    name === 'stage' && typeof record?.color === 'number' ? palette[record.color] : null,
+            });
+
+            await settle();
+
+            expect(list.groups.value.map((group) => group.color)).toEqual(['#ff0000', '#333333', null]);
+        });
+
         it('puts the group with no value first or leaves it out, as said for the field, and has none for a required field', async () => {
             const first = useDataIterator(service, { groupBy: 'priority', emptyGroup: 'first' });
             const none = useDataIterator(service, { groupBy: 'priority', emptyGroup: 'none' });

@@ -22,7 +22,9 @@ export type CustomView = {
  * order, its grouping and, for a list whose users choose its columns, its
  * columns, and is applied back to them. A view saved with no columns leaves
  * the columns of the list as they are. The methods reject what the server
- * refuses; showing it is the interface's business.
+ * refuses; showing it is the interface's business. Another workspace become
+ * the current one ([RESOURCES_STALE]), the views of the one left go, and
+ * those of the new one are read if they had been.
  *
  * @param {string} model - The metadata name of the listed model
  * @param {{ scope?: string, prefix?: string, list?: any }} [options]

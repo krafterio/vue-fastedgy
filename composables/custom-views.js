@@ -3,8 +3,10 @@
  * MIT License (see LICENSE file).
  */
 
-import { computed, ref } from 'vue';
+import { computed, getCurrentScope, onScopeDispose, ref } from 'vue';
 import { useApiModel } from './api.js';
+import { bus } from './bus.js';
+import { RESOURCES_STALE } from './realtime.js';
 import { useAuthStore } from '../stores/auth.js';
 import { sameExpression } from '../utils/query-expression.js';
 
@@ -41,7 +43,9 @@ const listOf = (model, scope) => [
  * order, its grouping and, for a list whose users choose its columns, its
  * columns, and is applied back to them. A view saved with no columns leaves
  * the columns of the list as they are. The methods reject what the server
- * refuses; showing it is the interface's business.
+ * refuses; showing it is the interface's business. Another workspace become
+ * the current one ([RESOURCES_STALE]), the views of the one left go, and
+ * those of the new one are read if they had been.
  *
  * @param {string} model - The metadata name of the listed model
  * @param {{ scope?: string, prefix?: string, list?: any }} [options]
@@ -59,8 +63,11 @@ export function useCustomViews(model, options = {}) {
     const loaded = ref(false);
     const error = ref(null);
     let reading = null;
+    let generation = 0;
 
     const read = async () => {
+        const mine = generation;
+
         loading.value = true;
 
         try {
@@ -77,6 +84,10 @@ export function useCustomViews(model, options = {}) {
             ]);
             const first = own.data.items[0];
 
+            if (mine !== generation) {
+                return;
+            }
+
             items.value = views.data.items;
             favorite.value = first ? { id: first.id, view: first.view?.id ?? first.view } : null;
 
@@ -88,11 +99,17 @@ export function useCustomViews(model, options = {}) {
             error.value = null;
             loaded.value = true;
         } catch (failure) {
+            if (mine !== generation) {
+                return;
+            }
+
             error.value = failure;
 
             throw failure;
         } finally {
-            loading.value = false;
+            if (mine === generation) {
+                loading.value = false;
+            }
         }
     };
 
@@ -101,10 +118,48 @@ export function useCustomViews(model, options = {}) {
             return Promise.resolve();
         }
 
-        reading ??= read().finally(() => (reading = null));
+        if (!reading) {
+            const started = read().finally(() => {
+                if (reading === started) {
+                    reading = null;
+                }
+            });
+
+            reading = started;
+        }
 
         return reading;
     };
+
+    // The views read before the switch belong to the workspace left: a menu
+    // that had them reads those of the new one.
+    const born = performance.now();
+
+    const onStale = (event) => {
+        if ((event?.detail?.since ?? Infinity) < born) {
+            return;
+        }
+
+        const had = loaded.value || reading !== null;
+
+        ++generation;
+        reading = null;
+        items.value = [];
+        favorite.value = null;
+        error.value = null;
+        loaded.value = false;
+        loading.value = false;
+
+        if (had) {
+            ensure().catch(() => {});
+        }
+    };
+
+    bus.addEventListener(RESOURCES_STALE, onStale);
+
+    if (getCurrentScope()) {
+        onScopeDispose(() => bus.removeEventListener(RESOURCES_STALE, onStale));
+    }
 
     const current = computed(() => items.value.find((view) => view.id === list?.view?.value) ?? null);
 

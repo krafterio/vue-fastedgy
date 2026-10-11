@@ -4,8 +4,10 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ref } from 'vue';
+import { effectScope, ref } from 'vue';
+import { bus } from '../composables/bus.js';
 import { useCustomViews, useOpeningView } from '../composables/custom-views.js';
+import { RESOURCES_STALE } from '../composables/realtime.js';
 
 const apis = vi.hoisted(() => ({}));
 
@@ -73,6 +75,32 @@ describe('useCustomViews', () => {
         ]);
         expect(views.items.value.map((one) => one.id)).toEqual([1, 2]);
         expect(views.favorite.value).toBe(2);
+    });
+
+    it('reads the views of the workspace switched to, and drops an answer of the one left', async () => {
+        const scope = effectScope();
+        let answer;
+
+        apis.custom_view.list.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+
+        const [views, idle] = scope.run(() => [
+            useCustomViews('household', { prefix: '/console', list: iterator() }),
+            useCustomViews('household', { scope: 'archived', prefix: '/console', list: iterator() }),
+        ]);
+        const first = views.ensure();
+
+        apis.custom_view.list.mockResolvedValue(page([view(3)]));
+        bus.trigger(RESOURCES_STALE, { since: performance.now() });
+        answer(page([view(1), view(2)]));
+        await first;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(views.items.value.map((one) => one.id)).toEqual([3]);
+        expect(views.loaded.value).toBe(true);
+        expect(idle.loaded.value).toBe(false);
+        expect(apis.custom_view.list).toHaveBeenCalledTimes(2);
+
+        scope.stop();
     });
 
     it('applies a view to its list and tells when the list moves away from it', async () => {

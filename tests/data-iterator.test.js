@@ -392,6 +392,25 @@ describe('useDataIterator', () => {
         expect(service.list.mock.calls[1][0].filter).toEqual([['name', 'icontains', 'dupont']]);
     });
 
+    it('keeps the fulltext field fuzzy among the fields it looks in', async () => {
+        router.route = { query: { q: 'tarte' } };
+        const service = { modelName: 'household', list: vi.fn().mockResolvedValue(page([])) };
+
+        useDataIterator(service, { sortable: false, searchFields: ['search_value', 'ingredients.name'] });
+
+        await settle();
+
+        expect(service.list.mock.calls[0][0].filter).toEqual([
+            [
+                '|',
+                [
+                    ['search_value', 'search_fuzzy', 'tarte'],
+                    ['ingredients.name', 'icontains', 'tarte'],
+                ],
+            ],
+        ]);
+    });
+
     it('reads its first page once, already on the view it starts from', async () => {
         apis.custom_view = {
             list: vi.fn().mockResolvedValue(page([{ id: 4, filters: ['plan', '=', 'plus'], order_by: ['name:asc'] }])),

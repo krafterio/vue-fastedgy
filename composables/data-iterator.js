@@ -172,8 +172,8 @@ const DEFAULT_OPTIONS = {
  * @param {boolean} options.append - Keep the loaded items and append the next pages (default: false)
  * @param {string} options.searchField - Fulltext field the `search` text is matched on (default: 'search_value')
  * @param {Array<string>|Function|import('vue').Ref<Array<string>>} options.searchFields - Fields the `search` text is
- *   looked for in instead, a record matching on any of them (`icontains`); a getter or a ref is read again as it
- *   changes
+ *   looked for in instead, a record matching on any of them: the fulltext field (`searchField`) fuzzily, the others
+ *   containing the text (`icontains`); a getter or a ref is read again as it changes
  * @param {HTMLElement|Window|import('vue').Ref|Function} options.scrollTarget - Element that scrolls the list, whose
  *   position is kept in the URL (`sl`) and restored on entry; nothing is kept when absent
  * @param {string} options.datasetPrefix - Where the `/dataset/*` routes answer: by default where the api model does
@@ -363,7 +363,7 @@ export function useDataIterator(model, options = {}) {
             return [config.searchField, 'search_fuzzy', text];
         }
 
-        const rules = fields.map((field) => [field, 'icontains', text]);
+        const rules = fields.map((field) => [field, field === config.searchField ? 'search_fuzzy' : 'icontains', text]);
 
         return rules.length > 1 ? ['|', rules] : rules[0];
     };

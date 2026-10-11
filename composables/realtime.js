@@ -68,7 +68,10 @@ export const REALTIME_SOURCE_REQUEST = 'realtime:source-request';
  * Say that whatever is on screen belongs to a context that is gone: another
  * workspace became the current one. Every [useResourceChanged] hears it as a
  * `stale` change of its model, the way flutter_fastedgy's `ResourcesStaleEvent`
- * reaches its holders.
+ * reaches its holders; every data iterator starts over as a list opened in the
+ * new workspace (its search, filter, view and page dropped), and the views of
+ * a list are read again. The workspace store raises it as it switches: it is
+ * not a way to read the lists again.
  *
  * `since` (a `performance.now()`) is when the context changed: a holder born
  * after it read in the new one already, and does not read again.

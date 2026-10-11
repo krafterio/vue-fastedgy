@@ -10,6 +10,8 @@ import { h, markRaw, toValue } from 'vue';
  * @property {string} name - Its key in `list.quick` and in the `qf` of the URL
  * @property {any} [default] - Its value while the URL says nothing of it
  * @property {(value: any) => any} filter - The rule a value stands for, `null` for none
+ * @property {boolean} [keepsOrder] - The rows it leaves keep their manual order, ordered among themselves (a list
+ *   of « my tasks » the user orders): the list stays sortable while it applies
  */
 
 /**

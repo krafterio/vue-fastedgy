@@ -366,15 +366,17 @@ export function useDataIterator(model, options = {}) {
     };
 
     // What narrows the list beyond its restrictive filter: the filter the screen
-    // sets, the expression, the quick filters and the search.
-    const extraRules = computed(() =>
+    // sets, the expression, the quick filters and the search; without the quick
+    // filters that keep the manual order when [ordered].
+    const narrowing = (ordered) =>
         [
             customFilter.value,
             expression.value,
-            ...quickFilters.map((one) => one.filter(quick[one.name])),
+            ...quickFilters.filter((one) => !ordered || !one.keepsOrder).map((one) => one.filter(quick[one.name])),
             appliedSearch.value ? searchRule(appliedSearch.value) : null,
-        ].filter(Boolean)
-    );
+        ].filter(Boolean);
+
+    const extraRules = computed(() => narrowing(false));
 
     const filter = computed(() => {
         const restrictiveFilters = typeof config.filter === 'function' ? config.filter() || [] : config.filter || [];
@@ -421,8 +423,9 @@ export function useDataIterator(model, options = {}) {
 
     // A manual order only means something over the whole list: numbering the
     // rows a search or a filter leaves would mix their ranks with the others'.
-    // The restrictive filter fixes the list, and does not count.
-    const isSortable = computed(() => sortableModel.value && extraRules.value.length === 0);
+    // The restrictive filter fixes the list, and does not count; nor does a
+    // quick filter that keeps the order, whose rows are ordered among themselves.
+    const isSortable = computed(() => sortableModel.value && narrowing(true).length === 0);
 
     const fields = computed(() => {
         let baseFields = [];

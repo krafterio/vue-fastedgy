@@ -11,12 +11,19 @@ export type QuickFilter = {
      * - The rule a value stands for, `null` for none
      */
     filter: (value: any) => any;
+    /**
+     * - The rows it leaves keep their manual order, ordered among themselves (a list
+     * of « my tasks » the user orders): the list stays sortable while it applies
+     */
+    keepsOrder?: boolean;
 };
 /**
  * @typedef {Object} QuickFilter
  * @property {string} name - Its key in `list.quick` and in the `qf` of the URL
  * @property {any} [default] - Its value while the URL says nothing of it
  * @property {(value: any) => any} filter - The rule a value stands for, `null` for none
+ * @property {boolean} [keepsOrder] - The rows it leaves keep their manual order, ordered among themselves (a list
+ *   of « my tasks » the user orders): the list stays sortable while it applies
  */
 /**
  * Read the quick filters of a URL, each at its default unless the URL says otherwise.

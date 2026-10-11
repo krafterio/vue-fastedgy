@@ -832,6 +832,27 @@ describe('useDataIterator', () => {
         expect(service.list.mock.calls.every(([query]) => query.fields.includes('sequence'))).toBe(true);
     });
 
+    it('keeps the manual order under a quick filter that keeps it', async () => {
+        const mine = {
+            name: 'scope',
+            default: 'mine',
+            keepsOrder: true,
+            filter: (value) => (value === 'mine' ? ['users.id', 'in', [5]] : null),
+        };
+        const service = { modelName: 'task', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };
+
+        const iterator = useDataIterator(service, { sortable: true, quickFilters: [mine] });
+
+        await settle();
+
+        expect(iterator.isSortable.value).toBe(true);
+        expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ filter: [['users.id', 'in', [5]]] }));
+
+        iterator.expression.value = ['name', 'ilike', 'tomate'];
+        await settle();
+        expect(iterator.isSortable.value).toBe(false);
+    });
+
     it('stops the manual order while the list is searched', async () => {
         router.route = { query: { q: 'tomate' } };
         const service = { modelName: 'task', list: vi.fn().mockResolvedValue(page([{ id: 1 }])) };

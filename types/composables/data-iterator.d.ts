@@ -180,6 +180,7 @@ export declare function useDataIterator(model: any, options?: {}): {
     rowsFilter: import("vue").ComputedRef<any>;
     expression: import("vue").Ref<any, any>;
     search: import("vue").Ref<string, string>;
+    appliedSearch: Readonly<import("vue").Ref<string, string>>;
     view: import("vue").Ref<number | null, number | null>;
     viewExpression: import("vue").Ref<undefined, undefined>;
     viewState: any;

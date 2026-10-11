@@ -207,12 +207,18 @@ describe('useDataIterator', () => {
 
         expect(service.list.mock.calls[0][0].filter).toEqual([['search_value', 'search_fuzzy', 'tomate']]);
 
+        expect(iterator.appliedSearch.value).toBe('tomate');
+
         vi.useFakeTimers();
         iterator.search.value = ' carotte ';
+
+        expect(iterator.appliedSearch.value).toBe('tomate');
+
         await vi.advanceTimersByTimeAsync(300);
         vi.useRealTimers();
         await settle();
 
+        expect(iterator.appliedSearch.value).toBe('carotte');
         expect(service.list).toHaveBeenCalledTimes(2);
         expect(service.list.mock.calls[1][0].filter).toEqual([['search_value', 'search_fuzzy', 'carotte']]);
         expect(router.replace).toHaveBeenLastCalledWith({ query: { q: 'carotte' } });

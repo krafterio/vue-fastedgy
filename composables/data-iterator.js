@@ -1917,6 +1917,7 @@ export function useDataIterator(model, options = {}) {
         rowsFilter,
         expression,
         search,
+        appliedSearch: readonly(appliedSearch),
         view,
         viewExpression,
         viewState,

@@ -13,6 +13,10 @@ export declare const columnWidths: Array<{
     label: string;
     width: number;
 }>;
+/**
+ * The types a column shows, unless a list says its own (`types`).
+ */
+export declare const columnTypes: string[];
 export type ColumnEntry = {
     /**
      * - The field of the column
@@ -70,6 +74,8 @@ export declare function columnEntry(name: string, width?: number | null): string
  * @param {Array<string>} [options.locked] - The columns that move, but are neither removed nor resized; put back first
  *   when a layout leaves them out
  * @param {Array<string>} [options.exclude] - The fields never offered
+ * @param {Array<string>} [options.types] - The types of the fields offered, `columnTypes` otherwise: the tags of a
+ *   `json` field added, the multiple relations left out
  * @param {{ read: () => Promise<Array|null>, write: (entries: Array) => Promise<void> }} [options.store] - Where the
  *   layout is kept in place of the custom views
  * @param {number} [options.delay] - How long the changes of a moment wait before they are written (default: 500 ms)
@@ -92,6 +98,7 @@ export declare function useColumnLayout(model: string | object, options?: {
     declared?: Array<string | object> | Function | import('vue').Ref;
     locked?: Array<string>;
     exclude?: Array<string>;
+    types?: Array<string>;
     store?: {
         read: () => Promise<any[] | null>;
         write: (entries: any[]) => Promise<void>;

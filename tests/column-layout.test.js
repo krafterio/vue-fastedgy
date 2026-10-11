@@ -5,7 +5,13 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope, nextTick } from 'vue';
-import { columnEntry, defaultColumnWidth, readColumnEntry, useColumnLayout } from '../composables/column-layout.js';
+import {
+    columnEntry,
+    columnTypes,
+    defaultColumnWidth,
+    readColumnEntry,
+    useColumnLayout,
+} from '../composables/column-layout.js';
 import { useCustomViews } from '../composables/custom-views.js';
 import { useDataTable } from '../composables/data-table.js';
 
@@ -111,6 +117,7 @@ describe('the columns a list shows', () => {
                 code: field('code', 'char'),
                 sequence: field('sequence', 'integer'),
                 files: field('files', 'one2many'),
+                tags: field('tags', 'json'),
             },
         };
         service = {
@@ -200,6 +207,14 @@ describe('the columns a list shows', () => {
 
             expect(layout.entries.value.map((entry) => entry.name)).toEqual(['name', 'status']);
             expect(layout.available.value.map((one) => one.name)).toEqual(['notes', 'owner']);
+        });
+
+        it('offers the fields of the types its list says', async () => {
+            const layout = layoutOf({ types: [...columnTypes.filter((type) => type !== 'many2one'), 'json'] });
+
+            await layout.ready;
+
+            expect(layout.available.value.map((one) => one.name)).toEqual(['notes', 'tags']);
         });
 
         it('is kept under the scope of its list', async () => {

@@ -37,9 +37,9 @@ const LAYOUT_NAME = 'List columns';
 const HIDDEN_FIELDS = ['id', 'search_value', 'image', 'created_by', 'updated_by', 'workspace', 'sequence'];
 
 /**
- * The types a column shows.
+ * The types a column shows, unless a list says its own (`types`).
  */
-const SHOWN_TYPES = [
+export const columnTypes = [
     'char',
     'text',
     'rich_text',
@@ -119,6 +119,8 @@ export function columnEntry(name, width = null) {
  * @param {Array<string>} [options.locked] - The columns that move, but are neither removed nor resized; put back first
  *   when a layout leaves them out
  * @param {Array<string>} [options.exclude] - The fields never offered
+ * @param {Array<string>} [options.types] - The types of the fields offered, `columnTypes` otherwise: the tags of a
+ *   `json` field added, the multiple relations left out
  * @param {{ read: () => Promise<Array|null>, write: (entries: Array) => Promise<void> }} [options.store] - Where the
  *   layout is kept in place of the custom views
  * @param {number} [options.delay] - How long the changes of a moment wait before they are written (default: 500 ms)
@@ -146,6 +148,7 @@ export function useColumnLayout(model, options = {}) {
 
     const locked = () => toValue(options.locked) ?? [];
     const exclude = () => toValue(options.exclude) ?? [];
+    const types = () => toValue(options.types) ?? columnTypes;
 
     const meta = shallowRef(null);
     const own = ref(null);
@@ -198,7 +201,7 @@ export function useColumnLayout(model, options = {}) {
 
         return Object.values(meta.value?.fields ?? {}).filter(
             (field) =>
-                SHOWN_TYPES.includes(field.type) &&
+                types().includes(field.type) &&
                 !HIDDEN_FIELDS.includes(field.name) &&
                 !exclude().includes(field.name) &&
                 !shown.has(field.name)

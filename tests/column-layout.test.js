@@ -196,6 +196,12 @@ describe('the columns a list shows', () => {
             expect(keys(own)).toEqual(['notes']);
             expect(own.columns.value[0]).toMatchObject({ key: 'notes', label: 'Notes', type: 'text' });
             expect(service.list).toHaveBeenLastCalledWith(expect.objectContaining({ fields: ['id', 'notes'] }));
+
+            const custom = scope.run(() => useCustomViews('thing', { prefix: '/acme', list: own }));
+
+            await custom.ensure();
+
+            expect(custom.items.value).toEqual([]);
         });
 
         it('keeps a locked column, and offers the fields a column shows', async () => {

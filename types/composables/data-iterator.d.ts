@@ -115,6 +115,8 @@ export type DataGroup = {
  * @param {Array<string>} options.groupFields - More fields read on the records of an axis made of a relation
  * @param {(group: DataGroup) => any} options.groupFilter - A rule added to the filter of one group, from what its axis
  *   says of it (its `value`, its `record`), null for none
+ * @param {string|import('vue').Ref<string>|(() => string)} options.emptyLabel - The label of the group of the rows with
+ *   no value, « No value » otherwise (the notes in no category: « General »)
  * @param {'last'|'first'|'none'|((field: string) => 'last'|'first'|'none')} options.emptyGroup - Where the group of
  *   the rows with no value stands (default: last), or what says it for the field grouped by; a required field has none
  * @param {Record<string, any>|Function|import('vue').Ref<Record<string, any>>} options.relationScopes - The rule

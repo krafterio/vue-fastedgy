@@ -294,10 +294,12 @@ describe('a list grouped by a field', () => {
                 emptyGroup: (name) => (name === 'priority' ? 'none' : 'last'),
             });
             const required = useDataIterator(service, { groupBy: 'level' });
+            const named = useDataIterator(service, { groupBy: 'priority', emptyLabel: () => 'General' });
 
             await settle();
 
             expect(labels(first)).toEqual(['No value', 'Low', 'High']);
+            expect(labels(named)).toEqual(['Low', 'High', 'General']);
             expect(labels(none)).toEqual(['Low', 'High']);
             expect(labels(byField)).toEqual(['Low', 'High']);
             expect(labels(required)).toEqual(['One']);

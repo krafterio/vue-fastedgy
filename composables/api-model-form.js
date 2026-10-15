@@ -199,16 +199,25 @@ export function useApiModelForm(model, options = {}) {
         }
     };
 
-    const save = async () => {
+    /**
+     * Creates the record, or updates it once it has an id.
+     *
+     * @param {Object} [shaped] What is sent, when the form shapes it itself: a
+     *   value converted, or left out on purpose. The editable fields as they are
+     *   otherwise
+     */
+    const save = async (shaped = null) => {
         status.value = 'loading';
         error.value = null;
         errors.value = {};
 
-        const payload = {};
+        const payload = shaped ?? {};
 
-        for (const field of fields.value) {
-            if (!field.readonly) {
-                payload[field.name] = values[field.name];
+        if (!shaped) {
+            for (const field of fields.value) {
+                if (!field.readonly) {
+                    payload[field.name] = values[field.name];
+                }
             }
         }
 

@@ -92,7 +92,7 @@ export declare function useApiModelForm(model: string | any, options?: {
     metadata: import("vue").Ref<null, null>;
     load: (id: any) => Promise<null>;
     start: () => Promise<void>;
-    save: () => Promise<any>;
+    save: (shaped?: any) => Promise<any>;
     reset: (source?: null) => void;
 };
 //# sourceMappingURL=api-model-form.d.ts.map

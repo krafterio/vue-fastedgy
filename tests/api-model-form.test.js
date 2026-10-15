@@ -152,4 +152,19 @@ describe('useApiModelForm', () => {
 
         expect(api.get).toHaveBeenCalledWith(4, { fields: ['id', 'name', 'author.name'] });
     });
+
+    it('sends the payload a form shapes itself, a value left out on purpose', async () => {
+        const api = {
+            modelName: 'article',
+            get: vi.fn().mockResolvedValue({ data: { id: 4, name: 'Brouillon', active: false } }),
+            update: vi.fn().mockResolvedValue({ data: { id: 4, name: 'Publié', active: false } }),
+            create: vi.fn(),
+        };
+        const form = useApiModelForm(api, { fields: ['name', 'active'] });
+
+        await form.load(4);
+        await form.save({ name: 'Publié' });
+
+        expect(api.update).toHaveBeenCalledWith(4, { name: 'Publié' });
+    });
 });

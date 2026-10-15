@@ -75,18 +75,21 @@ export function resolveWidget(field) {
  * which is silently falsy against `?.fields` and leaves the form with no fields
  * at all. Hence the ref and the explicit load.
  *
- * @param {string} modelName Model name as `/dataset/metadatas` reports it
+ * @param {string|Object} model Model name as `/dataset/metadatas` reports it, or
+ *   the api model that reads and writes it: an application's own, with its
+ *   prefix and its actions, rather than a generic one
  * @param {Object} options
- * @param {string} [options.prefix] API prefix, `/console` for the console
+ * @param {string} [options.prefix] API prefix, `/console` for the console, for a model given by its name
  * @param {Array<string>} [options.fields] Field order; defaults to metadata order
  * @param {Array<string>} [options.exclude] Extra fields to leave out
  * @param {Object} [options.defaults] Values a new record starts with — how a
  *   nested editor tells the form which parent it is creating under. A field
  *   left empty takes its declared default on the server
  */
-export function useApiModelForm(modelName, options = {}) {
+export function useApiModelForm(model, options = {}) {
     const metadataStore = useMetadataStore();
-    const service = useApiModel(modelName, { prefix: options.prefix });
+    const service = typeof model === 'string' ? useApiModel(model, { prefix: options.prefix }) : model;
+    const modelName = service.modelName;
 
     const record = ref(null);
     const values = reactive({});

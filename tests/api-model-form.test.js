@@ -125,4 +125,22 @@ describe('useApiModelForm', () => {
         expect(form.values.active).toBe(null);
         expect(form.values.extra_stage).toBe(null);
     });
+
+    it('reads and writes through the api model it is given, an application’s own', async () => {
+        const api = {
+            modelName: 'article',
+            get: vi.fn().mockResolvedValue({ data: { id: 4, name: 'Brouillon', active: false } }),
+            update: vi.fn().mockResolvedValue({ data: { id: 4, name: 'Publié', active: false } }),
+            create: vi.fn(),
+        };
+        const form = useApiModelForm(api, { fields: ['name', 'active'] });
+
+        await form.load(4);
+        form.values.name = 'Publié';
+        await form.save();
+
+        expect(api.get).toHaveBeenCalledWith(4);
+        expect(api.update).toHaveBeenCalledWith(4, { name: 'Publié', active: false });
+        expect(api.create).not.toHaveBeenCalled();
+    });
 });

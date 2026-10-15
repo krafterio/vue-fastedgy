@@ -160,6 +160,19 @@ describe('useApiModel writes', () => {
         expectSpy.mockRestore();
     });
 
+    it('announces a write made through an action of the model, and nothing for a read', async () => {
+        const heard = [];
+        const listener = (event) => heard.push(event.detail);
+
+        bus.addEventListener(RESOURCE_CHANGED, listener);
+        await useApiModel('aliment').action('get', '/12/nutrition');
+        await useApiModel('aliment').action('post', '/12/generate-image');
+        bus.removeEventListener(RESOURCE_CHANGED, listener);
+
+        expect(heard).toHaveLength(1);
+        expect(heard[0]).toMatchObject({ model: 'aliment', id: null, action: 'updated', origin: originId });
+    });
+
     it('announces the id of the record it created', async () => {
         const heard = [];
         const listener = (event) => heard.push(event.detail);

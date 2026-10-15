@@ -134,7 +134,8 @@ export declare function deleteAction(modelName: string, id: string | number, par
  * @param {{ fields?: string|string[], filter?: string|object, page?: number, size?: number,
  *           limit?: number, offset?: number, orderBy?: string|string[] }} [query]
  * @param {{ prefix?: string, headers?: object }} [params]
- * @returns {Promise<{data: any}>}
+ * @returns {Promise<{data: any}>} An action that writes announces it, as a create
+ *   or an update does, on the model as a whole: its path does not say which record
  */
 export declare function actionRequest(modelName: string, method: string, path?: string, body?: object, query?: {
     fields?: string | string[];

@@ -282,7 +282,8 @@ export async function deleteAction(modelName, id, params = {}) {
  * @param {{ fields?: string|string[], filter?: string|object, page?: number, size?: number,
  *           limit?: number, offset?: number, orderBy?: string|string[] }} [query]
  * @param {{ prefix?: string, headers?: object }} [params]
- * @returns {Promise<{data: any}>}
+ * @returns {Promise<{data: any}>} An action that writes announces it, as a create
+ *   or an update does, on the model as a whole: its path does not say which record
  */
 export async function actionRequest(modelName, method, path = '', body, query = {}, params = {}) {
     const fetcher = useFetcher();
@@ -290,11 +291,18 @@ export async function actionRequest(modelName, method, path = '', body, query = 
     const headers = buildHeaders(query, params);
     const url = buildUrl(apiName, path, params.prefix);
 
-    if (method === 'get' || method === 'delete') {
-        return await fetcher[method](url, { params: buildQueryParams(query), headers });
+    if (method === 'get') {
+        return await fetcher.get(url, { params: buildQueryParams(query), headers });
     }
 
-    return await fetcher[method](url, body === undefined ? undefined : cleanPayload(body), { headers });
+    const response =
+        method === 'delete'
+            ? await fetcher.delete(url, { params: buildQueryParams(query), headers })
+            : await fetcher[method](url, body === undefined ? undefined : cleanPayload(body), { headers });
+
+    notifyChanged({ model: modelName, id: null, action: 'updated', origin: originId });
+
+    return response;
 }
 
 /**

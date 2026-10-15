@@ -32,7 +32,7 @@ describe('the list a record is opened from', () => {
         const list = { combinedFilter: ref([['is_active', 'is true']]), orderBy: ref(['name:asc']) };
 
         expect(JSON.parse(listContext(list).ctx)).toEqual({ f: [['is_active', 'is true']], o: ['name:asc'] });
-        expect(JSON.parse(listContext({ combinedFilter: ref(null), orderBy: ref(null) }).ctx)).toEqual({});
+        expect(listContext({ combinedFilter: ref(null), orderBy: ref([]) })).toEqual({});
     });
 
     it('carries the filter of the group a record is opened from', () => {
@@ -75,5 +75,14 @@ describe('the list a record is opened from', () => {
 
         expect(siblings.calls.at(-1).id).toBeNull();
         expect(record.inList.value).toBe(false);
+    });
+
+    it('takes a record shown from its list without a context for one of the list as it comes', () => {
+        router.route = { params: { id: '5' }, query: {} };
+
+        const record = useRecordContext({ modelName: 'support_ticket' }, { routeName: 'support-ticket', listed: () => true });
+
+        expect(siblings.calls.at(-1)).toMatchObject({ id: '5', query: { filter: undefined, orderBy: undefined } });
+        expect(record.inList.value).toBe(true);
     });
 });

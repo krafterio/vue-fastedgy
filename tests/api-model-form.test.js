@@ -143,4 +143,13 @@ describe('useApiModelForm', () => {
         expect(api.update).toHaveBeenCalledWith(4, { name: 'Publié', active: false });
         expect(api.create).not.toHaveBeenCalled();
     });
+
+    it('reads a record with the fields it shows, a relation’s name among them', async () => {
+        const api = { modelName: 'article', get: vi.fn().mockResolvedValue({ data: { id: 4, name: 'Brouillon' } }) };
+        const form = useApiModelForm(api, { fields: ['name'], select: ['id', 'name', 'author.name'] });
+
+        await form.load(4);
+
+        expect(api.get).toHaveBeenCalledWith(4, { fields: ['id', 'name', 'author.name'] });
+    });
 });

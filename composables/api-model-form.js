@@ -85,6 +85,8 @@ export function resolveWidget(field) {
  * @param {Object} [options.defaults] Values a new record starts with — how a
  *   nested editor tells the form which parent it is creating under. A field
  *   left empty takes its declared default on the server
+ * @param {Array<string>} [options.select] The fields a record is read with, when
+ *   the form shows more than it edits: a relation's name, a date it only displays
  */
 export function useApiModelForm(model, options = {}) {
     const metadataStore = useMetadataStore();
@@ -171,7 +173,7 @@ export function useApiModelForm(model, options = {}) {
 
         try {
             await loadMetadata();
-            const response = await service.get(id);
+            const response = options.select ? await service.get(id, { fields: options.select }) : await service.get(id);
 
             reset(response?.data ?? response);
             status.value = 'success';

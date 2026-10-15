@@ -62,12 +62,15 @@ export declare function resolveWidget(field: any): any;
  * @param {Object} [options.defaults] Values a new record starts with — how a
  *   nested editor tells the form which parent it is creating under. A field
  *   left empty takes its declared default on the server
+ * @param {Array<string>} [options.select] The fields a record is read with, when
+ *   the form shows more than it edits: a relation's name, a date it only displays
  */
 export declare function useApiModelForm(model: string | any, options?: {
     prefix?: string;
     fields?: Array<string>;
     exclude?: Array<string>;
     defaults?: any;
+    select?: Array<string>;
 }): {
     record: import("vue").Ref<null, null>;
     values: {};

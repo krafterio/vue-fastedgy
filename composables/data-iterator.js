@@ -534,13 +534,20 @@ export function useDataIterator(model, options = {}) {
         layout.value?.applyView(shown?.display_fields ?? null);
     };
 
+    // The menu of the views built on the list (useCustomViews), which it opens on the read of.
+    const customViews = shallowRef(null);
     const linkedView = 'f' in entry ? null : view.value;
     const entered = ['p', 's', 'order_by', 'q', 'sl', 'f', 'cv', 'qf', 'g', ...stateKeys].some((key) => key in entry);
     // The views answer where the model does, unless the screen says otherwise.
     const viewsPrefix = config.views ? (config.views.prefix ?? service.prefix ?? config.prefix) : config.prefix;
     const opening =
         config.views && (linkedView !== null || !entered)
-            ? useOpeningView(modelName, { scope: config.views.scope, prefix: viewsPrefix, id: linkedView })
+            ? useOpeningView(modelName, {
+                  scope: config.views.scope,
+                  prefix: viewsPrefix,
+                  id: linkedView,
+                  menu: () => customViews.value,
+              })
             : null;
     const opened = ref(opening === null);
 
@@ -1922,6 +1929,7 @@ export function useDataIterator(model, options = {}) {
         viewExpression,
         viewState,
         applyView,
+        customViews,
         opened: readonly(opened),
         quick,
         quickFilters: config.quickFilters ?? [],

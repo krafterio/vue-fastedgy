@@ -214,7 +214,7 @@ export function useCustomViews(model, options = {}) {
         };
     };
 
-    return {
+    const menu = {
         items,
         favorite: computed(() => favorite.value?.view ?? null),
         loading,
@@ -349,6 +349,21 @@ export function useCustomViews(model, options = {}) {
             list.applyView(view);
         },
     };
+
+    // The list opens on what this menu reads: one read for both.
+    if (list?.customViews && !list.customViews.value) {
+        list.customViews.value = menu;
+
+        if (getCurrentScope()) {
+            onScopeDispose(() => {
+                if (list.customViews.value === menu) {
+                    list.customViews.value = null;
+                }
+            });
+        }
+    }
+
+    return menu;
 }
 
 /**
@@ -357,12 +372,16 @@ export function useCustomViews(model, options = {}) {
  * else none. A view named by a link is kept only if it is one of this list.
  * Skipped when the list already says what it shows (a reload).
  *
+ * The menu of the views built on the list in the same setup (`menu`, read
+ * once its setup ran) gives its read: the list opens on the favorite or the
+ * default it found, without a read of its own.
+ *
  * @param {string} model - The metadata name of the listed model
- * @param {{ scope?: string, prefix?: string, skip?: boolean|(() => boolean), id?: number|null }} [options]
+ * @param {{ scope?: string, prefix?: string, skip?: boolean|(() => boolean), id?: number|null, menu?: () => any }} [options]
  * @returns {{ ready: import('vue').Ref<boolean>, view: import('vue').Ref<CustomView|null>, promise: Promise<void> }}
  */
 export function useOpeningView(model, options = {}) {
-    const { scope = '', prefix = '', skip = false, id = null } = options;
+    const { scope = '', prefix = '', skip = false, id = null, menu = null } = options;
     const api = useApiModel('custom_view', { prefix });
     const favorites = useApiModel('custom_view_favorite', { prefix });
     const ready = ref(false);
@@ -380,6 +399,25 @@ export function useOpeningView(model, options = {}) {
                 view.value = named?.model === model && (named?.scope ?? '') === scope ? named : null;
 
                 return;
+            }
+
+            // The setup that builds the list builds its menu after it: let it run.
+            await Promise.resolve();
+
+            const views = menu?.() ?? null;
+
+            if (views) {
+                await views.ensure();
+
+                const favorite = views.favorite.value;
+                const own = views.items.value.find((one) => one.id === favorite);
+
+                // A favorite beyond the views the menu read is read on its own.
+                if (favorite === null || own) {
+                    view.value = own ?? views.items.value.find((one) => one.is_default) ?? null;
+
+                    return;
+                }
             }
 
             const [own, shared] = await Promise.all([

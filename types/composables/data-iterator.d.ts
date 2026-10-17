@@ -185,6 +185,7 @@ export declare function useDataIterator(model: any, options?: {}): {
     viewExpression: import("vue").Ref<undefined, undefined>;
     viewState: any;
     applyView: (shown: Record<string, any> | null, query?: Record<string, any>) => void;
+    customViews: import("vue").ShallowRef<null, null>;
     opened: Readonly<import("vue").Ref<boolean, boolean>>;
     quick: Record<string, any>;
     quickFilters: any;

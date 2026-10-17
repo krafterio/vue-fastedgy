@@ -4,7 +4,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { effectScope, ref } from 'vue';
+import { effectScope, ref, shallowRef } from 'vue';
 import { bus } from '../composables/bus.js';
 import { useCustomViews, useOpeningView } from '../composables/custom-views.js';
 import { RESOURCES_STALE } from '../composables/realtime.js';
@@ -241,6 +241,35 @@ describe('useOpeningView', () => {
 
         expect(opening.ready.value).toBe(true);
         expect(opening.view.value.id).toBe(2);
+    });
+
+    it('opens on the read of the menu built with its list: the views and the favorite read once', async () => {
+        apis.custom_view.list.mockResolvedValue(page([view(1, { is_default: true }), view(2)]));
+        apis.custom_view_favorite.list.mockResolvedValue(page([{ id: 9, view: { id: 2 } }]));
+        const list = iterator({ customViews: shallowRef(null) });
+        const opening = useOpeningView('household', { menu: () => list.customViews.value });
+
+        const views = useCustomViews('household', { list });
+
+        await Promise.all([opening.promise, views.ensure()]);
+
+        expect(opening.view.value.id).toBe(2);
+        expect(apis.custom_view.list).toHaveBeenCalledTimes(1);
+        expect(apis.custom_view_favorite.list).toHaveBeenCalledTimes(1);
+    });
+
+    it('with its menu, falls back on the one of everyone, read once too', async () => {
+        apis.custom_view.list.mockResolvedValue(page([view(1, { is_default: true }), view(2)]));
+        const list = iterator({ customViews: shallowRef(null) });
+        const opening = useOpeningView('household', { menu: () => list.customViews.value });
+
+        const views = useCustomViews('household', { list });
+
+        await Promise.all([opening.promise, views.ensure()]);
+
+        expect(opening.view.value.id).toBe(1);
+        expect(apis.custom_view.list).toHaveBeenCalledTimes(1);
+        expect(apis.custom_view_favorite.list).toHaveBeenCalledTimes(1);
     });
 
     it('falls back on the one of everyone, and reads nothing when the list already says what it shows', async () => {

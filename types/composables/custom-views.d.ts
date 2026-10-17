@@ -41,8 +41,12 @@ export declare function useCustomViews(model: string, options?: {
  * else none. A view named by a link is kept only if it is one of this list.
  * Skipped when the list already says what it shows (a reload).
  *
+ * The menu of the views built on the list in the same setup (`menu`, read
+ * once its setup ran) gives its read: the list opens on the favorite or the
+ * default it found, without a read of its own.
+ *
  * @param {string} model - The metadata name of the listed model
- * @param {{ scope?: string, prefix?: string, skip?: boolean|(() => boolean), id?: number|null }} [options]
+ * @param {{ scope?: string, prefix?: string, skip?: boolean|(() => boolean), id?: number|null, menu?: () => any }} [options]
  * @returns {{ ready: import('vue').Ref<boolean>, view: import('vue').Ref<CustomView|null>, promise: Promise<void> }}
  */
 export declare function useOpeningView(model: string, options?: {
@@ -50,6 +54,7 @@ export declare function useOpeningView(model: string, options?: {
     prefix?: string;
     skip?: boolean | (() => boolean);
     id?: number | null;
+    menu?: () => any;
 }): {
     ready: import('vue').Ref<boolean>;
     view: import('vue').Ref<CustomView | null>;

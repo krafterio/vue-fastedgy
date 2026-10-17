@@ -68,6 +68,14 @@ export declare function replaceRouteQuery(router: import('vue-router').Router, q
  */
 export declare function restoreRouteQuery(query: string, currentRoute: import('vue-router').RouteLocation, prefix?: string, defaultValue?: any, type?: string): any;
 /**
+ * Remove the redirect query parameter of a location.
+ *
+ * @param {String} location The location to clean
+ *
+ * @returns {String} The path of the location, with its query less the redirect and its hash
+ */
+export declare function cleanRedirect(location: string): string;
+/**
  * Redirect if exist.
  *
  * @param {import('vue-router').Router} router The router

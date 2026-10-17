@@ -214,6 +214,23 @@ export function restoreRouteQuery(query, currentRoute, prefix, defaultValue, typ
 }
 
 /**
+ * Remove the redirect query parameter of a location.
+ *
+ * @param {String} location The location to clean
+ *
+ * @returns {String} The path of the location, with its query less the redirect and its hash
+ */
+export function cleanRedirect(location) {
+    const url = new URL(location, 'http://localhost');
+
+    if (url.searchParams.has('redirect')) {
+        url.searchParams.delete('redirect');
+    }
+
+    return url.pathname + url.search + url.hash;
+}
+
+/**
  * Redirect if exist.
  *
  * @param {import('vue-router').Router} router The router
@@ -221,13 +238,13 @@ export function restoreRouteQuery(query, currentRoute, prefix, defaultValue, typ
  * @returns {Promise<Boolean>}
  */
 export async function redirectIfExist(router) {
-    if (router.currentRoute.query && router.currentRoute.query.redirect) {
-        const redirect = Array.isArray(router.currentRoute.query.redirect)
-            ? router.currentRoute.query.redirect[0]
-            : router.currentRoute.query.redirect;
+    const query = router.currentRoute.value?.query;
+
+    if (query && query.redirect) {
+        const redirect = Array.isArray(query.redirect) ? query.redirect[0] : query.redirect;
 
         if (redirect) {
-            await router.replace(decodeURIComponent(cleanRedirect(redirect)));
+            await router.replace(cleanRedirect(decodeURIComponent(redirect)));
 
             return true;
         }

@@ -24,7 +24,8 @@ export declare function addRedirect(currentRoute: import('vue-router').RouteLoca
  * Get redirect from route query parameters.
  *
  * @param {import('vue-router').RouteLocation} currentRoute The current route
- * @param {import('vue-router').RouteLocationRaw} fallbackRoute The fallback route to return if no redirect is found
+ * @param {import('vue-router').RouteLocationRaw} fallbackRoute The fallback route to return if no redirect to a path
+ *   of the app is found
  *
  * @returns {import('vue-router').RouteLocationRaw}
  */

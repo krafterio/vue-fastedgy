@@ -5,7 +5,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
-import { cleanRedirect, redirectIfExist, replaceRouteQuery } from '../utils/router.js';
+import { cleanRedirect, getRedirect, redirectIfExist, replaceRouteQuery } from '../utils/router.js';
 
 function routerAt(query) {
     return { currentRoute: ref({ path: '/login', query }), replace: vi.fn() };
@@ -26,6 +26,32 @@ describe('cleanRedirect', () => {
     });
 });
 
+describe('getRedirect', () => {
+    it('reads the redirect back, decoded', () => {
+        expect(getRedirect({ query: { redirect: encodeURIComponent('/w/acme/notes?list=3') } }, '/')).toBe(
+            '/w/acme/notes?list=3'
+        );
+    });
+
+    it('falls back without a redirect', () => {
+        expect(getRedirect({ query: {} }, '/home')).toBe('/home');
+    });
+
+    it('follows only an absolute path of the app', () => {
+        for (const redirect of [
+            'https://example.com/w/acme',
+            '//example.com/w/acme',
+            '/\\example.com',
+            'w/acme',
+            '%E0%A4%A',
+        ]) {
+            expect(getRedirect({ query: { redirect: encodeURIComponent(redirect) } }, '/'), redirect).toBe('/');
+        }
+
+        expect(getRedirect({ query: { redirect: '%E0%A4%A' } }, '/')).toBe('/');
+    });
+});
+
 describe('redirectIfExist', () => {
     it('replaces the route with its redirect, decoded and cleaned', async () => {
         const router = routerAt({ redirect: encodeURIComponent('/w/acme/notes?list=3&redirect=/account') });
@@ -39,6 +65,13 @@ describe('redirectIfExist', () => {
 
         expect(await redirectIfExist(router)).toBe(true);
         expect(router.replace).toHaveBeenCalledWith('/w/acme');
+    });
+
+    it('stays for a redirect that is no absolute path of the app', async () => {
+        const router = routerAt({ redirect: encodeURIComponent('https://example.com/w/acme') });
+
+        expect(await redirectIfExist(router)).toBe(false);
+        expect(router.replace).not.toHaveBeenCalled();
     });
 
     it('stays without redirect', async () => {

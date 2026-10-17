@@ -56,16 +56,34 @@ export function addRedirect(currentRoute, route, keepUrlRedirect = false) {
  * Get redirect from route query parameters.
  *
  * @param {import('vue-router').RouteLocation} currentRoute The current route
- * @param {import('vue-router').RouteLocationRaw} fallbackRoute The fallback route to return if no redirect is found
+ * @param {import('vue-router').RouteLocationRaw} fallbackRoute The fallback route to return if no redirect to a path
+ *   of the app is found
  *
  * @returns {import('vue-router').RouteLocationRaw}
  */
 export function getRedirect(currentRoute, fallbackRoute) {
-    if (typeof currentRoute?.query?.redirect === 'string') {
-        return decodeURIComponent(currentRoute.query.redirect);
+    return readRedirect(currentRoute?.query?.redirect) ?? fallbackRoute;
+}
+
+/**
+ * Read a redirect of route query parameters.
+ *
+ * @param {*} redirect The redirect query value
+ *
+ * @returns {String|null} The decoded redirect, or null when it is no absolute path of the app
+ */
+function readRedirect(redirect) {
+    if (typeof redirect !== 'string') {
+        return null;
     }
 
-    return fallbackRoute;
+    try {
+        const path = decodeURIComponent(redirect);
+
+        return /^\/(?![/\\])/.test(path) ? path : null;
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -239,16 +257,13 @@ export function cleanRedirect(location) {
  */
 export async function redirectIfExist(router) {
     const query = router.currentRoute.value?.query;
+    const redirect = readRedirect(Array.isArray(query?.redirect) ? query.redirect[0] : query?.redirect);
 
-    if (query && query.redirect) {
-        const redirect = Array.isArray(query.redirect) ? query.redirect[0] : query.redirect;
-
-        if (redirect) {
-            await router.replace(cleanRedirect(decodeURIComponent(redirect)));
-
-            return true;
-        }
+    if (null === redirect) {
+        return false;
     }
 
-    return false;
+    await router.replace(cleanRedirect(redirect));
+
+    return true;
 }

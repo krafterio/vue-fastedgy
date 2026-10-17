@@ -216,7 +216,9 @@ export declare function useApiCollection(model: string, query?: object | (Functi
 };
 /**
  * Hold the records either side of one, in the list a filter and an ordering
- * describe, for a detail screen that steps through the list it was opened from.
+ * describe, for a detail screen that steps through the list it was opened from,
+ * and where it stands in that list: its position from 1 among the total, both
+ * null when it is outside it.
  *
  * The neighbours re-read when the id or the query moves, and after a write on
  * the model anywhere: a record created, deleted or re-sorted shifts them. The
@@ -232,6 +234,7 @@ export declare function useApiCollection(model: string, query?: object | (Functi
  *          api?: object}}                                                     [options]
  *
  * @returns {{previous: import("vue").Ref<Number|null>, next: import("vue").Ref<Number|null>,
+ *           position: import("vue").Ref<Number|null>, total: import("vue").Ref<Number|null>,
  *           status: import("vue").Ref<String>, error: import("vue").Ref,
  *           refresh: function(): Promise<void>}}
  *
@@ -249,6 +252,8 @@ export declare function useApiSiblings(model: string, id: string | number | (Fun
 }): {
     previous: import("vue").Ref<number | null>;
     next: import("vue").Ref<number | null>;
+    position: import("vue").Ref<number | null>;
+    total: import("vue").Ref<number | null>;
     status: import("vue").Ref<string>;
     error: import("vue").Ref;
     refresh: Function;

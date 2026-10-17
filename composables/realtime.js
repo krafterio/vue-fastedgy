@@ -630,7 +630,9 @@ export function useApiCollection(model, query = {}, options = {}) {
 
 /**
  * Hold the records either side of one, in the list a filter and an ordering
- * describe, for a detail screen that steps through the list it was opened from.
+ * describe, for a detail screen that steps through the list it was opened from,
+ * and where it stands in that list: its position from 1 among the total, both
+ * null when it is outside it.
  *
  * The neighbours re-read when the id or the query moves, and after a write on
  * the model anywhere: a record created, deleted or re-sorted shifts them. The
@@ -646,6 +648,7 @@ export function useApiCollection(model, query = {}, options = {}) {
  *          api?: object}}                                                     [options]
  *
  * @returns {{previous: import("vue").Ref<Number|null>, next: import("vue").Ref<Number|null>,
+ *           position: import("vue").Ref<Number|null>, total: import("vue").Ref<Number|null>,
  *           status: import("vue").Ref<String>, error: import("vue").Ref,
  *           refresh: function(): Promise<void>}}
  *
@@ -657,6 +660,8 @@ export function useApiSiblings(model, id, query = {}, options = {}) {
     const reader = api ?? useApiModel(model, params);
     const previous = ref(null);
     const next = ref(null);
+    const position = ref(null);
+    const total = ref(null);
     const status = ref('idle');
     const error = ref(null);
     let timer = null;
@@ -672,6 +677,8 @@ export function useApiSiblings(model, id, query = {}, options = {}) {
         if (wanted === null) {
             previous.value = null;
             next.value = null;
+            position.value = null;
+            total.value = null;
             status.value = 'idle';
 
             return;
@@ -691,6 +698,8 @@ export function useApiSiblings(model, id, query = {}, options = {}) {
 
             previous.value = response?.data?.previous ?? null;
             next.value = response?.data?.next ?? null;
+            position.value = response?.data?.position ?? null;
+            total.value = response?.data?.total ?? null;
             error.value = null;
             status.value = 'success';
         } catch (e) {
@@ -700,6 +709,8 @@ export function useApiSiblings(model, id, query = {}, options = {}) {
 
             previous.value = null;
             next.value = null;
+            position.value = null;
+            total.value = null;
             error.value = e;
             status.value = 'error';
         }
@@ -729,5 +740,5 @@ export function useApiSiblings(model, id, query = {}, options = {}) {
 
     onUnmounted(() => clearTimeout(timer));
 
-    return { previous, next, status, error, refresh: () => read(false) };
+    return { previous, next, position, total, status, error, refresh: () => read(false) };
 }

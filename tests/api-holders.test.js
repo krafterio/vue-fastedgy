@@ -252,7 +252,7 @@ describe('useApiSiblings', () => {
     let siblings;
 
     beforeEach(() => {
-        siblings = vi.fn().mockResolvedValue({ data: { previous: 5, next: 9 } });
+        siblings = vi.fn().mockResolvedValue({ data: { previous: 5, next: 9, position: 4, total: 120 } });
     });
 
     it('asks for the neighbours in the list it is given', async () => {
@@ -264,6 +264,8 @@ describe('useApiSiblings', () => {
         expect(siblings).toHaveBeenCalledWith(7, query);
         expect(held().previous.value).toBe(5);
         expect(held().next.value).toBe(9);
+        expect(held().position.value).toBe(4);
+        expect(held().total.value).toBe(120);
         expect(held().status.value).toBe('success');
     });
 

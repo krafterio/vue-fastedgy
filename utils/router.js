@@ -145,10 +145,10 @@ export function replaceRouteQuery(router, query, route, prefix) {
             return;
         }
 
-        route = router.currentRoute;
+        route = router.currentRoute.value;
     }
 
-    const nextRoute = { query: route?.query };
+    const nextRoute = { query: { ...route?.query } };
     mergeRouteQueryValues(query, nextRoute, prefix);
     void router.replace({ query: nextRoute.query });
 }

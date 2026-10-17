@@ -5,7 +5,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
-import { cleanRedirect, redirectIfExist } from '../utils/router.js';
+import { cleanRedirect, redirectIfExist, replaceRouteQuery } from '../utils/router.js';
 
 function routerAt(query) {
     return { currentRoute: ref({ path: '/login', query }), replace: vi.fn() };
@@ -46,5 +46,16 @@ describe('redirectIfExist', () => {
 
         expect(await redirectIfExist(router)).toBe(false);
         expect(router.replace).not.toHaveBeenCalled();
+    });
+});
+
+describe('replaceRouteQuery', () => {
+    it('replaces the query of the current route, its other values kept', () => {
+        const router = routerAt({ list: '3', page: '2' });
+
+        replaceRouteQuery(router, { page: '4', search: null });
+
+        expect(router.replace).toHaveBeenCalledWith({ query: { list: '3', page: '4' } });
+        expect(router.currentRoute.value.query).toEqual({ list: '3', page: '2' });
     });
 });

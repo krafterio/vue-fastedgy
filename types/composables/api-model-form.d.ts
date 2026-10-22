@@ -87,6 +87,8 @@ export declare function useApiModelForm(model: string | any, options?: {
         meta: any;
     }[]>;
     errors: import("vue").Ref<{}, {}>;
+    alerts: import("vue").Ref<never[], never[]>;
+    formatted: import("vue").Ref<null, null>;
     status: import("vue").Ref<string, string>;
     error: import("vue").Ref<null, null>;
     metadata: import("vue").Ref<null, null>;

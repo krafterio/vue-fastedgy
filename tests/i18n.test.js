@@ -238,6 +238,40 @@ describe('formatApiError', () => {
         ]);
     });
 
+    it('reads the message of a detail the server gives as an object', () => {
+        expect(
+            formatApiError(answered({ detail: { message: 'Import failed: 2 error(s) found', errors: 2 } })).fullMessage
+        ).toBe('Import failed: 2 error(s) found');
+    });
+
+    it('leaves out the prefix pydantic gives the message of a validator', () => {
+        const formatted = formatApiError(
+            answered({
+                detail: [
+                    { loc: ['body', 'name'], msg: 'Value error, Already taken', type: 'value_error' },
+                    { loc: ['body'], msg: 'Assertion failed, Dates reversed', type: 'assertion_error' },
+                ],
+            })
+        );
+
+        expect(formatted.fieldErrors[0].message).toBe('Already taken');
+        expect(formatted.messages).toEqual(['Dates reversed']);
+    });
+
+    it('says a position in the body, a JSON that does not parse, about no field', () => {
+        const formatted = formatApiError(
+            answered({ detail: [{ loc: ['body', 12], msg: 'JSON decode error', type: 'json_invalid' }] })
+        );
+
+        expect(formatted.fieldErrors).toEqual([]);
+        expect(formatted.fullMessage).toBe('JSON decode error');
+    });
+
+    it('reads the body of an error shaped otherwise', () => {
+        expect(formatApiError({ response: { data: { detail: 'Too late' } } }).fullMessage).toBe('Too late');
+        expect(formatApiError({ details: { detail: 'Too late' } }).fullMessage).toBe('Too late');
+    });
+
     it('says a field the metadata do not name by its message alone', () => {
         const formatted = formatApiError(
             answered({ detail: [{ loc: ['body', 'secret'], msg: 'Required', type: 'missing' }] })

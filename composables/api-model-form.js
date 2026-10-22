@@ -6,6 +6,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useApiModel } from './api.js';
 import { useMetadataStore } from '../stores/metadata.js';
+import { formatApiError } from '../utils/validations.js';
 
 /**
  * Maps a server field type to the input component that edits it.
@@ -96,6 +97,8 @@ export function useApiModelForm(model, options = {}) {
     const record = ref(null);
     const values = reactive({});
     const errors = ref({});
+    const alerts = ref([]);
+    const formatted = ref(null);
     const status = ref('idle');
     const error = ref(null);
     const metadata = ref(null);
@@ -157,9 +160,38 @@ export function useApiModelForm(model, options = {}) {
         }
     };
 
+    const clearErrors = () => {
+        errors.value = {};
+        alerts.value = [];
+        formatted.value = null;
+    };
+
+    /**
+     * Holds why a save was refused ({@link formatApiError}): a message under the field of the form it is about,
+     * by its path; the others, and the messages about no field, in `alerts`, a field named by its label.
+     */
+    const hold = (caught) => {
+        const refusal = formatApiError(caught, { fields: metadata.value?.fields });
+        const shown = new Set(fields.value.map((field) => field.name));
+        const byField = {};
+        const others = [...refusal.messages];
+
+        for (const one of refusal.fieldErrors) {
+            if (shown.has(one.field.split(/[.[]/)[0])) {
+                byField[one.field] ??= one.message;
+            } else {
+                others.push(one.described);
+            }
+        }
+
+        errors.value = byField;
+        alerts.value = others;
+        formatted.value = refusal;
+    };
+
     const reset = (source = null) => {
         record.value = source;
-        errors.value = {};
+        clearErrors();
         seed(source);
     };
 
@@ -209,7 +241,7 @@ export function useApiModelForm(model, options = {}) {
     const save = async (shaped = null) => {
         status.value = 'loading';
         error.value = null;
-        errors.value = {};
+        clearErrors();
 
         const payload = shaped ?? {};
 
@@ -232,17 +264,7 @@ export function useApiModelForm(model, options = {}) {
 
             return saved;
         } catch (caught) {
-            // FastAPI reports field errors as `detail: [{loc, msg}]`; surface them
-            // next to their input rather than as one opaque banner. The fetcher's
-            // HttpError carries the body it was answered as `data`.
-            const details = caught?.data?.detail ?? caught?.details?.detail ?? caught?.response?.data?.detail;
-
-            if (Array.isArray(details)) {
-                errors.value = Object.fromEntries(
-                    details.filter((item) => Array.isArray(item.loc)).map((item) => [item.loc.at(-1), item.msg])
-                );
-            }
-
+            hold(caught);
             error.value = caught;
             status.value = 'error';
 
@@ -250,5 +272,5 @@ export function useApiModelForm(model, options = {}) {
         }
     };
 
-    return { record, values, fields, errors, status, error, metadata, load, start, save, reset };
+    return { record, values, fields, errors, alerts, formatted, status, error, metadata, load, start, save, reset };
 }

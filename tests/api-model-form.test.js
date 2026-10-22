@@ -75,6 +75,31 @@ describe('useApiModelForm', () => {
         expect(form.status.value).toBe('error');
     });
 
+    it('says a field it does not show and what is about none in its alerts, a field named by its label', async () => {
+        vi.spyOn(window, 'fetch').mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    detail: [
+                        { loc: ['body', 'name'], msg: 'Value error, Already taken', type: 'value_error' },
+                        { loc: ['body', 'note'], msg: 'Too long' },
+                        { loc: ['body'], msg: 'Nothing changes' },
+                    ],
+                }),
+                { status: 422, headers: { 'Content-Type': 'application/json' } }
+            )
+        );
+        const form = useApiModelForm('article', { fields: ['note'] });
+
+        await form.start();
+        await expect(form.save()).rejects.toBeTruthy();
+
+        expect(form.errors.value).toEqual({ note: 'Too long' });
+        expect(form.alerts.value).toEqual(['Nothing changes', 'Field Nom: Already taken']);
+        expect(form.formatted.value.fullMessage).toBe(
+            'Validation error\n• Nothing changes\n• Field Nom: Already taken\n• Too long'
+        );
+    });
+
     it('builds the editable fields from the metadata, leaving the read-only columns out', async () => {
         const form = useApiModelForm('article');
 

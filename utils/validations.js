@@ -30,24 +30,25 @@ import { t } from './i18n.js';
  */
 
 /**
- * The error a call of the fetcher failed with, worded for the screen: the reason the server gives (`detail`, else
- * its `message` or `error`), `defaultMessage` when it gives none (the network down, an answer without a body),
- * « An error occurred » without one.
+ * The error a call of the fetcher failed with, worded for the screen: the reason the server gives (`detail` as a
+ * text, or the `message` of a `detail` object, else the `message` or `error` of the body), `defaultMessage` when it
+ * gives none (the network down, an answer without a body), « An error occurred » without one.
  *
  * A validation error (`detail` as a list, FastAPI's HTTPValidationError) is titled « Validation error »: what it
  * says about a field of the body goes to `fieldErrors`, its path read from `loc` (`["body", "items", 0, "value"]`
  * to `items[0].value`) and named by its label in `fields`, the metadata of the model written; the rest to
- * `messages`.
+ * `messages`, a position in the body included (`["body", 12]`, a JSON that does not parse). The prefix pydantic
+ * gives the message of a validator (« Value error, », « Assertion failed, ») is left out.
  *
  * The same as `formatApiError` of flutter_fastedgy.
  *
- * @param {any} error The error of the call, its body as `data`
+ * @param {any} error The error of the call, its body as `data` (`details` or `response.data` read as well)
  * @param {{ defaultMessage?: string, fields?: Record<string, { label?: string }> }} [options]
  * @returns {FormattedError}
  */
 export function formatApiError(error, { defaultMessage, fields } = {}) {
     const fallback = formatted(defaultMessage || t('An error occurred'));
-    const data = error?.data;
+    const data = error?.data ?? error?.details ?? error?.response?.data;
 
     if (!data || typeof data !== 'object') {
         return fallback;
@@ -59,18 +60,23 @@ export function formatApiError(error, { defaultMessage, fields } = {}) {
         return formatted(detail);
     }
 
+    if (typeof detail?.message === 'string' && detail.message) {
+        return formatted(detail.message);
+    }
+
     if (Array.isArray(detail)) {
         const fieldErrors = [];
         const messages = [];
 
         for (const item of detail) {
-            const msg = item?.msg;
+            const msg = reason(item);
 
-            if (typeof msg !== 'string' || !msg) {
+            if (!msg) {
                 continue;
             }
 
-            const path = Array.isArray(item.loc) && item.loc[0] === 'body' ? fieldPath(item.loc) : '';
+            const loc = item.loc;
+            const path = Array.isArray(loc) && loc[0] === 'body' && typeof loc[1] === 'string' ? fieldPath(loc) : '';
 
             if (path) {
                 fieldErrors.push(fieldError(path, msg, fields, item.type ?? 'unknown'));
@@ -104,6 +110,27 @@ export function formatApiError(error, { defaultMessage, fields } = {}) {
  */
 export function formatValidationErrors(error, defaultMessage, fields) {
     return error ? formatApiError(error, { defaultMessage, fields }).fullMessage : undefined;
+}
+
+/** The prefix pydantic gives the message of a validator, by the type of the error. */
+const VALIDATOR_PREFIXES = { value_error: 'Value error, ', assertion_error: 'Assertion failed, ' };
+
+/**
+ * What a validation error says, the prefix pydantic gives the message of a validator left out.
+ *
+ * @param {any} item
+ * @returns {string|undefined} Nothing when it says nothing
+ */
+function reason(item) {
+    const msg = item?.msg;
+
+    if (typeof msg !== 'string' || !msg) {
+        return undefined;
+    }
+
+    const prefix = VALIDATOR_PREFIXES[item.type];
+
+    return prefix && msg.startsWith(prefix) ? msg.slice(prefix.length) : msg;
 }
 
 /**

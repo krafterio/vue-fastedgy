@@ -58,18 +58,19 @@ export type FormattedError = {
  *   over its points, one bullet each; the title when it says none
  */
 /**
- * The error a call of the fetcher failed with, worded for the screen: the reason the server gives (`detail`, else
- * its `message` or `error`), `defaultMessage` when it gives none (the network down, an answer without a body),
- * « An error occurred » without one.
+ * The error a call of the fetcher failed with, worded for the screen: the reason the server gives (`detail` as a
+ * text, or the `message` of a `detail` object, else the `message` or `error` of the body), `defaultMessage` when it
+ * gives none (the network down, an answer without a body), « An error occurred » without one.
  *
  * A validation error (`detail` as a list, FastAPI's HTTPValidationError) is titled « Validation error »: what it
  * says about a field of the body goes to `fieldErrors`, its path read from `loc` (`["body", "items", 0, "value"]`
  * to `items[0].value`) and named by its label in `fields`, the metadata of the model written; the rest to
- * `messages`.
+ * `messages`, a position in the body included (`["body", 12]`, a JSON that does not parse). The prefix pydantic
+ * gives the message of a validator (« Value error, », « Assertion failed, ») is left out.
  *
  * The same as `formatApiError` of flutter_fastedgy.
  *
- * @param {any} error The error of the call, its body as `data`
+ * @param {any} error The error of the call, its body as `data` (`details` or `response.data` read as well)
  * @param {{ defaultMessage?: string, fields?: Record<string, { label?: string }> }} [options]
  * @returns {FormattedError}
  */

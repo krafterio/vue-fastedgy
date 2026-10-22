@@ -11,7 +11,7 @@ import { fr } from '../locales/fr.js';
 import { it as italian } from '../locales/it.js';
 import { createI18nExtra } from '../plugins/i18nExtra.js';
 import { addLocaleMessages, setI18n, t } from '../utils/i18n.js';
-import { formatValidationErrors } from '../utils/validations.js';
+import { formatApiError, formatValidationErrors } from '../utils/validations.js';
 
 const application = (messages = {}) => createI18nExtra({ availableLocales: ['fr'], messages: { fr: messages } });
 
@@ -33,16 +33,17 @@ afterEach(() => {
 });
 
 describe('t', () => {
-    it('says the key itself when the application installed no i18n', () => {
+    it('says the key itself when the application installed no i18n, its values filled in', () => {
         setI18n(null);
 
-        expect(t('Unknown error')).toBe('Unknown error');
+        expect(t('An error occurred')).toBe('An error occurred');
+        expect(t('{count} rows imported', { count: 12 })).toBe('12 rows imported');
     });
 
     it('speaks the language of the application', () => {
         application();
 
-        expect(t('Unknown error')).toBe('Erreur inconnue');
+        expect(t('An error occurred')).toBe('Une erreur est survenue');
     });
 
     it('fills in what the message carries, where the values are known', () => {
@@ -54,9 +55,9 @@ describe('t', () => {
 
 describe('createI18nExtra', () => {
     it('leaves the wording the application already has', () => {
-        application({ 'Unknown error': 'Oups' });
+        application({ 'An error occurred': 'Oups' });
 
-        expect(t('Unknown error')).toBe('Oups');
+        expect(t('An error occurred')).toBe('Oups');
     });
 
     it('hands back untouched what it does not translate', () => {
@@ -69,7 +70,7 @@ describe('createI18nExtra', () => {
         trilingual({ locale: 'fr' });
 
         expect(t('Anniversaire')).toBe('Anniversaire');
-        expect(t('Unknown error')).toBe('Erreur inconnue');
+        expect(t('An error occurred')).toBe('Une erreur est survenue');
     });
 
     it('looks in the language, then in the fallback, then shows the key', () => {
@@ -125,11 +126,11 @@ describe('createI18nExtra', () => {
 
     it('installs vue-i18n and the v-tc directive', () => {
         const wrapper = mount(
-            { template: '<p>{{ $t("Unknown error") }}</p><span v-tc>Export failed</span>' },
+            { template: '<p>{{ $t("An error occurred") }}</p><span v-tc>Export failed</span>' },
             { global: { plugins: [application()] } }
         );
 
-        expect(wrapper.get('p').text()).toBe('Erreur inconnue');
+        expect(wrapper.get('p').text()).toBe('Une erreur est survenue');
         expect(wrapper.get('span').text()).toBe("Échec de l'export");
     });
 });
@@ -144,7 +145,7 @@ describe('locales', () => {
     it('say a word of the package in the language displayed', () => {
         trilingual({ locale: 'es' });
 
-        expect(t('Unknown error')).toBe('Error desconocido');
+        expect(t('An error occurred')).toBe('Se ha producido un error');
     });
 });
 
@@ -181,7 +182,7 @@ describe('addLocaleMessages', () => {
 
         trilingual({ locale: 'en' });
 
-        expect(t('Unknown error')).toBe('Unknown error');
+        expect(t('An error occurred')).toBe('An error occurred');
         expect(warn).not.toHaveBeenCalled();
     });
 
@@ -203,33 +204,91 @@ describe('addLocaleMessages', () => {
     });
 });
 
+describe('formatApiError', () => {
+    const answered = (data) => ({ status: 422, message: 'HTTP 422', data });
+
+    it('reads the reason the server names', () => {
+        expect(formatApiError(answered({ detail: 'Too late' })).fullMessage).toBe('Too late');
+        expect(formatApiError(answered({ message: 'Locked' })).fullMessage).toBe('Locked');
+    });
+
+    it('names a field by its label in the metadata, and says what is about none apart', () => {
+        const formatted = formatApiError(
+            answered({
+                detail: [
+                    { loc: ['body', 'email'], msg: 'Not an email', type: 'value_error' },
+                    { loc: ['body', 'tags', 0], msg: 'Too long', type: 'value_error' },
+                    { loc: ['body'], msg: 'Nothing changes', type: 'value_error' },
+                    { loc: ['query', 'limit'], msg: 'Too high', type: 'value_error' },
+                    { msg: 'Try again' },
+                ],
+            }),
+            { fields: { email: { label: 'Email' }, tags: { label: 'Tags' } } }
+        );
+
+        expect(formatted.title).toBe('Validation error');
+        expect(formatted.fieldErrors.map((error) => error.field)).toEqual(['email', 'tags[0]']);
+        expect(formatted.messages).toEqual(['Nothing changes', 'Too high', 'Try again']);
+        expect(formatted.points).toEqual([
+            'Nothing changes',
+            'Too high',
+            'Try again',
+            'Field Email: Not an email',
+            'Field Tags: Too long',
+        ]);
+    });
+
+    it('says a field the metadata do not name by its message alone', () => {
+        const formatted = formatApiError(
+            answered({ detail: [{ loc: ['body', 'secret'], msg: 'Required', type: 'missing' }] })
+        );
+
+        expect(formatted.fieldErrors[0].field).toBe('secret');
+        expect(formatted.fullMessage).toBe('Required');
+    });
+
+    it('speaks the language of the application', () => {
+        application();
+
+        expect(
+            formatValidationErrors(
+                answered({ detail: [{ loc: ['body', 'name'], msg: 'requis' }, { msg: 'trop long' }] }),
+                undefined,
+                { name: { label: 'Nom' } }
+            )
+        ).toBe('Erreur de validation\n• trop long\n• Champ Nom : requis');
+    });
+});
+
 describe('formatValidationErrors', () => {
     it('reads the reason the server names', () => {
         expect(formatValidationErrors({ data: { detail: 'Too late' } })).toBe('Too late');
         expect(formatValidationErrors({ data: { detail: [{ msg: 'Field is required' }] } })).toBe('Field is required');
     });
 
-    it('lists the fields when the server refused several', () => {
-        const message = formatValidationErrors({
-            data: { detail: [{ loc: ['body', 'name'], msg: 'required' }, { msg: 'too long' }] },
-        });
+    it('says a point alone as it is, several under the title in bullets', () => {
+        const message = formatValidationErrors(
+            { data: { detail: [{ loc: ['body', 'name'], msg: 'required' }, { msg: 'too long' }] } },
+            undefined,
+            { name: { label: 'Name' } }
+        );
 
-        expect(message).toBe('• body → name: required\n• too long');
+        expect(message).toBe('Validation error\n• too long\n• Field Name: required');
     });
 
     it('falls back on the wording it is given, then on its own', () => {
         application();
 
         expect(formatValidationErrors({ data: { detail: { code: 'nope' } } }, 'Export failed')).toBe('Export failed');
-        expect(formatValidationErrors({ data: { detail: { code: 'nope' } } })).toBe('Erreur inconnue');
+        expect(formatValidationErrors({ data: { detail: { code: 'nope' } } })).toBe('Une erreur est survenue');
     });
 
     it('falls back on its wording when the server named no reason, the network down for instance', () => {
         application();
 
         expect(formatValidationErrors(new TypeError('Failed to fetch'), 'Export failed')).toBe('Export failed');
-        expect(formatValidationErrors({})).toBe('Erreur inconnue');
-        expect(formatValidationErrors({ data: { detail: [] } })).toBe('Erreur inconnue');
+        expect(formatValidationErrors({})).toBe('Une erreur est survenue');
+        expect(formatValidationErrors({ data: { detail: [] } })).toBe('Une erreur est survenue');
     });
 
     it('says nothing without an error', () => {

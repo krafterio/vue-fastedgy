@@ -3,7 +3,9 @@
  * a message the server sends in English is translated here the same way.
  */
 export declare const es: {
-    'Unknown error': string;
+    'An error occurred': string;
+    'Validation error': string;
+    'Field {name}: {message}': string;
     'Connection error': string;
     'Registration error': string;
     'Export failed': string;

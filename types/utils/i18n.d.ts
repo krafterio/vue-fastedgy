@@ -36,7 +36,7 @@ export declare function addLocaleMessages(messages: Record<string, Record<string
  *
  * @param {string} key
  * @param {Object} [named] - Values of the placeholders the message carries
- * @returns {string} - The key itself when the application installed no i18n
+ * @returns {string} - The key itself, its values filled in, when the application installed no i18n
  *
  * @example
  * t('Not found');

@@ -7,7 +7,7 @@ import { reactive, ref, toValue } from 'vue';
 import { useApiModel } from './api.js';
 import { useMetadataStore } from '../stores/metadata.js';
 import { relationKindOf } from '../utils/query-fields.js';
-import { formatValidationErrors } from '../utils/validations.js';
+import { formatApiError } from '../utils/validations.js';
 
 const pad = (number) => String(number).padStart(2, '0');
 
@@ -107,24 +107,21 @@ export function useRecordEdit(model, options = {}) {
     const run = (task) => (list ? list.writing(task) : task());
 
     /**
-     * Keep what the server said of a row: by field, or for the whole row when it names none.
+     * Keep what the server said of a row: by field, and for the whole row what it says about none.
      */
     const keep = (id, failure) => {
-        const detail = failure?.data?.detail;
-        const byField = Array.isArray(detail) ? detail.filter((one) => Array.isArray(one?.loc) && one.msg) : [];
+        const formatted = formatApiError(failure, { defaultMessage: failure?.message });
 
-        if (byField.length === 0) {
-            rowErrors.set(id ?? null, formatValidationErrors(failure, failure?.message));
-
-            return;
+        if (formatted.fieldErrors.length) {
+            errors.set(id ?? null, {
+                ...errors.get(id ?? null),
+                ...Object.fromEntries(formatted.fieldErrors.map((one) => [one.field, one.message])),
+            });
         }
 
-        errors.set(id ?? null, {
-            ...errors.get(id ?? null),
-            ...Object.fromEntries(
-                byField.map((one) => [one.loc.slice(one.loc[0] === 'body' ? 1 : 0).join('.'), one.msg])
-            ),
-        });
+        if (!formatted.fieldErrors.length || formatted.messages.length) {
+            rowErrors.set(id ?? null, formatted.messages.length ? formatted.messages.join('\n') : formatted.title);
+        }
     };
 
     const forget = (id, field) => {

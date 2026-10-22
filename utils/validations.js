@@ -6,47 +6,164 @@
 import { t } from './i18n.js';
 
 /**
- * Format validation errors from Pydantic in a readable text.
+ * What an error says about a field of the body.
  *
- * @param {Error} error - The error object of api request
- * @param {string} [defaultMessage] - What to say when the server named no reason, already translated by the caller
- * @returns {string | undefined} Formatted error message, the default one when the server named no reason (the
- *   network down, an answer without a body), or undefined if no error
+ * @typedef {Object} FieldError
+ * @property {string} field Its path in the body: `items[0].value`
+ * @property {string|undefined} label The name the metadata give the field, none when they do not describe it
+ * @property {string} message
+ * @property {string} type
+ * @property {string} described The message named by the label of its field, « Field Email: not an email »; alone
+ *   for a field the metadata do not name
  */
-export function formatValidationErrors(error, defaultMessage) {
-    if (!error) {
-        return undefined;
-    }
 
-    const errorDetail = error.data?.detail;
-    const fallback = defaultMessage || t('Unknown error');
+/**
+ * An error worded for the screen.
+ *
+ * @typedef {Object} FormattedError
+ * @property {string} title
+ * @property {FieldError[]} fieldErrors What it says about a field
+ * @property {string[]} messages What it says about none
+ * @property {string[]} points Each thing it says: its messages, then its field errors, each named by its field
+ * @property {string} fullMessage The error in one message, for a toast or a dialog: a point alone, or the title
+ *   over its points, one bullet each; the title when it says none
+ */
 
-    if (!errorDetail) {
+/**
+ * The error a call of the fetcher failed with, worded for the screen: the reason the server gives (`detail`, else
+ * its `message` or `error`), `defaultMessage` when it gives none (the network down, an answer without a body),
+ * « An error occurred » without one.
+ *
+ * A validation error (`detail` as a list, FastAPI's HTTPValidationError) is titled « Validation error »: what it
+ * says about a field of the body goes to `fieldErrors`, its path read from `loc` (`["body", "items", 0, "value"]`
+ * to `items[0].value`) and named by its label in `fields`, the metadata of the model written; the rest to
+ * `messages`.
+ *
+ * The same as `formatApiError` of flutter_fastedgy.
+ *
+ * @param {any} error The error of the call, its body as `data`
+ * @param {{ defaultMessage?: string, fields?: Record<string, { label?: string }> }} [options]
+ * @returns {FormattedError}
+ */
+export function formatApiError(error, { defaultMessage, fields } = {}) {
+    const fallback = formatted(defaultMessage || t('An error occurred'));
+    const data = error?.data;
+
+    if (!data || typeof data !== 'object') {
         return fallback;
     }
 
-    if (typeof errorDetail === 'string') {
-        return errorDetail;
+    const detail = data.detail;
+
+    if (typeof detail === 'string' && detail) {
+        return formatted(detail);
     }
 
-    if (Array.isArray(errorDetail)) {
-        if (errorDetail.length === 0) {
-            return fallback;
+    if (Array.isArray(detail)) {
+        const fieldErrors = [];
+        const messages = [];
+
+        for (const item of detail) {
+            const msg = item?.msg;
+
+            if (typeof msg !== 'string' || !msg) {
+                continue;
+            }
+
+            const path = Array.isArray(item.loc) && item.loc[0] === 'body' ? fieldPath(item.loc) : '';
+
+            if (path) {
+                fieldErrors.push(fieldError(path, msg, fields, item.type ?? 'unknown'));
+            } else {
+                messages.push(msg);
+            }
         }
 
-        if (errorDetail.length === 1) {
-            return errorDetail[0].msg || fallback;
+        return fieldErrors.length || messages.length
+            ? formatted(t('Validation error'), fieldErrors, messages)
+            : fallback;
+    }
+
+    for (const key of ['message', 'error']) {
+        if (typeof data[key] === 'string' && data[key]) {
+            return formatted(data[key]);
         }
-
-        const errorItems = errorDetail.map((err) => {
-            const field = err.loc ? err.loc.join(' → ') : '';
-            const message = err.msg || fallback;
-
-            return field ? `• ${field}: ${message}` : `• ${message}`;
-        });
-
-        return errorItems.join('\n');
     }
 
     return fallback;
+}
+
+/**
+ * The error a call failed with in one message (`fullMessage` of {@link formatApiError}). The same as
+ * `formatValidationErrors` of flutter_fastedgy.
+ *
+ * @param {any} error The error of the call, its body as `data`
+ * @param {string} [defaultMessage] What to say when the server named no reason, already translated by the caller
+ * @param {Record<string, { label?: string }>} [fields] The metadata of the model written, naming its fields
+ * @returns {string | undefined} The message, undefined without an error
+ */
+export function formatValidationErrors(error, defaultMessage, fields) {
+    return error ? formatApiError(error, { defaultMessage, fields }).fullMessage : undefined;
+}
+
+/**
+ * @param {string} title
+ * @param {FieldError[]} [fieldErrors]
+ * @param {string[]} [messages]
+ * @returns {FormattedError}
+ */
+function formatted(title, fieldErrors = [], messages = []) {
+    const points = [...messages, ...fieldErrors.map((one) => one.described)];
+    const fullMessage =
+        points.length === 0
+            ? title
+            : points.length === 1
+              ? points[0]
+              : [title, ...points.map((point) => `• ${point}`)].join('\n');
+
+    return { title, fieldErrors, messages, points, fullMessage };
+}
+
+/**
+ * @param {string} field
+ * @param {string} message
+ * @param {Record<string, { label?: string }> | undefined} fields
+ * @param {string} type
+ * @returns {FieldError}
+ */
+function fieldError(field, message, fields, type) {
+    const label = fields?.[field.split(/[.[]/)[0]]?.label || undefined;
+
+    return {
+        field,
+        label,
+        message,
+        type,
+        described: label ? t('Field {name}: {message}', { name: label, message }) : message,
+    };
+}
+
+/**
+ * The path of a field from the location of its error, `body` left out: `["body", "items", 0, "value"]` to
+ * `items[0].value`.
+ *
+ * @param {Array<string|number>} loc
+ * @returns {string}
+ */
+function fieldPath(loc) {
+    const parts = [];
+
+    for (const segment of loc.slice(1)) {
+        if (typeof segment === 'number') {
+            if (parts.length) {
+                parts[parts.length - 1] += `[${segment}]`;
+            } else {
+                parts.push(`[${segment}]`);
+            }
+        } else {
+            parts.push(String(segment));
+        }
+    }
+
+    return parts.join('.');
 }

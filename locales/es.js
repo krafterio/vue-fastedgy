@@ -8,7 +8,9 @@
  * a message the server sends in English is translated here the same way.
  */
 export const es = {
-    'Unknown error': 'Error desconocido',
+    'An error occurred': 'Se ha producido un error',
+    'Validation error': 'Error de validación',
+    'Field {name}: {message}': 'Campo {name}: {message}',
     'Connection error': 'Error de conexión',
     'Registration error': 'Error en el registro',
     'Export failed': 'Error en la exportación',

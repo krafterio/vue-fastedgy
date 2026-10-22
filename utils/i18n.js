@@ -123,7 +123,7 @@ function reportMissing(target, key) {
  *
  * @param {string} key
  * @param {Object} [named] - Values of the placeholders the message carries
- * @returns {string} - The key itself when the application installed no i18n
+ * @returns {string} - The key itself, its values filled in, when the application installed no i18n
  *
  * @example
  * t('Not found');
@@ -133,7 +133,9 @@ export function t(key, named) {
     const global = instance?.global;
 
     if (!key || typeof global?.t !== 'function') {
-        return key;
+        return named === undefined
+            ? key
+            : key.replace(/\{(\w+)\}/g, (whole, name) => (name in named ? String(named[name]) : whole));
     }
 
     return named === undefined ? global.t(key) : global.t(key, named);

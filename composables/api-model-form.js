@@ -76,7 +76,7 @@ export function resolveWidget(field) {
  * which is silently falsy against `?.fields` and leaves the form with no fields
  * at all. Hence the ref and the explicit load.
  *
- * @param {string|Object} model Model name as `/dataset/metadatas` reports it, or
+ * @param {string|object} model Model name as `/dataset/metadatas` reports it, or
  *   the api model that reads and writes it: an application's own, with its
  *   prefix and its actions, rather than a generic one
  * @param {Object} options

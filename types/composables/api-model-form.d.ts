@@ -52,7 +52,7 @@ export declare function resolveWidget(field: any): any;
  * which is silently falsy against `?.fields` and leaves the form with no fields
  * at all. Hence the ref and the explicit load.
  *
- * @param {string|Object} model Model name as `/dataset/metadatas` reports it, or
+ * @param {string|object} model Model name as `/dataset/metadatas` reports it, or
  *   the api model that reads and writes it: an application's own, with its
  *   prefix and its actions, rather than a generic one
  * @param {Object} options
@@ -65,7 +65,7 @@ export declare function resolveWidget(field: any): any;
  * @param {Array<string>} [options.select] The fields a record is read with, when
  *   the form shows more than it edits: a relation's name, a date it only displays
  */
-export declare function useApiModelForm(model: string | any, options?: {
+export declare function useApiModelForm(model: string | object, options?: {
     prefix?: string;
     fields?: Array<string>;
     exclude?: Array<string>;

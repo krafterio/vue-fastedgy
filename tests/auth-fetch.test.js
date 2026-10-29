@@ -63,6 +63,49 @@ describe('useAuthFetch', () => {
         expect(call[1].headers['Authorization']).toBe(`Bearer ${localStorage.getItem('access_token')}`);
     });
 
+    it('answers a refused token by the request sent again, leaving no rejection behind', async () => {
+        localStorage.setItem('access_token', tokenExpiringIn(600));
+
+        let refused = false;
+        const unhandled = vi.fn();
+
+        window.fetch = vi.fn((url) => {
+            if (url.includes('/auth/refresh')) {
+                return Promise.resolve(
+                    jsonResponse({ access_token: tokenExpiringIn(600), refresh_token: 'the-refresh-token' })
+                );
+            }
+
+            if (!refused) {
+                refused = true;
+
+                return Promise.resolve({
+                    ok: false,
+                    status: 401,
+                    statusText: 'Unauthorized',
+                    headers: { get: () => 'application/json' },
+                    json: async () => ({ detail: 'Not authenticated' }),
+                });
+            }
+
+            return Promise.resolve(jsonResponse({ id: 7 }));
+        });
+        process.on('unhandledRejection', unhandled);
+
+        try {
+            useAuthFetch();
+
+            const response = await fetch('/me');
+
+            await new Promise((resolve) => setTimeout(resolve, 0));
+
+            expect(response.data).toEqual({ id: 7 });
+            expect(unhandled).not.toHaveBeenCalled();
+        } finally {
+            process.off('unhandledRejection', unhandled);
+        }
+    });
+
     it('joins a refresh the realtime socket already started', async () => {
         useAuthFetch();
 

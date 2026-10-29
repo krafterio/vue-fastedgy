@@ -109,11 +109,15 @@ export async function fetch(url, options = {}) {
             url,
             options,
             error,
-            next: Promise.reject(error),
+            next: null,
         };
 
         await fetchBus.triggerAndWait('fetch:error', errorPayload);
 
-        return errorPayload.next;
+        if (errorPayload.next) {
+            return errorPayload.next;
+        }
+
+        throw error;
     }
 }

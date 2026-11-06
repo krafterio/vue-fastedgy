@@ -106,6 +106,18 @@ describe('useAuthFetch', () => {
         }
     });
 
+    it('posts the token of a verification link to the email verification route', async () => {
+        localStorage.setItem('access_token', tokenExpiringIn(600));
+        useAuthFetch();
+
+        await useAuthStore().verifyEmail('the-link-token');
+
+        const call = fetchSpy.mock.calls.find(([url]) => url.endsWith('/auth/email/verify'));
+
+        expect(call[1].method).toBe('POST');
+        expect(JSON.parse(call[1].body)).toEqual({ token: 'the-link-token' });
+    });
+
     it('joins a refresh the realtime socket already started', async () => {
         useAuthFetch();
 

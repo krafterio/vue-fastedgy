@@ -203,6 +203,18 @@ export const useAuthStore = defineStore('auth', () => {
         return response.data;
     };
 
+    /**
+     * Prove the email the verification link was sent to.
+     *
+     * @param {String} token
+     * @returns {Promise<{message: String}>}
+     */
+    const verifyEmail = async (token) => {
+        const response = await fetcher.post('/auth/email/verify', { token });
+
+        return response.data;
+    };
+
     const checkUser = async () => {
         if (token.value && !user.value) {
             checkUserPromise ??= fetcher
@@ -262,5 +274,6 @@ export const useAuthStore = defineStore('auth', () => {
         forgotPassword,
         validatePasswordToken,
         resetPassword,
+        verifyEmail,
     };
 });

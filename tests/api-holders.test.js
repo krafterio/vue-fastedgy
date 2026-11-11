@@ -101,7 +101,7 @@ describe('useApiRecord', () => {
         let answerFirst;
 
         get.mockReturnValueOnce(new Promise((resolve) => (answerFirst = resolve)));
-        get.mockResolvedValueOnce({ data: { id: 9, name: 'Bendr' } });
+        get.mockResolvedValueOnce({ data: { id: 9, name: 'Acme' } });
 
         const { held } = harness(() => useApiRecord('company', () => id.value, { api: { get } }));
 
@@ -110,7 +110,7 @@ describe('useApiRecord', () => {
         answerFirst({ data: { id: 7, name: 'Krafter' } });
         await flushPromises();
 
-        expect(held().data.value).toEqual({ id: 9, name: 'Bendr' });
+        expect(held().data.value).toEqual({ id: 9, name: 'Acme' });
         expect(held().status.value).toBe('success');
     });
 
